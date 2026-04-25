@@ -74,41 +74,44 @@ model Intervention {
 }
 
 model ExpensePayment {
-  id                    Int      @id @default(autoincrement())
-  company_id            String
-  project_name          String
-  project_state         String
-  intervention          Int      @default(0)
-  project_district      String
-  project_village       String
-  amount                Float    @default(0)
-  approved_amount       Float?   @default(0)
-  final_approved_amount Float?   @default(0)
-  amount_change_by      Int?
-  requested_by          Int
-  requested_date        DateTime @default(now())
-  financial_year        String   @default("")
-  manager_id            Int
+  id                       Int      @id @default(autoincrement())
+  company_id               String
+  project_name             String
+  project_state            String
+  intervention             Int @default(0)
+  project_district         String
+  project_village          String
+  amount                   Float @default(0)
+  approved_amount          Float? @default(0)
+  final_approved_amount    Float? @default(0)
+  amount_change_by         Int?
+  requested_by             Int
+  requested_date           DateTime @default(now())
+  financial_year           String @default("")
+  manager_id               Int
 
-  //   Manager approval
-  approval_status     Int       @default(0)
-  manager_remarks     String?
-  manager_approved_at DateTime? //   NEW
+  // ✅ Manager approval
+  approval_status          Int  @default(0)
+  manager_remarks          String?
+  manager_approved_at      DateTime?   // ✅ NEW
 
-  //   Reviewer
+  // ✅ Reviewer
   review_assign            Boolean  @default(false)
-  assign_date       DateTime?
   managertoreviewer        String @default("")
   reviewer_id              Int?
   reviewer_remarks         String?
 
-  reviewer_approval_status Int       @default(0)
-  reviewer_status          Boolean   @default(false)
-  reviewer_approved_at     DateTime? //   NEW
+  reviewer_approval_status Int  @default(0)
+  reviewer_status          Boolean  @default(false)
+  reviewer_approved_at     DateTime?   // ✅ NEW
 
-  //   Payment
-  paid_amount    Float @default(0)
-  payment_status Int   @default(0)
+  // ✅ Payment
+  paid_amount              Float     @default(0)
+  payment_status           Int       @default(0)
+
+  remarks                  String?
+  document                 String?
+  created_by               String?
 
   remarks    String?
   document   String?
@@ -157,17 +160,6 @@ model Role {
 }
 
 model Permission {
-<<<<<<< HEAD
-  id         Int    @id @default(autoincrement())
-  company_id String
-  name       String @unique // e.g. "create_expense"
-  label      String // UI label
-  module     String // e.g. "Expense", "Accounts"
-
-  roles      RolePermission[]
-  created_by String?
-  created_at DateTime         @default(now())
-=======
   id          Int       @id @default(autoincrement())
   company_id               String
   name        String              // e.g. "create_expense"
@@ -179,7 +171,6 @@ model Permission {
   created_at  DateTime  @default(now())
 
   @@unique([company_id, name])
->>>>>>> origin/main
 }
 
 model RolePermission {
@@ -204,12 +195,6 @@ model Wallet {
   walletHistories WalletHistory[]
 }
 
-<<<<<<< HEAD
-model Payments {
-  id            Int      @id @default(autoincrement())
-  company_id    String
-  financial_year  String
-=======
 model Wallet {
   id              Int             @id @default(autoincrement())
   company_id      String
@@ -223,7 +208,6 @@ model Wallet {
 model Payments {
   id            Int      @id @default(autoincrement())
   company_id    String
->>>>>>> origin/main
   user_id       Int
   accountant_id Int
   project_id    Int      @default(0)
@@ -251,8 +235,6 @@ model WalletHistory {
   updatedAt    DateTime @updatedAt // ✅ FIXED
   wallet       Wallet   @relation(fields: [wallet_id], references: [id])
 }
-<<<<<<< HEAD
-=======
 
 
 model CompanyDetail {
@@ -1210,4 +1192,3 @@ model DocumentAttachment {
   @@index([document_type, document_id])
 }
 
->>>>>>> origin/main
