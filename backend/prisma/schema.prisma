@@ -89,29 +89,24 @@ model ExpensePayment {
   final_approved_amount    Float? @default(0)
   amount_change_by         Int?
   requested_by             Int
-  requested_date           DateTime @default(now())
-  financial_year           String @default("")
+  requested_date DateTime @default(now())
+  financial_year String @default("")
   manager_id               Int
 
-  // ✅ Manager approval
-  approval_status          Int  @default(0)
+  approval_status          Int  @default(0) // ✅ 0
   manager_remarks          String?
-  manager_approved_at      DateTime?   // ✅ NEW
 
-  // ✅ Reviewer
-  review_assign            Boolean  @default(false)
-  managertoreviewer        String @default("")
+  review_assign            Boolean  @default(false) // ✅ 0
+  managertoreviewer String @default("")
   reviewer_id              Int?
   reviewer_remarks         String?
 
-  reviewer_approval_status Int  @default(0)
-  reviewer_status          Boolean  @default(false)
-  reviewer_approved_at     DateTime?   // ✅ NEW
+  reviewer_approval_status Int  @default(0) // ✅ 0
+  reviewer_status          Boolean  @default(false) // ✅ 0
 
-  // ✅ Payment
-  paid_amount              Float     @default(0)
-  payment_status           Int       @default(0)
-
+  paid_amount            Float     @default(0)
+  payment_status         Int       @default(0)
+  
   remarks                  String?
   document                 String?
   created_by               String?
