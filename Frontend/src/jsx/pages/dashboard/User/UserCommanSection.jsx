@@ -259,12 +259,29 @@ function UserCommanSection() {
           setAvailableProjects(projects);
         }
 
+        // if (isFirstLoad.current) {
+        //   isFirstLoad.current = false;
+        //   const currentFY = getCurrentFY();
+        //   const currentExists = fyList.some((f) => f.fy_year === currentFY);
+        //   if (!currentExists && fyList.length > 0) {
+        //     setSelectedFY(fyList[fyList.length - 1].fy_year);
+        //     return;
+        //   }
+        // }
+
         if (isFirstLoad.current) {
           isFirstLoad.current = false;
           const currentFY = getCurrentFY();
           const currentExists = fyList.some((f) => f.fy_year === currentFY);
           if (!currentExists && fyList.length > 0) {
-            setSelectedFY(fyList[fyList.length - 1].fy_year);
+            // Current FY ka data nahi hai, to current - 1 try karo
+            const now = new Date();
+            const year = now.getFullYear();
+            const month = now.getMonth() + 1;
+            const fyStart = month >= 4 ? year : year - 1;
+            const prevFY = `${fyStart - 1}-${fyStart}`;
+            const prevExists = fyList.some((f) => f.fy_year === prevFY);
+            setSelectedFY(prevExists ? prevFY : fyList[fyList.length - 1].fy_year);
             return;
           }
         }
@@ -309,9 +326,9 @@ function UserCommanSection() {
 
 
   const monthlyChartData = useMemo(
-  () => buildMonthlyChartDataFromAPI(yearlyMonthlyPaidData, selectedFY),
-  [yearlyMonthlyPaidData, selectedFY]
-);
+    () => buildMonthlyChartDataFromAPI(yearlyMonthlyPaidData, selectedFY),
+    [yearlyMonthlyPaidData, selectedFY]
+  );
 
 
   const chartTotals = useMemo(() => ({

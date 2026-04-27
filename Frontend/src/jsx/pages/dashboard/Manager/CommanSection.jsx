@@ -1,7 +1,7 @@
 import { Link } from "react-router-dom";
 import { SVGICON } from "../../../constant/theme";
 import { Dropdown, Nav, Tab } from "react-bootstrap";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import SkyGreeting from "../../../components/Common/SkyGreeting";
 
 import { Bar } from "react-chartjs-2";
@@ -52,7 +52,7 @@ const ExpenseOverviewChart = ({ data = [] }) => {
 				backgroundColor: CHART_COLORS.total,
 				borderRadius: 10,
 				barPercentage: 0.25,
-				categoryPercentage: 0.8, 
+				categoryPercentage: 0.8,
 			},
 			{
 				label: "Approved",
@@ -244,16 +244,21 @@ const UserBarChart = ({ data = [] }) => {
 // ── ManagerDashboard ───────────────────────────────────────────────────────────
 const ManagerDashboard = () => {
 	const [selectedFY, setSelectedFY] = useState("");
+	const [selectedProjectId, setSelectedProjectId] = useState("");
 	const [dashData, setDashData] = useState(null);
 	const [loading, setLoading] = useState(false);
 	const [error, setError] = useState(null);
 
 	// ── Fetch ─────────────────────────────────────────────────────────────────
-	const fetchDashboard = async (fy = selectedFY) => {
+
+	const fetchDashboard = useCallback(async (fy = selectedFY, projectId = selectedProjectId) => {
 		setLoading(true);
 		setError(null);
 		try {
-			const params = new URLSearchParams({ fy_year: fy });
+			const params = new URLSearchParams();
+			params.set("fy_year", fy || "");
+			if (projectId) params.set("project_id", projectId);
+
 			const res = await fetch(
 				`${import.meta.env.VITE_BACKEND_API_URL}dashboard/manager-dashboard?${params}`,
 				{
@@ -278,9 +283,11 @@ const ManagerDashboard = () => {
 		} finally {
 			setLoading(false);
 		}
-	};
+	}, [selectedFY, selectedProjectId]);
 
-	useEffect(() => { fetchDashboard(selectedFY); }, [selectedFY]);
+	useEffect(() => {
+		fetchDashboard(selectedFY, selectedProjectId);
+	}, [selectedFY, selectedProjectId, fetchDashboard]);
 
 	// ── Derived values ────────────────────────────────────────────────────────
 	const totalExpense = dashData?.totalExpense ?? 0;
@@ -327,30 +334,61 @@ const ManagerDashboard = () => {
 			{/* ── Page Header ── */}
 			<div className="page-head">
 				<div className="row align-items-center">
-					<div className="col-sm-8 mb-sm-4">
+
+					{/* Left: Greeting */}
+					<div className="col-12 col-md-7 mb-3 mb-md-0">
 						<SkyGreeting />
 					</div>
-					<div className="col-sm-4 mb-4 text-sm-end">
-						<div className="d-inline-flex align-items-center gap-2">
-							<select
-								className="form-select w-auto"
-								value={selectedFY}
-								onChange={(e) => setSelectedFY(e.target.value)}
+
+					{/* Right: Filters + CTA */}
+					<div className="col-12 col-md-5">
+						<div className="d-flex flex-column flex-md-row align-items-stretch align-items-md-center gap-2 justify-content-md-end">
+							<div className="d-flex gap-2 flex-grow-1 flex-md-grow-0">
+
+								{/* Project Filter */}
+								<select
+									className="form-select flex-fill"
+									value={selectedProjectId}
+									onChange={(e) => setSelectedProjectId(e.target.value)}
+								>
+									{availableProjects
+										.filter((p) => p.project_id)
+										.map((p) => (
+											<option key={p.project_id} value={String(p.project_id)}>
+												{p.project_name}
+											</option>
+										))}
+
+									<option value="">All Projects</option>
+
+								</select>
+
+								{/* FY Filter */}
+								<select
+									className="form-select flex-fill"
+									value={selectedFY}
+									onChange={(e) => setSelectedFY(e.target.value)}
+								>
+									{availableFYList
+										.filter((f) => f.fy_year)
+										.map((f) => (
+											<option key={f.fy_year} value={f.fy_year}>
+												FY {f.fy_year}
+											</option>
+										))}
+									<option value="0">All Years</option>
+								</select>
+							</div>
+
+							<Link
+								to="/add-expense"
+								className="btn btn-primary d-flex justify-content-center align-items-center px-3"
 							>
-								<option value="">Select Financial Year</option>
-								{availableFYList
-									.filter((f) => f.fy_year)
-									.map((f) => (
-										<option key={f.fy_year} value={f.fy_year}>
-											FY {f.fy_year}
-										</option>
-									))}
-							</select>
-							<Link to="/add-expense" className="btn btn-primary d-flex align-items-center gap-1">
 								+ Raise Expense
 							</Link>
 						</div>
 					</div>
+
 				</div>
 			</div>
 

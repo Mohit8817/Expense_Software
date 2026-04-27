@@ -626,6 +626,7 @@ export const AdminDashboard = async (req, res) => {
         });
     }
 };
+
 export const ManagerDashboard = async (req, res) => {
     try {
         const company_id = req.user.company_id;

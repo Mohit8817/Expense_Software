@@ -46,6 +46,7 @@ import RoleEdit from "../modules/RolePermission/RoleEdit"
 import PermissionList from "../modules/RolePermission/PermissionList";
 import PermissionForm from "../modules/RolePermission/PermissionForm"
 import AssignPermission from "../modules/RolePermission/AssignPermission"
+import InterventionReports from "../modules/Report/InterventionReports";
 
 
 
@@ -96,7 +97,7 @@ const Markup = () => {
         { path: '/Reviewer-List', element: <ReviewerList /> },
         { path: '/Manager-List', element: <ManagerList /> },
         { path: '/Account-List', element: <AccountsList /> },
-
+        { path: '/Intervention-Reports', element: <InterventionReports /> },
         { path: 'form-element', element: <Element /> },
         { path: 'form-wizard', element: <Wizard /> },
         { path: 'form-ckeditor', element: <CkEditor /> },
@@ -112,7 +113,7 @@ const Markup = () => {
         { path: '/permission/add-permission', element: <PermissionForm /> },
         { path: '/role/assign/:id', element: <AssignPermission /> }
 
-     ];
+    ];
 
     return (
         <>

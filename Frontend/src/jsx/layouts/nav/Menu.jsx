@@ -66,4 +66,16 @@ export const MenuList = [
       { title: 'Permission List', to: '/permission/list', permission: "view_permission" },
     ],
   },
+
+
+    {
+    title: 'Reports',
+    classsChange: 'mm-collapse',
+    iconStyle: <i className=" flaticon-project" />,
+    permission: "",
+    content: [
+      { title: 'Intervention Reports', to: '/Intervention-Reports', permission: "" },
+
+    ],
+  },
 ];
