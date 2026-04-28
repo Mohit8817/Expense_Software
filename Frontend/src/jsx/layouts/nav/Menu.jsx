@@ -1,11 +1,11 @@
 export const MenuList = [
-  { title: 'Admin Dashboard', to: '/admin-dashboard', permission: "admin_dashboard" , iconStyle: <i className="flaticon-home" /> },
-  
-  { title: 'Manager Dashboard ', to: '/manager-dashboard', permission: "manager_dashboard" ,  iconStyle: <i className="flaticon-home" /> },
+  { title: 'Admin Dashboard', to: '/admin-dashboard', permission: "admin_dashboard", iconStyle: <i className="flaticon-home" /> },
+
+  { title: 'Manager Dashboard ', to: '/manager-dashboard', permission: "manager_dashboard", iconStyle: <i className="flaticon-home" /> },
 
   { title: 'Masters', classsChange: 'menu-title' },
-    
-  { title: 'User Dashboard ', to: '/user-dashboard', permission: "user_dashboard" , iconStyle: <i className="flaticon-home" /> },
+
+  { title: 'User Dashboard ', to: '/user-dashboard', permission: "user_dashboard", iconStyle: <i className="flaticon-home" /> },
 
   {
     title: 'Employee',
@@ -48,9 +48,37 @@ export const MenuList = [
     content: [
       { title: 'Add Expense', to: '/Add-Expense', permission: "create_expense" },
       { title: 'Payment List', to: '/payment-list', permission: "view_expense" },
-      { title: 'Manager List', to: '/manager-list', permission: "manager_expense" },
+      // { title: 'Manager List', to: '/manager-list', permission: "manager_expense" },
       { title: 'Reviewer List', to: '/reviewer-list', permission: "reviewer_expense" },
-      { title: 'Accounts List', to: '/account-list', permission: "account_expense" },
+      // { title: 'Accounts List', to: '/account-list', permission: "account_expense" },
+    ]
+  },
+
+
+  {
+    title: 'Manager Payment',
+    iconStyle: <i className="flaticon-grid" />,
+    classsChange: 'mm-collapse',
+    permission: "view_expense",
+    content: [
+
+      { title: 'Pending Payments', to: '/manager/pending-payments', permission: "manager_expense" },
+      { title: 'All Payments', to: '/manager/approved-payments', permission: "manager_expense" },
+
+
+    ]
+  },
+
+
+
+  {
+    title: 'Accounts',
+    iconStyle: <i className="flaticon-grid" />,
+    classsChange: 'mm-collapse',
+    permission: "account_expense",
+    content: [
+      { title: 'Pending Payments', to: '/account/pending-payments', permission: "account_expense" },
+      { title: 'Paid Payments', to: '/account/paid-payments', permission: "account_expense" },
     ]
   },
 
@@ -68,7 +96,7 @@ export const MenuList = [
   },
 
 
-    {
+  {
     title: 'Reports',
     classsChange: 'mm-collapse',
     iconStyle: <i className=" flaticon-project" />,

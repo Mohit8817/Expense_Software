@@ -64,9 +64,10 @@ export const createExpense = async (req, res) => {
       project_village,
       intervention,
       amount,
+      remarks,
     } = req.body;
 
-    const company_id = req.user.company_id; 
+    const company_id = req.user.company_id;
     const created_by = req.user.email;
     const requested_by = req.user.id;
 
@@ -76,8 +77,8 @@ export const createExpense = async (req, res) => {
       const year = today.getFullYear();
       const month = today.getMonth() + 1;
 
-      return month >= 4 
-        ? `${year}-${year + 1}` 
+      return month >= 4
+        ? `${year}-${year + 1}`
         : `${year - 1}-${year}`;
     };
 
@@ -118,8 +119,9 @@ export const createExpense = async (req, res) => {
         manager_id: parseInt(manager_project_id.manager_id),
         requested_by,
         created_by,
+        remarks,
         document,
-        financial_year, 
+        financial_year,
       },
     });
 
@@ -225,6 +227,7 @@ export const getMyCreatedExpenses = async (req, res) => {
 
         amount: exp.amount,
         document: exp.document,
+        remarks: exp.remarks || "N/A", 
         created_at: exp.created_at,
 
         raised_by: userMap[userId] || "N/A",
@@ -252,23 +255,63 @@ export const getMyCreatedExpenses = async (req, res) => {
 };
 
 
+
+export const deleteExpense = async (req, res) => {
+  try {
+    const id = Number(req.params.id);
+
+    if (!id || isNaN(id)) {
+      return res.status(400).json({ message: "Invalid expense ID" });
+    }
+
+    const existing = await prisma.expensePayment.findUnique({
+      where: { id ,approval_status: 0}
+    });
+
+    if (!existing) {
+      return res.status(404).json({ message: "Expense not found" });
+    }
+
+    const deletedExpense = await prisma.expensePayment.delete({
+      where: { id },
+    });
+
+    res.status(200).json({
+      message: "Expense deleted successfully",
+      data: deletedExpense,
+    });
+  } catch (error) {
+    console.error("Delete error:", error);
+    res.status(500).json({ message: error.message });
+  }
+};
+
+
+
+
 export const getManagerExpenses = async (req, res) => {
   try {
     const company_id = req.user?.company_id;
     const manager_id = req.user?.id;
-
+    const status = req.query.status; // Optional query param for filtering by status
+    if (!status) {
+      return res.status(400).json({
+        message: "Status query parameter is required",
+      });
+    }
     if (!company_id || !manager_id) {
       return res.status(401).json({
         message: "Unauthorized",
       });
     }
 
-const [expenses, projects, interventions, users] = await Promise.all([      
+    const [expenses, projects, interventions, users] = await Promise.all([
 
       prisma.expensePayment.findMany({
         where: {
           company_id,
           manager_id: Number(manager_id),
+          approval_status: Number(status)===0?0:{ not: 0 }, // If status=0, show only pending. Else show approved/rejected
         },
         orderBy: {
           created_at: "desc",
@@ -300,54 +343,57 @@ const [expenses, projects, interventions, users] = await Promise.all([
       interventions.map((i) => [i.id, i.name])
     );
 
-       const userMap = Object.fromEntries(
+    const userMap = Object.fromEntries(
       users.map((u) => [u.id, u.username])
     );
 
 
     // ✅ Status converter
-        const getStatusText = (status) => {
+    const getStatusText = (status) => {
       if (Number(status) === 1) return "Approved";
       if (Number(status) === 2) return "Rejected";
       return "Pending";
     };
 
     // ✅ Final Response
-   const result = expenses.map((exp) => ({
-  id: exp.id,
+    const result = expenses.map((exp) => ({
+      id: exp.id,
 
-  project: projectMap[Number(exp.project_name)] || "N/A",
+      project: projectMap[Number(exp.project_name)] || "N/A",
 
-  intervention:
-    interventionMap[Number(exp.intervention)] || "N/A",
+      intervention:
+        interventionMap[Number(exp.intervention)] || "N/A",
 
-  state: exp.project_state,
-  district: exp.project_district,
-  village: exp.project_village,
-  amount: exp.amount,
-
-
-  // ✅ CLEAN & CORRECT
-  raised_by: userMap[Number(exp.requested_by)] || "N/A",
-  manager_name: userMap[Number(exp.manager_id)] || "N/A",
-  reviewer_name: userMap[Number(exp.reviewer_id)] || "N/A",
-  document: exp.document,
-
-  review_assign: exp.review_assign,
-  managertoreviewer: exp.managertoreviewer,
-  approved_amount: exp.approved_amount || "N/A",
-  reviewer_approval_status: Number(exp.reviewer_approval_status), // raw value
-  reviewer_approval_text: getStatusText(exp.reviewer_approval_status), // label
-  reviewer_remarks: exp.reviewer_remarks || "N/A",
+      state: exp.project_state,
+      district: exp.project_district,
+      village: exp.project_village,
+      amount: exp.amount,
 
 
-  status: getStatusText(exp.approval_status),
-}));
+      // ✅ CLEAN & CORRECT
+      raised_by: userMap[Number(exp.requested_by)] || "N/A",
+      manager_name: userMap[Number(exp.manager_id)] || "N/A",
+      reviewer_name: userMap[Number(exp.reviewer_id)] || "N/A",
+      document: exp.document,
+
+      review_assign: exp.review_assign,
+      managertoreviewer: exp.managertoreviewer,
+      approved_amount: exp.approved_amount || "N/A",
+      final_approved_amount: exp.final_approved_amount || "N/A",
+      paid_amount: exp.paid_amount || "N/A",
+      reviewer_approval_status: Number(exp.reviewer_approval_status), // raw value
+      reviewer_approval_text: getStatusText(exp.reviewer_approval_status), // label
+      
+      reviewer_remarks: exp.reviewer_remarks || "N/A",
+
+
+      status: getStatusText(exp.approval_status),
+    }));
 
     return res.status(200).json(result);
 
   } catch (error) {
-    console.log(error); 
+    console.log(error);
     return res.status(500).json({
       message: error.message,
     });
@@ -409,11 +455,11 @@ export const assignReviewer = async (req, res) => {
     });
 
   } catch (error) {
-  console.log("ERROR 👉", error); // 👈 IMPORTANT
-  return res.status(500).json({
-    message: error.message,
-  });
-}
+    console.log("ERROR 👉", error); // 👈 IMPORTANT
+    return res.status(500).json({
+      message: error.message,
+    });
+  }
 };
 
 
@@ -634,12 +680,19 @@ export const managerApproveExpense = async (req, res) => {
 export const getAccountsExpenses = async (req, res) => {
   try {
     const company_id = req.user.company_id;
+    const status = req.query.status; // Optional query param for filtering by payment status
+    if (!status) {
+      return res.status(400).json({
+        message: "Status is required",
+      });
+    }
 
     // ✅ Fetch only Manager Approved
     const expenses = await prisma.expensePayment.findMany({
       where: {
         company_id,
         approval_status: 1, // ✅ KEY CONDITION
+        payment_status: Number(status) === 0 ? {in:[0,1]} : 2, // If status=0, show only unpaid. Else show partially/fully paid
       },
       orderBy: {
         created_at: "desc",
@@ -683,32 +736,32 @@ export const getAccountsExpenses = async (req, res) => {
     };
 
     // ✅ Final Response
-  const result = expenses.map((exp) => ({
-  id: exp.id,
+    const result = expenses.map((exp) => ({
+      id: exp.id,
 
-  project: projectMap[Number(exp.project_name)] || "N/A",
-  intervention: interventionMap[Number(exp.intervention)] || "N/A",
+      project: projectMap[Number(exp.project_name)] || "N/A",
+      intervention: interventionMap[Number(exp.intervention)] || "N/A",
 
-  state: exp.project_state,
-  district: exp.project_district,
-  village: exp.project_village,
+      state: exp.project_state,
+      district: exp.project_district,
+      village: exp.project_village,
 
-  amount: exp.amount,
-  requested_date: exp.requested_date,
-  document: exp.document,
+      amount: exp.amount,
+      requested_date: exp.requested_date,
+      document: exp.document,
 
-  // ✅ IMPORTANT
-  final_approved_amount: exp.final_approved_amount,
-  paid_amount: exp.paid_amount || 0,              // 🔥 ADD THIS
-  payment_status: exp.payment_status || 0,        // 🔥 ADD THIS
+      // ✅ IMPORTANT
+      final_approved_amount: exp.final_approved_amount,
+      paid_amount: exp.paid_amount || 0,              // 🔥 ADD THIS
+      payment_status: exp.payment_status || 0,        // 🔥 ADD THIS
 
-  // ✅ USERS
-  raised_by: userMap[Number(exp.requested_by)] || "N/A",
-  manager_name: userMap[Number(exp.manager_id)] || "N/A",
+      // ✅ USERS
+      raised_by: userMap[Number(exp.requested_by)] || "N/A",
+      manager_name: userMap[Number(exp.manager_id)] || "N/A",
 
-  // ✅ STATUS
-  manager_status: getStatusText(exp.approval_status),
-}));
+      // ✅ STATUS
+      manager_status: getStatusText(exp.approval_status),
+    }));
 
     return res.json(result);
 
@@ -943,8 +996,7 @@ export const paymentReceipt = async (req, res) => {
       `Project: ${projectMap[Number(expense.project_name)] || "N/A"}`
     );
     doc.text(
-      `Intervention: ${
-        interventionMap[Number(expense.intervention)] || "N/A"
+      `Intervention: ${interventionMap[Number(expense.intervention)] || "N/A"
       }`
     );
     doc.text(`State: ${expense.project_state}`);
@@ -980,8 +1032,7 @@ export const paymentReceipt = async (req, res) => {
 
     doc.text(`Total Amount: ₹ ${expense.amount}`);
     doc.text(
-      `Final Approved Amount: ₹ ${
-        expense.final_approved_amount || expense.amount
+      `Final Approved Amount: ₹ ${expense.final_approved_amount || expense.amount
       }`
     );
     doc.text(`Total Paid: ₹ ${totalPaid}`);

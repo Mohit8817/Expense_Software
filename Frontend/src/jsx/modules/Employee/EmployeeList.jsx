@@ -6,6 +6,7 @@ import PageTitle from "../../layouts/PageTitle";
 import TableExportActions from "../../components/Common/TableExportActions";
 import Pagination from "../../components/Common/Pagination";
 import { getAllEmployees, deleteEmployee } from "./employeeApi";
+import { useSearchFilter, SearchInput } from "../../components/Common/useSearchFilter"; 
 
 const EmployeeList = () => {
   const [data, setData] = useState([]);
@@ -14,6 +15,20 @@ const EmployeeList = () => {
 
   const navigate = useNavigate();
   const location = useLocation();
+
+
+  const {
+    search,
+    setSearch,
+    currentPage,
+    setCurrentPage,
+    totalItems,
+    paginatedData,
+    indexOfFirst,          
+  } = useSearchFilter(data, {
+    keys: ["username", "email", "phone_no", "designation", "reporting_head"],
+    itemsPerPage: 20,
+  });
 
   const fetchUsers = async () => {
     setLoading(true);
@@ -34,23 +49,14 @@ const EmployeeList = () => {
 
   const handleDelete = async (id) => {
     if (!window.confirm("Are you sure you want to delete this employee?")) return;
-
     const { ok, result } = await deleteEmployee(id);
     if (ok) {
-      alert("Employee deleted ");
+      alert("Employee deleted");
       fetchUsers();
     } else {
-      alert(result.message || "Failed ");
+      alert(result.message || "Failed");
     }
   };
-
-  // PAGINATION
-  const itemsPerPage = 10;
-  const [currentPage, setCurrentPage] = useState(1);
-
-  const indexOfLast = currentPage * itemsPerPage;
-  const indexOfFirst = indexOfLast - itemsPerPage;
-  const currentEmployees = data.slice(indexOfFirst, indexOfLast);
 
   if (loading) return <p>Loading...</p>;
   if (error) return <p>Error loading data</p>;
@@ -61,21 +67,30 @@ const EmployeeList = () => {
 
       <Col lg={12}>
         <Card>
-          <Card.Header className="d-flex justify-content-between">
+          <Card.Header className="d-flex justify-content-between align-items-center">
             <Card.Title>Employee List</Card.Title>
 
-            <TableExportActions
-              data={data}
-              columns={[
-                { label: "Name", key: "username" },
-                { label: "Email", key: "email" },
-                { label: "Phone", key: "phone_no" },
-                { label: "Designation", key: "designation" },
-                { label: "Reporting Head", key: "reporting_head" },
-                { label: "Status", key: "status" },
-              ]}
-              fileName="Employee_List"
-            />
+            <div className="d-flex align-items-center gap-2">
+            
+              <SearchInput
+                value={search}
+                onChange={setSearch}
+                placeholder="Search employees..."
+              />
+
+              <TableExportActions
+                data={data}
+                columns={[
+                  { label: "Name", key: "username" },
+                  { label: "Email", key: "email" },
+                  { label: "Phone", key: "phone_no" },
+                  { label: "Designation", key: "designation" },
+                  { label: "Reporting Head", key: "reporting_head" },
+                  { label: "Status", key: "status" },
+                ]}
+                fileName="Employee_List"
+              />
+            </div>
           </Card.Header>
 
           <Card.Body>
@@ -94,10 +109,10 @@ const EmployeeList = () => {
               </thead>
 
               <tbody>
-                {currentEmployees.length > 0 ? (
-                  currentEmployees.map((emp, index) => (
+                {paginatedData.length > 0 ? (       
+                  paginatedData.map((emp, index) => (
                     <tr key={emp.id || index}>
-                      <td>{indexOfFirst + index + 1}</td>
+                      <td>{indexOfFirst + index + 1}</td>  
 
                       <td>
                         <div className="d-flex align-items-center">
@@ -122,10 +137,7 @@ const EmployeeList = () => {
 
                       <td>
                         <div className="d-flex align-items-center">
-                          <i
-                            className={`fa fa-circle me-1 ${emp.status ? "text-success" : "text-danger"
-                              }`}
-                          ></i>
+                          <i className={`fa fa-circle me-1 ${emp.status ? "text-success" : "text-danger"}`}></i>
                           {emp.status ? "Active" : "Inactive"}
                         </div>
                       </td>
@@ -134,13 +146,10 @@ const EmployeeList = () => {
                         <div className="d-flex">
                           <button
                             className="btn btn-primary shadow btn-xs sharp me-1"
-                            onClick={() =>
-                              navigate(`/update-employee/${emp.id}`)
-                            }
+                            onClick={() => navigate(`/update-employee/${emp.id}`)}
                           >
                             <i className="fas fa-pencil-alt"></i>
                           </button>
-
                           <button
                             className="btn btn-danger shadow btn-xs sharp"
                             onClick={() => handleDelete(emp.id)}
@@ -162,8 +171,8 @@ const EmployeeList = () => {
             </Table>
 
             <Pagination
-              totalItems={data.length}
-              itemsPerPage={itemsPerPage}
+              totalItems={totalItems}    
+              itemsPerPage={20}
               currentPage={currentPage}
               onPageChange={setCurrentPage}
             />

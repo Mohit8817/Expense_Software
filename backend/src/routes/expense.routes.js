@@ -1,7 +1,7 @@
 import { Router } from "express";
 import upload from "../middlewares/uploads.js";
 import { checkPermission } from "../middlewares/checkPermission.js";
-import { createExpense, getExpenseFormData, getMyCreatedExpenses, getManagerExpenses, getReviewers, assignReviewer, getReviewerExpenses, reviewerApprove, managerApproveExpense, getAccountsExpenses , processPayment, getPaymentHistory, paymentReceipt } from "../controllers/expense.controller.js";
+import { createExpense, getExpenseFormData, getMyCreatedExpenses, getManagerExpenses, getReviewers, assignReviewer, getReviewerExpenses, reviewerApprove, managerApproveExpense, getAccountsExpenses , processPayment, getPaymentHistory, paymentReceipt,deleteExpense } from "../controllers/expense.controller.js";
 
 const router = Router();
 
@@ -16,8 +16,8 @@ router.patch("/reviewer-approval/:id", checkPermission("approve_expense_reviewer
 router.patch("/manager-approve/:id", checkPermission("approve_expense_manager"), managerApproveExpense);
 router.get("/accounts-expenses", checkPermission("account_expense"), getAccountsExpenses);
 router.post("/process-payment/:id", checkPermission("account_expense"), processPayment);
-router.get("/payment-history/:id", checkPermission("account_expense"), getPaymentHistory);
+router.get("/payment-history/:id", getPaymentHistory);
 router.get("/payment-receipt/:id", checkPermission("account_expense"),  paymentReceipt);
 
-
+router.delete("/delete-expense/:id", deleteExpense);
 export default router;

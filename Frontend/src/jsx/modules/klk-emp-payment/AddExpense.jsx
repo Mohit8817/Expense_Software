@@ -1,9 +1,13 @@
 import React, { useEffect, useState } from "react";
 import { Card, Col } from "react-bootstrap";
+import { useNavigate } from "react-router-dom";
+
 
 const AddExpense = () => {
   const [projects, setProjects] = useState([]);
   const [interventions, setInterventions] = useState([]);
+  const navigate = useNavigate();
+
 
   const [formData, setFormData] = useState({
     project_name: "",
@@ -182,6 +186,7 @@ const AddExpense = () => {
       }
 
       alert("Expense Created Successfully");
+navigate("/payment-list");
 
       // RESET FORM
       setFormData({

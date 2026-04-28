@@ -10,7 +10,7 @@ const TableExportActions = ({ data, columns, fileName }) => {
       <button
         className="btn btn-outline-primary btn-sm"
         title="Export CSV"
-        onClick={() => exportCSV(data, fileName)}
+        onClick={() => exportCSV(data, columns, fileName)}  
       >
         <i className="fa fa-file-csv"></i>
       </button>
@@ -19,7 +19,7 @@ const TableExportActions = ({ data, columns, fileName }) => {
       <button
         className="btn btn-outline-success btn-sm"
         title="Export Excel"
-        onClick={() => exportExcel(data, fileName)}
+        onClick={() => exportExcel(data, columns, fileName)}  
       >
         <i className="fa fa-file-excel"></i>
       </button>

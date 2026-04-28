@@ -47,6 +47,10 @@ import PermissionList from "../modules/RolePermission/PermissionList";
 import PermissionForm from "../modules/RolePermission/PermissionForm"
 import AssignPermission from "../modules/RolePermission/AssignPermission"
 import InterventionReports from "../modules/Report/InterventionReports";
+import ManagerPendingPayments from "../modules/klk-emp-payment/ManagerPendingPayments";
+import ManagerApprovedPayments from "../modules/klk-emp-payment/ManagerApprovedPayments";
+import AccountPaidPayments from "../modules/klk-emp-payment/Accountpaidpayments";
+import AccountPendingPayments from "../modules/klk-emp-payment/AccountPendingPayments";
 
 
 
@@ -96,6 +100,14 @@ const Markup = () => {
         { path: '/payment-list', element: <PaymentList /> },
         { path: '/Reviewer-List', element: <ReviewerList /> },
         { path: '/Manager-List', element: <ManagerList /> },
+
+        { path: '/manager/pending-payments', element: <ManagerPendingPayments /> },
+        { path: '/manager/approved-payments', element: <ManagerApprovedPayments /> },
+        { path: '/account/paid-payments', element: <AccountPaidPayments /> },
+        { path: '/account/pending-payments', element: <AccountPendingPayments /> },
+
+
+
         { path: '/Account-List', element: <AccountsList /> },
         { path: '/Intervention-Reports', element: <InterventionReports /> },
         { path: 'form-element', element: <Element /> },
