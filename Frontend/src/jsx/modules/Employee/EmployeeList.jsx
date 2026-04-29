@@ -27,7 +27,7 @@ const EmployeeList = () => {
     indexOfFirst,          
   } = useSearchFilter(data, {
     keys: ["username", "email", "phone_no", "designation", "reporting_head"],
-    itemsPerPage: 20,
+    itemsPerPage: 100,
   });
 
   const fetchUsers = async () => {
@@ -172,7 +172,7 @@ const EmployeeList = () => {
 
             <Pagination
               totalItems={totalItems}    
-              itemsPerPage={20}
+              itemsPerPage={100}
               currentPage={currentPage}
               onPageChange={setCurrentPage}
             />

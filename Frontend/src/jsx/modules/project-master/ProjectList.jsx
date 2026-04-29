@@ -4,44 +4,54 @@ import PageTitle from "../../layouts/PageTitle";
 import TableExportActions from "../../components/Common/TableExportActions";
 import Pagination from "../../components/Common/Pagination";
 import { useLocation, useNavigate } from "react-router-dom";
-import { getAllProjects, deleteProject ,getManagers} from "./projectApi";
-
+import { getAllProjects, deleteProject, getManagers } from "./projectApi";
+import { useSearchFilter, SearchInput } from "../../components/Common/useSearchFilter"; // ✅ Added
 
 const ProjectMasterList = () => {
   const navigate = useNavigate();
-    const location = useLocation(); 
+  const location = useLocation();
 
-    const [managers, setManagers] = useState([]);
-
-
-
+  const [managers, setManagers] = useState([]);
   const [projects, setProjects] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  /* PAGINATION */
-  const itemsPerPage = 10;
-  const [currentPage, setCurrentPage] = useState(1);
+  const {
+    search,
+    setSearch,
+    currentPage,
+    setCurrentPage,
+    totalItems,
+    paginatedData,
+    indexOfFirst,
+  } = useSearchFilter(projects, {
+    keys: [
+      "projectName",
+      "financialYear",
+      "funderName",
+      "contactPerson",
+      "contactPersonName",
+      "projectStatus",
+    ],
+    itemsPerPage: 100,
+  });
 
-  const indexOfLast = currentPage * itemsPerPage;
-  const indexOfFirst = indexOfLast - itemsPerPage;
+  useEffect(() => {
+    const fetchManagers = async () => {
+      const { ok, result } = await getManagers();
+      if (ok) setManagers(result);
+    };
+    fetchManagers();
+  }, []);
 
-
-  //  managers fetch 
-useEffect(() => {
-  const fetchManagers = async () => {
-    const { ok, result } = await getManagers();
-    if (ok) setManagers(result);
+  // Helper function
+  const getManagerName = (managerId) => {
+    const found = managers.find(
+      (m) => m.id === managerId || m.id === Number(managerId)
+    );
+    return found ? found.username : managerId;
   };
-  fetchManagers();
-}, []);
 
-//  Helper function 
-const getManagerName = (managerId) => {
-  const found = managers.find((m) => m.id === managerId || m.id === Number(managerId));
-  return found ? found.username : managerId; // fallback: id dikhao
-};
-
-  /* ================= FETCH PROJECTS ================= */
+  // Fetch projects
   useEffect(() => {
     fetchProjects();
   }, [location.key]);
@@ -82,30 +92,25 @@ const getManagerName = (managerId) => {
     }
   };
 
-  /* ================= DELETE ================= */
-const handleDelete = async (id) => {
-  const confirmDelete = window.confirm("Are you sure you want to delete?");
-  if (!confirmDelete) return;
+  // Delete
+  const handleDelete = async (id) => {
+    const confirmDelete = window.confirm("Are you sure you want to delete?");
+    if (!confirmDelete) return;
 
-  // Pehle UI se remove karo (optimistic)
-  setProjects((prev) => prev.filter((p) => p.id !== id));
+    setProjects((prev) => prev.filter((p) => p.id !== id));
 
-  try {
-    const data = await deleteProject(id);
-
-    // Agar delete fail hua to wapas add karo
-    if (data && data.success === false) {
-      alert(data.message || "Delete failed");
-      fetchProjects(); // revert
+    try {
+      const data = await deleteProject(id);
+      if (data && data.success === false) {
+        alert(data.message || "Delete failed");
+        fetchProjects();
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Error deleting project");
+      fetchProjects();
     }
-  } catch (err) {
-    console.error(err);
-    alert("Error deleting project");
-    fetchProjects(); // revert on error
-  }
-};
-
-  const currentProjects = projects.slice(indexOfFirst, indexOfLast);
+  };
 
   const columns = [
     { label: "Project Name", key: "projectName" },
@@ -119,7 +124,6 @@ const handleDelete = async (id) => {
     { label: "Status", key: "projectStatus" },
   ];
 
-  /* ================= LOADING ================= */
   if (loading) {
     return (
       <>
@@ -135,14 +139,22 @@ const handleDelete = async (id) => {
 
       <Col lg={12}>
         <Card>
-          <Card.Header className="d-flex justify-content-between">
+          <Card.Header className="d-flex justify-content-between align-items-center">
             <Card.Title>Project Master List</Card.Title>
 
-            <TableExportActions
-              data={projects}
-              columns={columns}
-              fileName="Project_Master_List"
-            />
+            <div className="d-flex align-items-center gap-2">
+              <SearchInput
+                value={search}
+                onChange={setSearch}
+                placeholder="Search projects..."
+              />
+
+              <TableExportActions
+                data={projects}
+                columns={columns}
+                fileName="Project_Master_List"
+              />
+            </div>
           </Card.Header>
 
           <Card.Body>
@@ -165,8 +177,8 @@ const handleDelete = async (id) => {
               </thead>
 
               <tbody>
-                {currentProjects.length > 0 ? (
-                  currentProjects.map((proj, index) => (
+                {paginatedData.length > 0 ? (
+                  paginatedData.map((proj, index) => (
                     <tr key={proj.id}>
                       <td>{indexOfFirst + index + 1}</td>
                       <td>{proj.projectName}</td>
@@ -177,7 +189,6 @@ const handleDelete = async (id) => {
                       <td>{proj.contactPerson}</td>
                       <td>{proj.contactPersonName}</td>
 
-                      {/* MOU */}
                       <td>
                         {proj.mou ? (
                           <a
@@ -195,35 +206,26 @@ const handleDelete = async (id) => {
 
                       <td>{getManagerName(proj.projectManager)}</td>
 
-
-                      {/* STATUS */}
                       <td>
                         <div className="d-flex align-items-center">
                           <i
-                            className={`fa fa-circle me-1 ${
-                              proj.projectStatus === "Ongoing"
+                            className={`fa fa-circle me-1 ${proj.projectStatus === "Ongoing"
                                 ? "text-primary"
-                                : proj.projectStatus === "Completed"
-                                ? "text-success"
-                                : "text-warning"
-                            }`}
+                                : "text-success"
+                              }`}
                           ></i>
                           {proj.projectStatus}
                         </div>
                       </td>
 
-                      {/* ACTION */}
                       <td>
                         <div className="d-flex">
-                          {/* EDIT */}
                           <button
                             className="btn btn-primary shadow btn-xs sharp me-1"
                             onClick={() => navigate(`/project-edit/${proj.id}`)}
                           >
                             <i className="fas fa-pencil-alt"></i>
                           </button>
-
-                          {/* DELETE */}
                           <button
                             className="btn btn-danger shadow btn-xs sharp"
                             onClick={() => handleDelete(proj.id)}
@@ -245,8 +247,8 @@ const handleDelete = async (id) => {
             </Table>
 
             <Pagination
-              totalItems={projects.length}
-              itemsPerPage={itemsPerPage}
+              totalItems={totalItems}
+              itemsPerPage={100}
               currentPage={currentPage}
               onPageChange={setCurrentPage}
             />

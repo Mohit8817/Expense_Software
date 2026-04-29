@@ -146,8 +146,8 @@ const ManagerExpenseTable = ({ status, pageTitle, cardTitle }) => {
     { label: "Reviewer", key: "reviewer_name" },
     { label: "Reviewer Status", key: "reviewer_approval_text" },
     { label: "Approved Amount", key: "approved_amount" },
-    { label: "Paid Amount", key: "paid_amount" },           // NEW
-    { label: "Pending Amount", key: "pending_amount" },     // NEW
+    { label: "Paid Amount", key: "paid_amount" },
+    { label: "Pending Amount", key: "pending_amount" },
     { label: "Manager Approval", key: "status" },
   ];
 
@@ -296,9 +296,9 @@ const ManagerExpenseTable = ({ status, pageTitle, cardTitle }) => {
                   <th>Reviewer Response</th>
                   <th>Approved Amount</th>
                   <th>Paid Amount</th>
-                  <th>Pending Amount</th>   {/* NEW */}
+                  <th>Pending Amount</th>
                   <th>Manager Approval</th>
-                  <th>View History</th>     {/* NEW */}
+                  <th>View History</th>
                   {status === 0 && <th>Action</th>}
                 </tr>
               </thead>
@@ -318,7 +318,7 @@ const ManagerExpenseTable = ({ status, pageTitle, cardTitle }) => {
 
                       <td>
                         {item.document ? (
-                    <a
+                          <a
                             href={`${import.meta.env.VITE_BACKEND_BASE_URL}/uploads/${item.document}`}
                             target="_blank"
                             rel="noreferrer"
@@ -353,10 +353,10 @@ const ManagerExpenseTable = ({ status, pageTitle, cardTitle }) => {
                         <b>Approval status : </b>
                         <span
                           className={`badge ${item.reviewer_approval_text === "Approved"
-                              ? "bg-success"
-                              : item.reviewer_approval_text === "Rejected"
-                                ? "bg-danger"
-                                : "bg-warning"
+                            ? "bg-success"
+                            : item.reviewer_approval_text === "Rejected"
+                              ? "bg-danger"
+                              : "bg-warning"
                             }`}
                         >
                           {item.reviewer_approval_text}
@@ -371,11 +371,7 @@ const ManagerExpenseTable = ({ status, pageTitle, cardTitle }) => {
 
                       {/* Pending Amount (NEW) */}
                       <td>
-                        <span
-                          className={`badge ${
-                            getPendingAmount(item) <= 0 ? "bg-success" : "bg-warning"
-                          }`}
-                        >
+                        <span>
                           ₹ {getPendingAmount(item)}
                         </span>
                       </td>
@@ -384,17 +380,17 @@ const ManagerExpenseTable = ({ status, pageTitle, cardTitle }) => {
                       <td>
                         <span
                           className={`badge ${item.status === "Approved"
-                              ? "bg-success"
-                              : item.status === "Rejected"
-                                ? "bg-danger"
-                                : "bg-warning"
+                            ? "bg-success"
+                            : item.status === "Rejected"
+                              ? "bg-danger"
+                              : "bg-warning"
                             }`}
                         >
                           {item.status}
                         </span>
                       </td>
 
-                      {/* View History (NEW) */}
+                      {/* View History  */}
                       <td className="text-center">
                         {item.payment_status !== "Pending" ? (
                           <button
@@ -607,7 +603,7 @@ const ManagerExpenseTable = ({ status, pageTitle, cardTitle }) => {
                     <td>{h.remarks || "N/A"}</td>
                     <td>{h.reference_no || "N/A"}</td>
                     <td>
-                      <Badge bg="info">{h.payment_mode || "N/A"}</Badge>
+                      <span>{h.payment_mode || "N/A"}</span>
                     </td>
                     <td>{h.accountant_name || "N/A"}</td>
                   </tr>
@@ -622,14 +618,7 @@ const ManagerExpenseTable = ({ status, pageTitle, cardTitle }) => {
           )}
         </Modal.Body>
 
-        <Modal.Footer>
-          <button
-            className="btn btn-secondary btn-sm"
-            onClick={() => setShowHistoryModal(false)}
-          >
-            Close
-          </button>
-        </Modal.Footer>
+
       </Modal>
 
     </>

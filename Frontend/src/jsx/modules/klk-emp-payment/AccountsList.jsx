@@ -6,15 +6,6 @@ import TableExportActions from "../../components/Common/TableExportActions";
 import Pagination from "../../components/Common/Pagination";
 import { useSearchFilter, SearchInput } from "../../components/Common/useSearchFilter";
 
-/**
- * Shared base for Account payment pages.
- *
- * Props:
- *  - status     {number}  0 = Pending/Unpaid (payment_status in [0,1])
- *                         2 = Paid (payment_status = 2)
- *  - pageTitle  {string}  Breadcrumb label
- *  - cardTitle  {string}  Card header title
- */
 const PaymentListBase = ({ status, pageTitle, cardTitle }) => {
 
   const [data, setData] = useState([]);
@@ -34,10 +25,6 @@ const PaymentListBase = ({ status, pageTitle, cardTitle }) => {
   });
 
   /* ---------------- FETCH DATA ---------------- */
-  useEffect(() => {
-    fetchAccountsData();
-  }, [status]);
-
   const fetchAccountsData = async () => {
     try {
       const res = await axios.get(
@@ -54,6 +41,10 @@ const PaymentListBase = ({ status, pageTitle, cardTitle }) => {
       console.error(error);
     }
   };
+
+  useEffect(() => {
+    fetchAccountsData();
+  }, [status]);
 
   /* ---------------- FETCH HISTORY ---------------- */
   const fetchHistory = async (id) => {
@@ -187,7 +178,7 @@ const PaymentListBase = ({ status, pageTitle, cardTitle }) => {
     } else if (item.payment_status === 1) {
       return <span className="badge bg-warning">Partially Paid</span>;
     } else {
-      return <span className="badge bg-secondary">Unpaid</span>;
+      return <span className="badge bg-primary">Unpaid</span>;
     }
   };
 
@@ -289,7 +280,7 @@ const PaymentListBase = ({ status, pageTitle, cardTitle }) => {
                         <td>
                           <Button
                             size="sm"
-                            variant="dark"
+                            variant="danger"
                             onClick={() => handleViewPDF(item.id)}
                           >
                             PDF

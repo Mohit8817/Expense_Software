@@ -12,7 +12,7 @@ export const createProject = async (req, res) => {
       start_date,
       end_date,
       financial_year,
-      funder_name,
+      funder_name,  
       manager_id,
       contact_person,
       contact_person_number,
