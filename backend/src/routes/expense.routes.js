@@ -20,4 +20,5 @@ router.get("/payment-history/:id", getPaymentHistory);
 router.get("/payment-receipt/:id", checkPermission("account_expense"),  paymentReceipt);
 
 router.delete("/delete-expense/:id", deleteExpense);
+
 export default router;

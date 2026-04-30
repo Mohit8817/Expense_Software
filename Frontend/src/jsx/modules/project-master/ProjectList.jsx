@@ -59,7 +59,7 @@ const ProjectMasterList = () => {
   const fetchProjects = async () => {
     try {
       const data = await getAllProjects();
-
+      
       if (!data || !data.data) {
         console.error(data?.message || "Failed to fetch projects");
         return;

@@ -4,7 +4,7 @@ import { Link } from "react-router-dom";
 import PageTitle from "../../layouts/PageTitle";
 import TableExportActions from "../../components/Common/TableExportActions";
 import Pagination from "../../components/Common/Pagination";
-import { useSearchFilter, SearchInput } from "../../components/Common/useSearchFilter"; // ✅ Added
+import { useSearchFilter, SearchInput } from "../../components/Common/useSearchFilter"; 
 
 const InterventionList = () => {
   const [interventions, setInterventions] = useState([]);

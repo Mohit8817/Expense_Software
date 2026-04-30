@@ -227,7 +227,7 @@ export const getMyCreatedExpenses = async (req, res) => {
 
         amount: exp.amount,
         document: exp.document,
-        remarks: exp.remarks || "N/A", 
+        remarks: exp.remarks || "N/A",
         created_at: exp.created_at,
 
         raised_by: userMap[userId] || "N/A",
@@ -265,7 +265,7 @@ export const deleteExpense = async (req, res) => {
     }
 
     const existing = await prisma.expensePayment.findUnique({
-      where: { id ,approval_status: 0}
+      where: { id, approval_status: 0 }
     });
 
     if (!existing) {
@@ -311,7 +311,7 @@ export const getManagerExpenses = async (req, res) => {
         where: {
           company_id,
           manager_id: Number(manager_id),
-          approval_status: Number(status)===0?0:{ not: 0 }, // If status=0, show only pending. Else show approved/rejected
+          approval_status: Number(status) === 0 ? 0 : { not: 0 }, // If status=0, show only pending. Else show approved/rejected
         },
         orderBy: {
           created_at: "desc",
@@ -383,7 +383,7 @@ export const getManagerExpenses = async (req, res) => {
       paid_amount: exp.paid_amount || "N/A",
       reviewer_approval_status: Number(exp.reviewer_approval_status), // raw value
       reviewer_approval_text: getStatusText(exp.reviewer_approval_status), // label
-      
+
       reviewer_remarks: exp.reviewer_remarks || "N/A",
 
 
@@ -411,20 +411,41 @@ export const getReviewers = async (req, res) => {
       });
     }
 
-    const reviewers = await prisma.user.findMany({
-      where: {
-        company_id: company_id,
-        status: true,
-      },
-      select: {
-        id: true,
-        username: true,
-        email: true,
-      },
-      orderBy: {
-        username: "asc",
-      },
-    });
+    // const reviewers = await prisma.user.findMany({
+    //   where: {
+    //     company_id: company_id,
+    //     status: true,
+    //   },
+    //   select: {
+    //     id: true,
+    //     username: true,
+    //     email: true,
+    //   },
+    //   orderBy: {
+    //     username: "asc",
+    //   },
+    // });
+
+
+    const reviewers = await prisma.$queryRaw`
+  SELECT 
+      id,
+      username,
+      email,
+      role_id
+  FROM user
+  WHERE 
+      company_id = ${company_id}
+      AND status = 1
+      AND role_id IN (
+          SELECT rp.role_id
+          FROM rolepermission rp
+          JOIN permission p ON p.id = rp.permission_id
+          WHERE p.name = ${REQUIRED_PERMISSION}
+      )
+  ORDER BY username ASC
+`;
+
 
     return res.status(200).json(reviewers);
 
@@ -692,7 +713,7 @@ export const getAccountsExpenses = async (req, res) => {
       where: {
         company_id,
         approval_status: 1, // ✅ KEY CONDITION
-        payment_status: Number(status) === 0 ? {in:[0,1]} : 2, // If status=0, show only unpaid. Else show partially/fully paid
+        payment_status: Number(status) === 0 ? { in: [0, 1] } : 2, // If status=0, show only unpaid. Else show partially/fully paid
       },
       orderBy: {
         created_at: "desc",

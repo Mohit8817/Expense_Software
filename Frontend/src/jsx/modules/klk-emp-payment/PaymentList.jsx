@@ -253,7 +253,7 @@ const PaymentList = () => {
 
                       <td>₹ {item.payment_amount || 0}</td>
 
-                     
+
 
                       {/* Reviewer */}
                       <td>
@@ -382,9 +382,9 @@ const PaymentList = () => {
                     <td>{h.remarks || "N/A"}</td>
                     <td>{h.reference_no || "N/A"}</td>
                     <td>
-                      <Badge bg="info">
-                        {h.payment_mode || "N/A"}
-                      </Badge>
+
+                      {h.payment_mode || "N/A"}
+
                     </td>
 
                     <td>{h.accountant_name || "N/A"}</td>
@@ -400,14 +400,8 @@ const PaymentList = () => {
           )}
         </Modal.Body>
 
-        <Modal.Footer>
-          <button
-            className="btn btn-secondary btn-sm"
-            onClick={() => setShowHistoryModal(false)}
-          >
-            Close
-          </button>
-        </Modal.Footer>
+
+
       </Modal>
     </>
   );
