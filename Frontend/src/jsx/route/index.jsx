@@ -47,6 +47,7 @@ import RoleEdit from "../modules/RolePermission/RoleEdit"
 import PermissionList from "../modules/RolePermission/PermissionList";
 import PermissionForm from "../modules/RolePermission/PermissionForm"
 import AssignPermission from "../modules/RolePermission/AssignPermission"
+import InterventionReports from "../modules/Report/InterventionReports";
 import ManagerPendingPayments from "../modules/klk-emp-payment/ManagerPendingPayments";
 import ManagerApprovedPayments from "../modules/klk-emp-payment/ManagerApprovedPayments";
 import AccountPaidPayments from "../modules/klk-emp-payment/Accountpaidpayments";
@@ -131,6 +132,7 @@ const Markup = () => {
         { path: '/permission/list', element: <PermissionList /> },
         { path: '/permission/add-permission', element: <PermissionForm /> },
         { path: '/role/assign/:id', element: <AssignPermission /> },
+        { path: '/manager/pending-payments', element: <InterventionReports /> },
 
         { path: '/manager/pending-payments', element: <ManagerPendingPayments /> },
         { path: '/manager/approved-payments', element: <ManagerApprovedPayments /> },
