@@ -17,7 +17,12 @@ export const auth = (req, res, next) => {
     req.user = user;
     next();
   } catch (err) {
-    console.log("JWT verify error:", err.message);
-    res.status(403).json({ message: "Invalid or expired Token" });
+  console.log("JWT verify error:", err.message);
+
+  if (err.name === "TokenExpiredError") {
+    return res.status(401).json({ message: "Token expired" });
   }
+
+  return res.status(403).json({ message: "Invalid token" });
+}
 };

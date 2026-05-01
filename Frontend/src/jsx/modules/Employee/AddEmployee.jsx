@@ -124,7 +124,7 @@ const AddEmployee = () => {
           qualification: "",
           status: "1",
           photo: null,
-          role_id: Number(role_id),
+          role_id: "",
         });
         setPreview(null);
         navigate("/employee-List");

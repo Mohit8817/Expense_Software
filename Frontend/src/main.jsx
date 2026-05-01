@@ -5,6 +5,7 @@ import { BrowserRouter } from 'react-router-dom'
 import ThemeContext from './context/ThemeContext'
 import { store } from './store/store.jsx'
 import { Provider } from 'react-redux'
+import "./api/axiosSetup";
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>

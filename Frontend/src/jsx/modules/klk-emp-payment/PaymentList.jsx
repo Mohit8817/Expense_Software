@@ -230,10 +230,10 @@ const PaymentList = () => {
                       <td>₹ {item.final_approved_amount || 0}</td>
 
                       {/* Document */}
-                      <td>
+                         <td>
                         {item.document ? (
                           <a
-                            href={`${import.meta.env.VITE_BACKEND_API_URL}uploads/${item.document}`}
+                            href={`${import.meta.env.VITE_BACKEND_BASE_URL}/uploads/${item.document}`}
                             target="_blank"
                             rel="noreferrer"
                           >

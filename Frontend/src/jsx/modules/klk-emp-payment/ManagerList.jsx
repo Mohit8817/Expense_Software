@@ -295,9 +295,9 @@ const ManagerExpenseTable = ({ status, pageTitle, cardTitle }) => {
                   <th>Reviewer Detail</th>
                   <th>Reviewer Response</th>
                   <th>Approved Amount</th>
+                  <th>Manager Approval</th>
                   <th>Paid Amount</th>
                   <th>Pending Amount</th>
-                  <th>Manager Approval</th>
                   <th>View History</th>
                   {status === 0 && <th>Action</th>}
                 </tr>
@@ -367,16 +367,8 @@ const ManagerExpenseTable = ({ status, pageTitle, cardTitle }) => {
                       </td>
 
                       <td>₹ {item.final_approved_amount}</td>
-                      <td>₹ {item.paid_amount || 0}</td>
 
-                      {/* Pending Amount (NEW) */}
-                      <td>
-                        <span>
-                          ₹ {getPendingAmount(item)}
-                        </span>
-                      </td>
-
-                      {/* Manager Approval Status */}
+                                            {/* Manager Approval Status */}
                       <td>
                         <span
                           className={`badge ${item.status === "Approved"
@@ -389,6 +381,16 @@ const ManagerExpenseTable = ({ status, pageTitle, cardTitle }) => {
                           {item.status}
                         </span>
                       </td>
+                      <td>₹ {item.paid_amount || 0}</td>
+
+                      {/* Pending Amount (NEW) */}
+                      <td>
+                        <span>
+                          ₹ {getPendingAmount(item)}
+                        </span>
+                      </td>
+
+
 
                       {/* View History  */}
                       <td className="text-center">
