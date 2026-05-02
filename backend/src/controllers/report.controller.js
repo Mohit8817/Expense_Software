@@ -12,7 +12,7 @@ const isValidFYYear = (fy) => /^\d{4}-\d{4}$/.test(fy);
 export const InterventionReport = async (req, res) => {
     try {
         const company_id = req.user.company_id;
-         const user_id = req.user.id;
+        const user_id = req.user.id;
         const rawFY = req.query.fy_year;
         let fyYear;
         if (!rawFY || rawFY === "current") {
@@ -163,3 +163,79 @@ export const InterventionReport = async (req, res) => {
 
 
 
+
+export const PaidExpenseReport = async (req, res) => {
+    try {
+        const company_id = req.user.company_id;
+        const user_id = req.user.id;
+        const rawFY = req.query.fy_year;
+        let fyYear;
+        if (!rawFY || rawFY === "current") {
+            fyYear = getCurrentFYYear();
+        } else if (rawFY === "all" || rawFY === "0") {
+            fyYear = null;
+        } else if (isValidFYYear(rawFY)) {
+            fyYear = rawFY;
+        } else {
+            fyYear = getCurrentFYYear();
+        }
+        const filterUserId = req.query.user_id ? parseInt(req.query.user_id) : null;
+        const filterProjectId = req.query.project_id ? String(req.query.project_id).trim() : null;
+        const filterInterventionId = req.query.intervention_id ? parseInt(req.query.intervention_id) : null;
+
+        // Date range filter
+        const fromDate = req.query.from_date ? new Date(req.query.from_date) : null;
+        const toDate = req.query.to_date ? new Date(req.query.to_date) : null;
+
+        // ─── SQL Fragments ────────────────────────────────
+        const fyFragment = fyYear ? Prisma.sql`AND ep.financial_year = ${fyYear}` : Prisma.empty;
+        const userFragment = filterUserId ? Prisma.sql`AND ep.requested_by = ${filterUserId}` : Prisma.empty;
+        const projectFragment = filterProjectId ? Prisma.sql`AND ep.project_name = ${filterProjectId}` : Prisma.empty;
+        const interventionFragment = filterInterventionId ? Prisma.sql`AND ep.intervention = ${filterInterventionId}` : Prisma.empty;
+        const fromFragment = fromDate ? Prisma.sql`AND ept.payment_date >= ${fromDate}` : Prisma.empty;
+        const toFragment = toDate ? Prisma.sql`AND ept.payment_date <= ${toDate}` : Prisma.empty;
+
+        const paidExpenses = await prisma.$queryRaw`
+  SELECT 
+    ep.*, 
+    req.username AS requested_by_name, 
+    req.email AS requested_by_email,
+    mgr.username AS manager_name, 
+    i.name AS intervention_name, 
+    p.name AS project_name, 
+    ept.payment_date
+  FROM ExpensePayment ep
+
+  JOIN User req ON req.id = ep.requested_by
+  JOIN User mgr ON mgr.id = ep.manager_id
+
+  JOIN Intervention i ON i.id = ep.intervention
+  JOIN Project p ON p.id = ep.project_name
+
+  JOIN (
+      SELECT expense_id, MAX(payment_date) as payment_date
+      FROM ExpensePaymentTransaction
+      GROUP BY expense_id
+  ) ept ON ept.expense_id = ep.id
+
+  WHERE ep.company_id = ${company_id}
+    AND ep.payment_status = 2
+    ${fyFragment}
+    ${userFragment}
+    ${projectFragment}
+    ${interventionFragment}
+    ${fromFragment}
+    ${toFragment}
+
+  ORDER BY ept.payment_date DESC, ep.id DESC
+`;
+        return res.status(200).json({ success: true, data: paidExpenses });
+
+    } catch (error) {
+        return res.status(500).json({
+            success: false,
+            message: "Paid Expense Report fetch failed",
+            error: error.message,
+        });
+    }
+};

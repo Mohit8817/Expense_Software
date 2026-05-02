@@ -23,4 +23,5 @@ router.delete("/delete-role/:id", deleteRole);
 router.post("/assign-permissions", assignPermissionsToRole);
 router.get("/my-permissions", getMyPermissions);
 
+
 export default router;

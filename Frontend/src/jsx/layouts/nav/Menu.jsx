@@ -103,7 +103,7 @@ export const MenuList = [
     permission: "",
     content: [
       { title: 'Intervention Reports', to: '/Intervention-Reports', permission: "" },
-
+    { title: 'Paid Expenses', to: '/Paid-Expense', permission: "paid_expense" }
     ],
   },
 ];

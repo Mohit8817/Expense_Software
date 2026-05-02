@@ -256,6 +256,81 @@ export const getMyCreatedExpenses = async (req, res) => {
 
 
 
+export const editExpense = async (req, res) => {
+    try {
+        const company_id = req.user.company_id; 
+        const id = Number(req.params.id);
+        const expense = await prisma.expensePayment.findUnique({
+            where: { id, company_id },
+        });
+        if (!expense) {
+            return res.status(404).json({
+                message: "Expense not found",
+            });
+        }
+
+        return res.status(200).json({
+            data: expense,
+        });
+
+    } catch (error) {
+        return res.status(500).json({
+            message: error.message,
+        });
+    }
+};
+
+export const updateExpense = async (req, res) => {
+    try {
+        const company_id = req.user.company_id;
+        const id = Number(req.params.id);
+        const existing = await prisma.expensePayment.findUnique({
+            where: { id, company_id, approval_status: 0 }
+        });
+        if (!existing) {
+            return res.status(404).json({
+                message: "Expense not found or cannot be edited",
+            });
+        }
+        const {
+            project_name,
+            project_state,
+            project_district,
+            project_village,
+            intervention,
+            amount,
+            remarks,
+        } = req.body;
+        let document = existing.document;
+        if (req.file) {
+            document = req.file.filename;
+        }
+        const updated = await prisma.expensePayment.update({
+            where: { id },
+            data: {
+                project_name,
+                project_state,
+                project_district,
+                project_village,
+                intervention: parseInt(intervention),
+                amount: Number(amount),
+                remarks,
+                document,
+            },
+        });
+
+        return res.status(200).json({
+            message: "Expense updated successfully",
+            data: updated,
+        });
+
+    } catch (error) {
+        return res.status(500).json({
+            message: error.message,
+        });
+    }
+};
+
 
 export const deleteExpense = async (req, res) => {
     try {

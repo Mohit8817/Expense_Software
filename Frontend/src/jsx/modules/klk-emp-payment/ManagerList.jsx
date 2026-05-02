@@ -580,7 +580,7 @@ const ManagerExpenseTable = ({ status, pageTitle, cardTitle }) => {
               <p className="mt-2 text-muted">Loading history...</p>
             </div>
           ) : history.length > 0 ? (
-            <Table hover className="text-nowrap mb-0">
+            <Table hover responsive className="text-nowrap mb-0">
               <thead>
                 <tr>
                   <th>Sno</th>
