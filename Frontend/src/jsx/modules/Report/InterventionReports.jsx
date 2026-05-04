@@ -1,8 +1,10 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 import React, { useState, useEffect } from "react";
-import { Col, Card, Table } from "react-bootstrap";
+import { Col, Card, Table, Button } from "react-bootstrap";
 import PageTitle from "../../layouts/PageTitle";
 import TableExportActions from "../../components/Common/TableExportActions";
 import Pagination from "../../components/Common/Pagination";
+import { useSearchFilter, SearchInput } from "../../components/Common/useSearchFilter";
 
 const InterventionReports = () => {
     const [rows, setRows] = useState([]);
@@ -13,28 +15,42 @@ const InterventionReports = () => {
     const [error, setError] = useState(null);
 
     /* DATE FILTER */
+    const TODAY = new Date().toISOString().split("T")[0];
     const [fromDate, setFromDate] = useState("");
     const [toDate, setToDate] = useState("");
+    const [appliedFrom, setAppliedFrom] = useState("");
+    const [appliedTo, setAppliedTo] = useState("");
+    const [dateError, setDateError] = useState("");
 
-    /* PAGINATION */
-    const itemsPerPage = 10;
-    const [currentPage, setCurrentPage] = useState(1);
+    /* SEARCH FILTER — replaces manual pagination */
+    const {
+        search,
+        setSearch,
+        currentPage,
+        setCurrentPage,
+        totalItems,
+        paginatedData,
+        indexOfFirst,
+    } = useSearchFilter(rows, {
+        keys: ["employee_name",
+            "interventions",
 
-    const indexOfLast = currentPage * itemsPerPage;
-    const indexOfFirst = indexOfLast - itemsPerPage;
+        ],
+        itemsPerPage: 100,
+    });
 
     /* FETCH DATA */
     useEffect(() => {
-        fetchData();
-    }, [fromDate, toDate]);
+        fetchData("", "");
+    }, []);
 
-    const fetchData = async () => {
+    const fetchData = async (from, to) => {
         setLoading(true);
         setError(null);
         try {
             const params = new URLSearchParams();
-            if (fromDate) params.append("fromDate", fromDate);
-            if (toDate) params.append("toDate", toDate);
+            if (from) params.append("from_date", from);
+            if (to) params.append("to_date", to);
 
             const res = await fetch(
                 `${import.meta.env.VITE_BACKEND_API_URL}reports/intervention-report?${params.toString()}`,
@@ -50,7 +66,6 @@ const InterventionReports = () => {
             const json = await res.json();
 
             if (json.success) {
-                // Filter out interventions with null intervention_id
                 const validInterventions = json.data.interventions.filter(
                     (i) => i.intervention_id !== null
                 );
@@ -58,6 +73,7 @@ const InterventionReports = () => {
                 setRows(json.data.rows);
                 setColumnTotals(json.data.columnTotals);
                 setGrandTotal(json.data.grandTotal);
+                setCurrentPage(1);
             }
         } catch (err) {
             console.error(err);
@@ -67,7 +83,50 @@ const InterventionReports = () => {
         }
     };
 
-    const currentData = rows.slice(indexOfFirst, indexOfLast);
+    const validateAndSetFrom = (val) => {
+        if (!val) { setFromDate(""); setDateError(""); return; }
+        if (toDate && val > toDate) {
+            setDateError("From date cannot be after To date.");
+            setFromDate(val);
+            return;
+        }
+        setFromDate(val);
+        setDateError("");
+    };
+
+    const validateAndSetTo = (val) => {
+        if (!val) { setToDate(""); setDateError(""); return; }
+        if (val > TODAY) {
+            setDateError("To date cannot be a future date.");
+            setToDate(val);
+            return;
+        }
+        if (fromDate && val < fromDate) {
+            setDateError("To date cannot be before From date.");
+            setToDate(val);
+            return;
+        }
+        setToDate(val);
+        setDateError("");
+    };
+
+    const handleFilter = () => {
+        console.log("Filter clicked:", { fromDate, toDate });
+        setAppliedFrom(fromDate);
+        setAppliedTo(toDate);
+        fetchData(fromDate, toDate);
+    };
+
+    const handleReset = () => {
+        setFromDate("");
+        setToDate("");
+        setAppliedFrom("");
+        setAppliedTo("");
+        setDateError("");
+        fetchData("", "");
+    };
+
+    const isFilterDisabled = (!fromDate && !toDate) || !!dateError;
 
     /* EXPORT COLUMNS */
     const exportColumns = [
@@ -79,7 +138,6 @@ const InterventionReports = () => {
         { label: "Total", key: "row_total" },
     ];
 
-    /* EXPORT DATA — flatten for export */
     const exportData = rows.map((row) => {
         const flat = { employee_name: row.employee_name || "N/A" };
         interventions.forEach((i) => {
@@ -99,36 +157,71 @@ const InterventionReports = () => {
 
             <Col lg={12}>
                 <Card>
-                    <Card.Header className="d-flex justify-content-between align-items-center flex-wrap">
-                        {/* HEADING */}
-                        <Card.Title className="mb-0">Intervention Reports</Card.Title>
+                    <Card.Header className="d-flex justify-content-between align-items-center flex-wrap gap-2">
 
-                        {/* FILTER + EXPORT */}
-                        <div className="d-flex align-items-center gap-3 flex-wrap">
+                        {/* LEFT — Title + date error */}
+                        <div>
+                            <Card.Title className="mb-0">Intervention Reports</Card.Title>
+                            {dateError && (
+                                <small className="text-danger">{dateError}</small>
+                            )}
+                        </div>
+
+                        {/* SEARCH */}
+                        <div className="float-right text-end">
+                            <SearchInput
+                                value={search}
+                                onChange={setSearch}
+                                placeholder="Search employees..."
+                            />
+                        </div>
+
+                        {/* RIGHT — Date filter + Export */}
+                        <div className="d-flex align-items-center flex-wrap gap-2">
 
                             {/* DATE FILTER */}
-                            <div className="d-flex align-items-center gap-2">
+                            <div className="d-flex align-items-center gap-2 flex-wrap">
                                 <input
                                     type="date"
-                                    className="form-control"
+                                    className={
+                                        "form-control" +
+                                        (dateError && fromDate && toDate && fromDate > toDate
+                                            ? " is-invalid"
+                                            : "")
+                                    }
                                     style={{ width: "150px" }}
                                     value={fromDate}
-                                    onChange={(e) => {
-                                        setFromDate(e.target.value);
-                                        setCurrentPage(1);
-                                    }}
+                                    onChange={(e) => validateAndSetFrom(e.target.value)}
                                 />
                                 <span>to</span>
                                 <input
                                     type="date"
-                                    className="form-control"
+                                    className={
+                                        "form-control" +
+                                        (dateError &&
+                                            toDate &&
+                                            (toDate > TODAY || (fromDate && toDate < fromDate))
+                                            ? " is-invalid"
+                                            : "")
+                                    }
                                     style={{ width: "150px" }}
                                     value={toDate}
-                                    onChange={(e) => {
-                                        setToDate(e.target.value);
-                                        setCurrentPage(1);
-                                    }}
+                                    min={fromDate || undefined}
+                                    max={TODAY}
+                                    onChange={(e) => validateAndSetTo(e.target.value)}
                                 />
+                                <Button
+                                    variant="primary"
+                                    onClick={handleFilter}
+                                    disabled={isFilterDisabled}
+                                >
+                                    Filter
+                                </Button>
+                                {(appliedFrom || appliedTo) && (
+                                    <Button variant="outline-secondary" onClick={handleReset}>
+                                        Reset
+                                    </Button>
+                                )}
                             </div>
 
                             {/* EXPORT */}
@@ -146,23 +239,19 @@ const InterventionReports = () => {
                                 <tr>
                                     <th>Sno</th>
                                     <th>Employee Name</th>
-                                    {/* DYNAMIC INTERVENTION COLUMNS */}
                                     {interventions.map((i) => (
-                                        <th key={i.intervention_id}>
-                                            {i.intervention_name}
-                                        </th>
+                                        <th key={i.intervention_id}>{i.intervention_name}</th>
                                     ))}
                                     <th>Total</th>
                                 </tr>
                             </thead>
 
                             <tbody>
-                                {currentData.length > 0 ? (
-                                    currentData.map((row, index) => (
+                                {paginatedData.length > 0 ? (    // ✅ paginatedData instead of currentData
+                                    paginatedData.map((row, index) => (
                                         <tr key={row.user_id}>
                                             <td>{indexOfFirst + index + 1}</td>
                                             <td>{row.employee_name || "N/A"}</td>
-                                            {/* DYNAMIC INTERVENTION CELLS */}
                                             {interventions.map((i) => (
                                                 <td key={i.intervention_id}>
                                                     {row.interventions?.[i.intervention_id]
@@ -201,8 +290,8 @@ const InterventionReports = () => {
 
                         {/* PAGINATION */}
                         <Pagination
-                            totalItems={rows.length}
-                            itemsPerPage={itemsPerPage}
+                            totalItems={totalItems}
+                            itemsPerPage={100}
                             currentPage={currentPage}
                             onPageChange={setCurrentPage}
                         />

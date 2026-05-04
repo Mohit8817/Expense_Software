@@ -3,7 +3,7 @@ import { Col, Card, Table, Button } from "react-bootstrap";
 import PageTitle from "../../layouts/PageTitle";
 import TableExportActions from "../../components/Common/TableExportActions";
 import Pagination from "../../components/Common/Pagination";
-import { useSearchFilter, SearchInput } from "../../components/Common/useSearchFilter"; // ✅ Added
+import { useSearchFilter, SearchInput } from "../../components/Common/useSearchFilter"; 
 
 const PaidExpense = () => {
   const [rows, setRows] = useState([]);
@@ -18,7 +18,7 @@ const PaidExpense = () => {
   const [appliedTo, setAppliedTo] = useState("");
   const [dateError, setDateError] = useState("");
 
-  // ✅ Replace manual pagination state with useSearchFilter
+
   const {
     search,
     setSearch,

@@ -3,10 +3,15 @@ import upload from "../middlewares/uploads.js";
 import { checkPermission } from "../middlewares/checkPermission.js";
 import { createExpense, getExpenseFormData, getMyCreatedExpenses, getManagerExpenses, getReviewers, assignReviewer, getReviewerExpenses, reviewerApprove, managerApproveExpense, getAccountsExpenses , processPayment, getPaymentHistory, paymentReceipt, deleteExpense ,updateExpense, editExpense } from "../controllers/expense.controller.js";
 
+import { createExpenseValidator } from "../validators/expense.validator.js";
+
+
 const router = Router();
 
 router.get("/add-expense",checkPermission("create_expense"), getExpenseFormData)
-router.post("/create",checkPermission("create_expense"), upload.single("document"), createExpense);
+router.post("/create",checkPermission("create_expense"),  upload.single("document"), 
+createExpenseValidator,createExpense);
+
 router.get("/view-my-expense", checkPermission("view_expense"),  getMyCreatedExpenses);
 router.get("/manager-expenses", checkPermission("manager_expense"), getManagerExpenses);
 router.get("/reviewers", checkPermission("create_expense"), getReviewers);

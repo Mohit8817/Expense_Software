@@ -82,8 +82,6 @@ export const InterventionReport = async (req, res) => {
             LEFT JOIN User u         ON u.id  = ep.requested_by
             LEFT JOIN Intervention i ON i.id  = ep.intervention
             WHERE ep.company_id = ${company_id}
-
-
             GROUP BY u.id, u.username, u.email, i.id, i.name
             ORDER BY u.username ASC, i.id ASC
         `;

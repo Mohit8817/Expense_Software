@@ -9,14 +9,17 @@ import InvoiceChart, { EarningsChart } from "./UserWidgets";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
 function deriveStatus(exp) {
-  if (exp.payment_status && exp.payment_status > 0) return "Paid";
-  if (exp.approval_status) return "Approved";
-  if (exp.reviewer_status) return "Under Review";
+  if (exp.payment_status === 2) return "Paid";
+  if (exp.approval_status === 2) return "Rejected";
+  if (exp.approval_status === 1) return "Approved";
+  if (exp.reviewer_status === 1) return "Under Review";
   return "Pending";
 }
 
-const statusBadgeClass = {
+const STATUS_BADGE_CLASS = {
   Paid: "badge badge-success light border-0",
   Approved: "badge badge-info light border-0",
   "Under Review": "badge badge-warning light border-0",
@@ -491,13 +494,22 @@ function UserCommanSection() {
                   <h2 className="card-title">
                     ₹ {formatINR(stats.totalExpense)}
                   </h2>
+
+
                   <small className="text-muted">{filterLabel}</small>
                 </div>
+
+
                 <InvoiceChart data={monthlyChartData.total} color="#6571ff" />
               </div>
+              <small> UnApproved
+                <span className="fw-bold text-warning" > ₹ {formatINR(stats.totalExpense - stats.approvedAmount)}</span>
+              </small>
             </div>
           </div>
         </div>
+
+
 
         {/* Card 2: Paid */}
         <div className="col-xl-3 col-sm-6">
@@ -531,7 +543,7 @@ function UserCommanSection() {
         <div className="col-xl-3 col-sm-6">
           <div className="card">
             <div className="card-header border-0 pb-0">
-              <h6 className="mb-0">Pending Approval</h6>
+              <h6 className="mb-0">Pending Amount</h6>
             </div>
             <div className="card-body pt-2">
               <div className="d-flex align-items-center justify-content-between">
@@ -725,12 +737,19 @@ function UserCommanSection() {
                                 <td className="fw-bold text-primary">₹ {formatINR(exp.amount)}</td>
                                 <td className="fw-bold text-success">
                                   {exp.approved_amount != null
-                                    ? `₹ ${formatINR(exp.approved_amount)}`
+                                    ? `₹ ${formatINR(exp.final_approved_amount)}`
                                     : <span className="text-muted">—</span>}
                                 </td>
+                                {/* Manager Approval column */}
                                 <td>
-                                  <span className={statusBadgeClass[exp._status] ?? "badge badge-secondary"}>
-                                    {exp._status}
+                                  <span className={
+                                    exp.approval_status === 2 ? "badge badge-danger light border-0"
+                                      : exp.approval_status === 1 ? "badge badge-success light border-0"
+                                        : "badge badge-warning light border-0"
+                                  }>
+                                    {exp.approval_status === 2 ? "Rejected"
+                                      : exp.approval_status === 1 ? "Approved"
+                                        : "Pending"}
                                   </span>
                                 </td>
                               </tr>
@@ -808,9 +827,17 @@ function UserCommanSection() {
                                 <td><h6 className="mb-0">{exp.project_name}</h6></td>
                                 <td>{formatDate(exp.requested_date)}</td>
                                 <td className="fw-bold text-primary">₹ {formatINR(exp.amount)}</td>
+
+
                                 <td>
-                                  <span className={exp.approval_status ? "badge badge-success light border-0" : "badge badge-warning light border-0"}>
-                                    {exp.approval_status ? "Approved" : "Pending"}
+                                  <span className={
+                                    exp.approval_status === 2 ? "badge badge-danger light border-0"
+                                      : exp.approval_status === 1 ? "badge badge-success light border-0"
+                                        : "badge badge-warning light border-0"
+                                  }>
+                                    {exp.approval_status === 2 ? "Rejected"
+                                      : exp.approval_status === 1 ? "Approved"
+                                        : "Pending"}
                                   </span>
                                 </td>
                                 <td>
