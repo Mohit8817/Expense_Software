@@ -12,170 +12,218 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-
 model User {
-  id             Int      @id @default(autoincrement())
-  company_id       String
-  user_id        String   @unique
-  username       String
-  email          String   @unique
-  password       String
-  reporting_head String
-  doj            DateTime
-  dol            DateTime?
-  ctc            Float?
-  phone_no       String?
-  designation    String?
-  role_id   Int?
-  role      Role?   @relation(fields: [role_id], references: [id])
-  dob            DateTime?
-  gender         String?
-  qualification  String?
-  user_img       String?
-  pfesi          Boolean  @default(false)
-  status         Boolean  @default(true)
-  created_by     String
-  created_at     DateTime @default(now())
-  updated_at     DateTime @updatedAt
+  id              Int              @id @default(autoincrement())
+  company_id      String
+  user_id         String           @unique
+  username        String
+  email           String           @unique
+  password        String
+  reporting_head  String
+  doj             DateTime
+  dol             DateTime?
+  ctc             Float?
+  phone_no        String?
+  designation     String?
+  role_id         Int?
+  role            Role?            @relation(fields: [role_id], references: [id])
+  dob             DateTime?
+  gender          String?
+  qualification   String?
+  user_img        String?
+  pfesi           Boolean          @default(false)
+  status          Boolean          @default(true)
+  created_by      String
+  created_at      DateTime         @default(now())
+  updated_at      DateTime         @updatedAt
+  wallet          Wallet?
+  advanceExpenses AdvanceExpense[]
+  walletHistories WalletHistory[]
 
   @@map("User")
 }
 
-
 model Project {
-  id          Int      @id @default(autoincrement())
-  company_id       String
-  project_id  String   @unique
-  name        String
-  description String?
-  start_date  DateTime
-  end_date    DateTime?
+  id                    Int       @id @default(autoincrement())
+  company_id            String
+  project_id            String    @unique
+  name                  String
+  description           String?
+  start_date            DateTime
+  end_date              DateTime?
   financial_year        String
-  funder_name        String
-  manager_id  String
+  funder_name           String
+  manager_id            String
   contact_person        String
-  contact_person_number        String
-  mou       String?
-  status         Boolean  @default(true)
-  created_by     String?
-  created_at  DateTime @default(now())
-  updated_at  DateTime @updatedAt
+  contact_person_number String
+  mou                   String?
+  status                Boolean   @default(true)
+  created_by            String?
+  created_at            DateTime  @default(now())
+  updated_at            DateTime  @updatedAt
 
-   @@map("Project")
+  @@map("Project")
 }
 
 model Intervention {
-  id          Int      @id @default(autoincrement())
-  company_id       String
-  name        String
-  status         Boolean  @default(true)
-  created_by     String?
-  created_at  DateTime @default(now())
-  updated_at  DateTime @updatedAt
+  id         Int      @id @default(autoincrement())
+  company_id String
+  name       String
+  status     Boolean  @default(true)
+  created_by String?
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
 
   @@map("Intervention")
 }
 
 model ExpensePayment {
-  id                       Int      @id @default(autoincrement())
-  company_id               String
-  project_name             String
-  project_state            String
-  intervention             Int @default(0)
-  project_district         String
-  project_village          String
-  amount                   Float @default(0)
-  approved_amount          Float? @default(0)
-  final_approved_amount    Float? @default(0)
-  amount_change_by         Int?
-  requested_by             Int
-  requested_date DateTime @default(now())
-  financial_year String @default("")
-  manager_id               Int
+  id                    Int      @id @default(autoincrement())
+  company_id            String
+  project_name          String
+  project_state         String
+  intervention          Int      @default(0)
+  project_district      String
+  project_village       String
+  amount                Float    @default(0)
+  approved_amount       Float?   @default(0)
+  final_approved_amount Float?   @default(0)
+  amount_change_by      Int?
+  requested_by          Int
+  requested_date        DateTime @default(now())
+  financial_year        String   @default("")
+  manager_id            Int
 
-  approval_status          Int  @default(0) // ✅ 0
-  manager_remarks          String?
+  // ✅ Manager approval
+  approval_status     Int       @default(0)
+  manager_remarks     String?
+  manager_approved_at DateTime? // ✅ NEW
 
-  review_assign            Boolean  @default(false) // ✅ 0
-  managertoreviewer String @default("")
-  reviewer_id              Int?
-  reviewer_remarks         String?
+  // ✅ Reviewer
+  review_assign     Boolean   @default(false)
+  assign_date       DateTime?
+  managertoreviewer String    @default("")
+  reviewer_id       Int?
+  reviewer_remarks  String?
 
-  reviewer_approval_status Int  @default(0) // ✅ 0
-  reviewer_status          Boolean  @default(false) // ✅ 0
+  reviewer_approval_status Int       @default(0)
+  reviewer_status          Boolean   @default(false)
+  reviewer_approved_at     DateTime? // ✅ NEW
 
-  paid_amount            Float     @default(0)
-  payment_status         Int       @default(0)
-  
-  remarks                  String?
-  document                 String?
-  created_by               String?
+  // ✅ Payment
+  paid_amount    Float @default(0)
+  payment_status Int   @default(0)
 
-  created_at               DateTime @default(now())
-  updated_at               DateTime @updatedAt
+  remarks    String?
+  document   String?
+  created_by String?
 
-  transactions             ExpensePaymentTransaction[]
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  transactions ExpensePaymentTransaction[]
 
   @@map("ExpensePayment")
 }
 
 model ExpensePaymentTransaction {
-  id              Int       @id @default(autoincrement())
-  expense_id      Int
-  accountant_id   Int?      // ✅ from session (no relation)
+  id            Int  @id @default(autoincrement())
+  expense_id    Int
+  accountant_id Int? // ✅ from session (no relation)
 
-  payment_amount  Float
-  payment_mode    String
-  payment_date    DateTime
+  payment_amount Float
+  payment_mode   String
+  payment_date   DateTime
 
-  reference_no    String?
-  remarks         String?
+  reference_no String?
+  remarks      String?
 
-  created_at      DateTime  @default(now())
+  created_at DateTime @default(now())
 
   // ✅ ONLY relation with Expense
-  expense         ExpensePayment @relation(fields: [expense_id], references: [id], onDelete: Cascade)
+  expense ExpensePayment @relation(fields: [expense_id], references: [id], onDelete: Cascade)
 
   // ✅ INDEXES
   @@index([expense_id])
   @@index([accountant_id])
 }
 
-
 model Role {
-  id          Int       @id @default(autoincrement())
-  company_id               String
-  name        String    @unique
+  id          Int     @id @default(autoincrement())
+  company_id  String
+  name        String  @unique
   description String?
 
   users       User[]
   permissions RolePermission[]
-  created_by               String?
-  created_at  DateTime  @default(now())
+  created_by  String?
+  created_at  DateTime         @default(now())
 }
 
 model Permission {
-  id          Int       @id @default(autoincrement())
-  company_id               String
-  name        String    @unique   // e.g. "create_expense"
-  label       String              // UI label
-  module      String              // e.g. "Expense", "Accounts"
+  id         Int    @id @default(autoincrement())
+  company_id String
+  name       String @unique // e.g. "create_expense"
+  label      String // UI label
+  module     String // e.g. "Expense", "Accounts"
 
-  roles       RolePermission[]
-  created_by               String?
-  created_at  DateTime  @default(now())
+  roles      RolePermission[]
+  created_by String?
+  created_at DateTime         @default(now())
 }
 
 model RolePermission {
-  id            Int @id @default(autoincrement())
+  id Int @id @default(autoincrement())
 
   role_id       Int
   permission_id Int
 
-  role          Role        @relation(fields: [role_id], references: [id], onDelete: Cascade)
-  permission    Permission  @relation(fields: [permission_id], references: [id], onDelete: Cascade)
+  role       Role       @relation(fields: [role_id], references: [id], onDelete: Cascade)
+  permission Permission @relation(fields: [permission_id], references: [id], onDelete: Cascade)
 
   @@unique([role_id, permission_id])
 }
 
+model Wallet {
+  id         Int     @id @default(autoincrement())
+  company_id String
+  user_id    Int     @unique
+  balance    Decimal @default(0.00) @db.Decimal(10, 2)
 
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user            User            @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  walletHistories WalletHistory[]
+}
+
+model AdvanceExpense {
+  id            Int      @id @default(autoincrement())
+  company_id    String
+  user_id       Int
+  accountant_id Int
+  project_id    Int      @default(0)
+  amount        Decimal  @db.Decimal(10, 2)
+  payment_mode  String
+  payment_date  DateTime
+  doc_file      String?
+  remarks       String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  user          User     @relation(fields: [user_id], references: [id])
+}
+
+model WalletHistory {
+  id           Int      @id @default(autoincrement())
+  company_id   String
+  user_id      Int
+  wallet_id    Int
+  type         String
+  payment_mode String
+  amount       Decimal  @db.Decimal(10, 2)
+  balance      Decimal  @default(0.00) @db.Decimal(10, 2)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt // ✅ FIXED
+  user         User     @relation(fields: [user_id], references: [id])
+  wallet       Wallet   @relation(fields: [wallet_id], references: [id])
+}

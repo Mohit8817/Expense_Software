@@ -1,8 +1,18 @@
 import { PrismaClient } from "@prisma/client";
+import { request } from "express";
 import PDFDocument from "pdfkit";
 const prisma = new PrismaClient();
 
 
+
+function formatDate(date) {
+    if (!date) return null;
+    const d = new Date(date);
+    const day = String(d.getDate()).padStart(2, '0');
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const year = d.getFullYear();
+    return `${day}-${month}-${year}`;
+}
 export const getExpenseFormData = async (req, res) => {
     try {
         const company_id = req.user?.company_id;
@@ -238,6 +248,10 @@ export const getMyCreatedExpenses = async (req, res) => {
 
                 reviewer_status: getStatusText(exp.reviewer_approval_status),
                 approval_status: getStatusText(exp.approval_status),
+                requested_date: formatDate(exp.requested_date),
+                assign_date: formatDate(exp.assign_date),
+                manager_approved_at: formatDate(exp.manager_approved_at),
+                reviewer_approved_at: formatDate(exp.reviewer_approved_at),
 
                 payment_status: getPaymentStatusText(exp.payment_status),
             };
@@ -258,7 +272,7 @@ export const getMyCreatedExpenses = async (req, res) => {
 
 export const editExpense = async (req, res) => {
     try {
-        const company_id = req.user.company_id; 
+        const company_id = req.user.company_id;
         const id = Number(req.params.id);
         const expense = await prisma.expensePayment.findUnique({
             where: { id, company_id },
@@ -429,6 +443,7 @@ export const getManagerExpenses = async (req, res) => {
             return "Pending";
         };
 
+
         // ✅ Final Response
         const result = expenses.map((exp) => ({
             id: exp.id,
@@ -449,7 +464,6 @@ export const getManagerExpenses = async (req, res) => {
             manager_name: userMap[Number(exp.manager_id)] || "N/A",
             reviewer_name: userMap[Number(exp.reviewer_id)] || "N/A",
             document: exp.document,
-
             review_assign: exp.review_assign,
             managertoreviewer: exp.managertoreviewer,
             approved_amount: exp.approved_amount || "N/A",
@@ -457,8 +471,13 @@ export const getManagerExpenses = async (req, res) => {
             paid_amount: exp.paid_amount || "N/A",
             reviewer_approval_status: Number(exp.reviewer_approval_status), // raw value
             reviewer_approval_text: getStatusText(exp.reviewer_approval_status), // label
-
             reviewer_remarks: exp.reviewer_remarks || "N/A",
+
+
+            requested_date: formatDate(exp.requested_date),
+            assign_date: formatDate(exp.assign_date),
+            manager_approved_at: formatDate(exp.manager_approved_at),
+            reviewer_approved_at: formatDate(exp.reviewer_approved_at),
 
 
             status: getStatusText(exp.approval_status),
@@ -521,6 +540,7 @@ export const assignReviewer = async (req, res) => {
                 reviewer_id: reviewer_id,
                 managertoreviewer: managertoreviewer || "",
                 review_assign: true,
+                assign_date: new Date(),
             },
         });
         return res.status(200).json({
@@ -675,6 +695,7 @@ export const reviewerApprove = async (req, res) => {
                 reviewer_remarks,
                 approved_amount: approvedAmt,
                 amount_change_by: amountChangeBy,
+                reviewer_approved_at: new Date(),
             },
         });
 
@@ -735,6 +756,7 @@ export const managerApproveExpense = async (req, res) => {
                 approval_status: Number(approval_status),
                 manager_remarks,
                 final_approved_amount: finalAmount,
+                manager_approved_at: new Date(),
             },
         });
 
@@ -767,7 +789,7 @@ export const getAccountsExpenses = async (req, res) => {
             where: {
                 company_id,
                 approval_status: 1, // ✅ KEY CONDITION
-                        payment_status: Number(status) === 0 ? {in:[0,1]} : 2, // If status=0, show only unpaid. Else show partially/fully paid
+                payment_status: Number(status) === 0 ? { in: [0, 1] } : 2, // If status=0, show only unpaid. Else show partially/fully paid
 
             },
             orderBy: {
@@ -823,13 +845,14 @@ export const getAccountsExpenses = async (req, res) => {
             village: exp.project_village,
 
             amount: exp.amount,
-            requested_date: exp.requested_date,
+            requested_date: formatDate(exp.requested_date),
             document: exp.document,
 
             // ✅ IMPORTANT
             final_approved_amount: exp.final_approved_amount,
-            paid_amount: exp.paid_amount || 0,              // 🔥 ADD THIS
-            payment_status: exp.payment_status || 0,        // 🔥 ADD THIS
+            manager_approved_date: formatDate(exp.manager_approved_at),
+            paid_amount: exp.paid_amount || 0,              
+            payment_status: exp.payment_status || 0,        
 
             // ✅ USERS
             raised_by: userMap[Number(exp.requested_by)] || "N/A",
@@ -837,6 +860,8 @@ export const getAccountsExpenses = async (req, res) => {
 
             // ✅ STATUS
             manager_status: getStatusText(exp.approval_status),
+
+
         }));
 
         return res.json(result);
@@ -1208,16 +1233,16 @@ export const paymentReceipt = async (req, res) => {
         const CONTENT_W = PAGE_W - MARGIN * 2;
 
         // ── PALETTE ────────────────────────────────────
-        const BRAND      = "#950000";   // <-- aapka theme color
+        const BRAND = "#950000";   // <-- aapka theme color
         const BRAND_DARK = "#6b0000";   // header ke liye thoda aur dark
         const BRAND_LIGHT = "#fdf0f0";  // light tint for alternating rows / bg
-        const WHITE      = "#ffffff";
-        const GRAY_1     = "#333333";
-        const GRAY_2     = "#555555";
-        const GRAY_3     = "#888888";
-        const GRAY_4     = "#bbbbbb";
-        const GRAY_5     = "#dedede";
-        const GRAY_6     = "#f5f5f5";
+        const WHITE = "#ffffff";
+        const GRAY_1 = "#333333";
+        const GRAY_2 = "#555555";
+        const GRAY_3 = "#888888";
+        const GRAY_4 = "#bbbbbb";
+        const GRAY_5 = "#dedede";
+        const GRAY_6 = "#f5f5f5";
 
         // ── HELPERS ────────────────────────────────────
         const fmt = (val) =>
@@ -1237,49 +1262,49 @@ export const paymentReceipt = async (req, res) => {
 
         // Title
         doc.fontSize(22).fillColor(WHITE).font("Helvetica-Bold")
-           .text("PAYMENT RECEIPT", MARGIN, 22, { width: 300 });
+            .text("PAYMENT RECEIPT", MARGIN, 22, { width: 300 });
 
         doc.fontSize(9).fillColor("rgba(255,255,255,0.65)").font("Helvetica")
-           .text("Expense Management System", MARGIN, 52);
+            .text("Expense Management System", MARGIN, 52);
 
-            //  logo 
-            
+        //  logo 
+
         // Thin accent line under header
         doc.rect(0, 90, PAGE_W, 2).fill(BRAND_DARK);
 
         // Meta row
         const statusText =
             remaining <= 0 ? "FULLY PAID" :
-            remaining < approvedAmount ? "PARTIALLY PAID" : "UNPAID";
+                remaining < approvedAmount ? "PARTIALLY PAID" : "UNPAID";
 
         doc.fontSize(8).fillColor(GRAY_2).font("Helvetica")
-           .text(`Status: ${statusText}`, MARGIN, 102);
+            .text(`Status: ${statusText}`, MARGIN, 102);
         doc.fontSize(8).fillColor(GRAY_3).font("Helvetica")
-           .text(`Generated: ${fmtDate(new Date())}`, MARGIN, 102,
-               { width: CONTENT_W, align: "right" });
+            .text(`Generated: ${fmtDate(new Date())}`, MARGIN, 102,
+                { width: CONTENT_W, align: "right" });
 
         let y = 128;
 
         // ── HELPERS ────────────────────────────────────
         const divider = (yPos) => {
             doc.moveTo(MARGIN, yPos).lineTo(MARGIN + CONTENT_W, yPos)
-               .strokeColor(GRAY_5).lineWidth(0.5).stroke();
+                .strokeColor(GRAY_5).lineWidth(0.5).stroke();
         };
 
         const section = (label, yPos) => {
             // Left red accent bar + label
             doc.rect(MARGIN, yPos, 3, 13).fill(BRAND);
             doc.fontSize(8).fillColor(BRAND).font("Helvetica-Bold")
-               .text(label.toUpperCase(), MARGIN + 9, yPos + 1, { characterSpacing: 0.8 });
+                .text(label.toUpperCase(), MARGIN + 9, yPos + 1, { characterSpacing: 0.8 });
             divider(yPos + 16);
             return yPos + 25;
         };
 
         const field = (label, value, x, yPos, w) => {
             doc.fontSize(7.5).fillColor(GRAY_3).font("Helvetica")
-               .text(label, x, yPos, { width: w });
+                .text(label, x, yPos, { width: w });
             doc.fontSize(9.5).fillColor(GRAY_1).font("Helvetica-Bold")
-               .text(value || "—", x, yPos + 11, { width: w });
+                .text(value || "—", x, yPos + 11, { width: w });
             return yPos + 30;
         };
 
@@ -1290,14 +1315,14 @@ export const paymentReceipt = async (req, res) => {
         const c1 = MARGIN;
         const c2 = MARGIN + CONTENT_W / 2 + 6;
 
-        field("Project",      projectMap[Number(expense.project_name)],     c1, y, half);
+        field("Project", projectMap[Number(expense.project_name)], c1, y, half);
         field("Intervention", interventionMap[Number(expense.intervention)], c2, y, half);
         y += 30;
-        field("State",    expense.project_state,    c1, y, half);
+        field("State", expense.project_state, c1, y, half);
         field("District", expense.project_district, c2, y, half);
         y += 30;
-        field("Village",   expense.project_village,                  c1, y, half);
-        field("Raised By", userMap[Number(expense.requested_by)],    c2, y, half);
+        field("Village", expense.project_village, c1, y, half);
+        field("Raised By", userMap[Number(expense.requested_by)], c2, y, half);
         y += 36;
 
         // ── PAYMENT SUMMARY ────────────────────────────
@@ -1307,16 +1332,16 @@ export const paymentReceipt = async (req, res) => {
 
         const amountBlock = (label, value, x, yPos, w, highlight = false) => {
             doc.fontSize(7.5).fillColor(GRAY_3).font("Helvetica")
-               .text(label, x, yPos, { width: w });
+                .text(label, x, yPos, { width: w });
             doc.fontSize(13)
-               .fillColor(highlight ? BRAND : GRAY_1)
-               .font("Helvetica-Bold")
-               .text(value, x, yPos + 12, { width: w });
+                .fillColor(highlight ? BRAND : GRAY_1)
+                .font("Helvetica-Bold")
+                .text(value, x, yPos + 12, { width: w });
         };
 
-        amountBlock("Total Amount",    fmt(expense.amount),  MARGIN,              y, thirds - 10);
-        amountBlock("Approved Amount", fmt(approvedAmount),  MARGIN + thirds,     y, thirds - 10);
-        amountBlock("Total Paid",      fmt(totalPaid),       MARGIN + thirds * 2, y, thirds - 10, true);
+        amountBlock("Total Amount", fmt(expense.amount), MARGIN, y, thirds - 10);
+        amountBlock("Approved Amount", fmt(approvedAmount), MARGIN + thirds, y, thirds - 10);
+        amountBlock("Total Paid", fmt(totalPaid), MARGIN + thirds * 2, y, thirds - 10, true);
 
         y += 40;
         divider(y);
@@ -1324,23 +1349,23 @@ export const paymentReceipt = async (req, res) => {
 
         // Remaining + progress bar
         doc.fontSize(7.5).fillColor(GRAY_3).font("Helvetica")
-           .text("Remaining Balance", MARGIN, y);
+            .text("Remaining Balance", MARGIN, y);
         doc.fontSize(12)
-           .fillColor(remaining <= 0 ? GRAY_3 : BRAND)
-           .font("Helvetica-Bold")
-           .text(fmt(remaining), MARGIN, y + 11);
+            .fillColor(remaining <= 0 ? GRAY_3 : BRAND)
+            .font("Helvetica-Bold")
+            .text(fmt(remaining), MARGIN, y + 11);
 
         // Progress bar — brand red fill
         const barX = MARGIN + 180;
         const barW = CONTENT_W - 180;
         doc.fontSize(7.5).fillColor(GRAY_3).font("Helvetica")
-           .text(`${paidPercent}% paid`, barX, y, { width: barW, align: "right" });
+            .text(`${paidPercent}% paid`, barX, y, { width: barW, align: "right" });
         doc.roundedRect(barX, y + 14, barW, 8, 4).fill(GRAY_5);
         if (paidPercent > 0) {
             doc.roundedRect(barX, y + 14, Math.min(barW * paidPercent / 100, barW), 8, 4).fill(BRAND);
         }
         doc.fontSize(7.5).fillColor(GRAY_3).font("Helvetica")
-           .text(`Manager: ${userMap[Number(expense.manager_id)] || "—"}`, MARGIN, y + 26);
+            .text(`Manager: ${userMap[Number(expense.manager_id)] || "—"}`, MARGIN, y + 26);
 
         y += 50;
 
@@ -1349,13 +1374,13 @@ export const paymentReceipt = async (req, res) => {
 
         if (transactions.length === 0) {
             doc.fontSize(9).fillColor(GRAY_3).font("Helvetica")
-               .text("No transactions recorded.", MARGIN, y, { width: CONTENT_W, align: "center" });
+                .text("No transactions recorded.", MARGIN, y, { width: CONTENT_W, align: "center" });
             y += 30;
         } else {
             const cols = [
-                { label: "Date",    x: MARGIN,       w: 80  },
-                { label: "Amount",  x: MARGIN + 82,  w: 90  },
-                { label: "Mode",    x: MARGIN + 174, w: 75  },
+                { label: "Date", x: MARGIN, w: 80 },
+                { label: "Amount", x: MARGIN + 82, w: 90 },
+                { label: "Mode", x: MARGIN + 174, w: 75 },
                 { label: "Ref No.", x: MARGIN + 251, w: 100 },
                 { label: "Remarks", x: MARGIN + 353, w: CONTENT_W - 303 },
             ];
@@ -1364,7 +1389,7 @@ export const paymentReceipt = async (req, res) => {
             doc.rect(MARGIN, y, CONTENT_W, 22).fill(BRAND);
             cols.forEach((col) => {
                 doc.fontSize(7.5).fillColor(WHITE).font("Helvetica-Bold")
-                   .text(col.label, col.x + 4, y + 7, { width: col.w - 6 });
+                    .text(col.label, col.x + 4, y + 7, { width: col.w - 6 });
             });
             y += 22;
 
@@ -1383,31 +1408,31 @@ export const paymentReceipt = async (req, res) => {
                     fmt(t.payment_amount),
                     t.payment_mode || "—",
                     t.reference_no || "—",
-                    t.remarks      || "—",
+                    t.remarks || "—",
                 ];
 
                 cols.forEach((col, ci) => {
                     doc.fontSize(8.5)
-                       .fillColor(ci === 1 ? BRAND : GRAY_1)
-                       .font(ci === 1 ? "Helvetica-Bold" : "Helvetica")
-                       .text(vals[ci], col.x + 4, y + 7, { width: col.w - 8, lineBreak: false });
+                        .fillColor(ci === 1 ? BRAND : GRAY_1)
+                        .font(ci === 1 ? "Helvetica-Bold" : "Helvetica")
+                        .text(vals[ci], col.x + 4, y + 7, { width: col.w - 8, lineBreak: false });
                 });
 
                 y += rowH;
             });
 
             doc.moveTo(MARGIN, y).lineTo(MARGIN + CONTENT_W, y)
-               .strokeColor(GRAY_5).lineWidth(0.5).stroke();
+                .strokeColor(GRAY_5).lineWidth(0.5).stroke();
         }
 
         y += 16;
 
         // Totals row
         doc.fontSize(8.5).fillColor(GRAY_2).font("Helvetica")
-           .text(`Total Transactions: ${transactions.length}`, MARGIN, y);
+            .text(`Total Transactions: ${transactions.length}`, MARGIN, y);
         doc.fontSize(8.5).fillColor(BRAND).font("Helvetica-Bold")
-           .text(`Total Paid: ${fmt(totalPaid)}`, MARGIN, y,
-               { width: CONTENT_W, align: "right" });
+            .text(`Total Paid: ${fmt(totalPaid)}`, MARGIN, y,
+                { width: CONTENT_W, align: "right" });
 
         y += 30;
 
@@ -1419,7 +1444,7 @@ export const paymentReceipt = async (req, res) => {
 
 
         doc.fontSize(7.5).fillColor(GRAY_4)
-  
+
 
         doc.end();
 

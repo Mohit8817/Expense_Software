@@ -136,6 +136,7 @@ const ManagerExpenseTable = ({ status, pageTitle, cardTitle }) => {
 
   const columns = [
     { label: "Raised By", key: "raised_by" },
+    { label: "Raised Date", key: "requested_date" },
     { label: "Manager", key: "manager_name" },
     { label: "Project", key: "project" },
     { label: "Intervention", key: "intervention" },
@@ -144,8 +145,10 @@ const ManagerExpenseTable = ({ status, pageTitle, cardTitle }) => {
     { label: "Village", key: "village" },
     { label: "Amount", key: "amount" },
     { label: "Reviewer", key: "reviewer_name" },
+    { label: "Reviewer Assigned", key: "assign_date" },
     { label: "Reviewer Status", key: "reviewer_approval_text" },
     { label: "Approved Amount", key: "approved_amount" },
+    { label: "Manager Approved Date", key: "manager_approved_at" },
     { label: "Paid Amount", key: "paid_amount" },
     { label: "Pending Amount", key: "pending_amount" },
     { label: "Manager Approval", key: "status" },
@@ -283,6 +286,7 @@ const ManagerExpenseTable = ({ status, pageTitle, cardTitle }) => {
                 <tr>
                   <th>Sno</th>
                   <th>Raised By</th>
+                  <th>Raised Date</th>
                   <th>Manager</th>
                   <th>Project</th>
                   <th>Intervention</th>
@@ -296,6 +300,7 @@ const ManagerExpenseTable = ({ status, pageTitle, cardTitle }) => {
                   <th>Reviewer Response</th>
                   <th>Approved Amount</th>
                   <th>Manager Approval</th>
+                  <th>Manager Approval Date</th>
                   <th>Paid Amount</th>
                   <th>Pending Amount</th>
                   <th>View History</th>
@@ -309,6 +314,8 @@ const ManagerExpenseTable = ({ status, pageTitle, cardTitle }) => {
                     <tr key={item.id}>
                       <td>{indexOfFirst + index + 1}</td>
                       <td>{item.raised_by}</td>
+                      <td>    {item.requested_date}  </td>
+
                       <td>{item.manager_name}</td>
                       <td>{item.project}</td>
                       <td>{item.intervention}</td>
@@ -346,7 +353,9 @@ const ManagerExpenseTable = ({ status, pageTitle, cardTitle }) => {
 
                       <td>
                         <b>Reviewer : </b> {item.reviewer_name} <br />
-                        <b>Manager to Reviewer : </b> {item.managertoreviewer}
+                        <b>Manager to Reviewer : </b> {item.managertoreviewer} <br/>
+                        <b>Assign Date : </b> {item.assign_date}
+
                       </td>
 
                       <td>
@@ -363,12 +372,13 @@ const ManagerExpenseTable = ({ status, pageTitle, cardTitle }) => {
                         </span>
                         <br />
                         <b>Approved Amount : </b> {item.approved_amount} <br />
-                        <b>Reviewer to Manager : </b> {item.reviewer_remarks}
+                        <b>Reviewer to Manager : </b> {item.reviewer_remarks} <br/>
+                        <b> Reviewer Date: </b> {item.reviewer_approved_at}
                       </td>
 
                       <td>₹ {item.final_approved_amount}</td>
 
-                                            {/* Manager Approval Status */}
+                      {/* Manager Approval Status */}
                       <td>
                         <span
                           className={`badge ${item.status === "Approved"
@@ -379,8 +389,11 @@ const ManagerExpenseTable = ({ status, pageTitle, cardTitle }) => {
                             }`}
                         >
                           {item.status}
+
                         </span>
+                                             
                       </td>
+                      <td className="text-center"> {item.manager_approved_at} </td>
                       <td>₹ {item.paid_amount || 0}</td>
 
                       {/* Pending Amount (NEW) */}

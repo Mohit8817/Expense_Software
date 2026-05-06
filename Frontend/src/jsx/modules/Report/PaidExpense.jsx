@@ -3,7 +3,32 @@ import { Col, Card, Table, Button } from "react-bootstrap";
 import PageTitle from "../../layouts/PageTitle";
 import TableExportActions from "../../components/Common/TableExportActions";
 import Pagination from "../../components/Common/Pagination";
-import { useSearchFilter, SearchInput } from "../../components/Common/useSearchFilter"; 
+import { useSearchFilter, SearchInput } from "../../components/Common/useSearchFilter";
+
+// ─── FY Helpers ────────────────────────────────────────────────────────────────
+
+/** Returns the FY string for a given date, e.g. "2025-2026" */
+const getFYFromDate = (dateStr) => {
+  if (!dateStr) return null;
+  const d = new Date(dateStr);
+  const year = d.getFullYear();
+  const month = d.getMonth() + 1;
+  return month >= 4 ? `${year}-${year + 1}` : `${year - 1}-${year}`;
+};
+
+/** Returns the current FY string */
+const getCurrentFY = () => getFYFromDate(new Date().toISOString());
+
+/** Returns { fyStart: "YYYY-MM-DD", fyEnd: "YYYY-MM-DD" } for a given FY string */
+const getFYDateRange = (fy) => {
+  const startYear = parseInt(fy.split("-")[0], 10);
+  return {
+    fyStart: `${startYear}-04-01`,
+    fyEnd: `${startYear + 1}-03-31`,
+  };
+};
+
+// ───────────────────────────────────────────────────────────────────────────────
 
 const PaidExpense = () => {
   const [rows, setRows] = useState([]);
@@ -12,12 +37,19 @@ const PaidExpense = () => {
 
   const TODAY = new Date().toISOString().split("T")[0];
 
+  // FY state — default to current FY; options built from data
+  const [selectedFY, setSelectedFY] = useState(getCurrentFY());
+  const [fyOptions, setFyOptions] = useState([getCurrentFY()]);
+
   const [fromDate, setFromDate] = useState("");
   const [toDate, setToDate] = useState("");
   const [appliedFrom, setAppliedFrom] = useState("");
   const [appliedTo, setAppliedTo] = useState("");
   const [dateError, setDateError] = useState("");
 
+  // Calendar bounds derived from the selected FY
+  const { fyStart, fyEnd } = getFYDateRange(selectedFY);
+  const calendarMax = fyEnd > TODAY ? TODAY : fyEnd; 
 
   const {
     search,
@@ -40,25 +72,65 @@ const PaidExpense = () => {
       "updated_at",
       "paid_amount",
       "payment_date",
-
     ],
     itemsPerPage: 100,
   });
 
+  // On mount — fetch all data (no FY filter) to derive available FY options from data
   useEffect(() => {
-    fetchData("", "");
+    fetchData("", "", "", { buildFYOptions: true });
   }, []);
 
-  const fetchData = async (from, to) => {
+  const buildFYOptionsFromData = (data) => {
+    const currentFY = getCurrentFY();
+    const currentFYStart = parseInt(currentFY.split("-")[0], 10);
+
+    if (!data || data.length === 0) {
+      setFyOptions([currentFY]);
+      return;
+    }
+
+    let minYear = null;
+    data.forEach((row) => {
+      ["requested_date", "payment_date", "updated_at"].forEach((key) => {
+        if (row[key]) {
+          const d = new Date(row[key]);
+          if (!isNaN(d)) {
+            // Which FY does this date belong to?
+            const fy = getFYFromDate(row[key]);
+            const fyStartYear = parseInt(fy.split("-")[0], 10);
+            if (minYear === null || fyStartYear < minYear) minYear = fyStartYear;
+          }
+        }
+      });
+    });
+
+    if (minYear === null) {
+      setFyOptions([currentFY]);
+      return;
+    }
+
+    // Build descending list: currentFY → minFY
+    const options = [];
+    for (let y = currentFYStart; y >= minYear; y--) {
+      options.push(`${y}-${y + 1}`);
+    }
+
+    setFyOptions(options.length ? options : [currentFY]);
+  };
+
+  const fetchData = async (from, to, fy, options = {}) => {
     setLoading(true);
     setError(null);
     try {
       const params = new URLSearchParams();
       if (from) params.append("from_date", from);
       if (to) params.append("to_date", to);
+      if (fy) params.append("fy_year", fy);
 
       const queryString = params.toString();
-      const url = `${import.meta.env.VITE_BACKEND_API_URL}reports/paid-expense-report${queryString ? `?${queryString}` : ""}`;
+      const url = `${import.meta.env.VITE_BACKEND_API_URL}reports/paid-expense-report${queryString ? `?${queryString}` : ""
+        }`;
 
       const res = await fetch(url, {
         headers: {
@@ -73,6 +145,10 @@ const PaidExpense = () => {
       if (json.success && Array.isArray(json.data)) {
         setRows(json.data);
         setCurrentPage(1);
+
+        if (options.buildFYOptions) {
+          buildFYOptionsFromData(json.data);
+        }
       }
     } catch (err) {
       console.error(err);
@@ -82,10 +158,21 @@ const PaidExpense = () => {
     }
   };
 
+  const handleFYChange = (fy) => {
+    setSelectedFY(fy);
+    const { fyStart: newStart } = getFYDateRange(fy);
+    setFromDate(newStart);
+    setToDate("");
+    setAppliedFrom("");
+    setAppliedTo("");
+    setDateError("");
+    fetchData("", "", fy);
+  };
+
   const handleFilter = () => {
     setAppliedFrom(fromDate);
     setAppliedTo(toDate);
-    fetchData(fromDate, toDate);
+    fetchData(fromDate, toDate, selectedFY);
   };
 
   const handleReset = () => {
@@ -94,7 +181,7 @@ const PaidExpense = () => {
     setAppliedFrom("");
     setAppliedTo("");
     setDateError("");
-    fetchData("", "");
+    fetchData("", "", selectedFY);
   };
 
   const validateAndSetFrom = (val) => {
@@ -110,7 +197,7 @@ const PaidExpense = () => {
 
   const validateAndSetTo = (val) => {
     if (!val) { setToDate(""); setDateError(""); return; }
-    if (val > TODAY) {
+    if (val > calendarMax) {
       setDateError("To date cannot be a future date.");
       setToDate(val);
       return;
@@ -171,82 +258,78 @@ const PaidExpense = () => {
         <Card>
           <Card.Header className="d-flex justify-content-between align-items-center flex-wrap gap-2">
 
-            {/* LEFT SIDE */}
-            <div>
-              <Card.Title className="mb-0">Paid Expense Reports</Card.Title>
-              {dateError && (
-                <small className="text-danger">{dateError}</small>
+            {/* LEFT — Title */}
+            <Card.Title className="mb-0">Paid Expense Reports
+            </Card.Title>
+
+            {/* CENTER — FY Selector + Date Filter */}
+            <div className="d-flex align-items-center gap-2 flex-wrap justify-content-center">
+
+              {/* FY Year Select */}
+              <select
+                className="form-select"
+                style={{ width: "145px" }}
+                value={selectedFY}
+                onChange={(e) => handleFYChange(e.target.value)}
+              >
+
+                {fyOptions.map((fy) => (
+                  <option key={fy} value={fy}>
+                    {fy}
+                    
+                  </option>
+                ))}
+                <option value="0">All Years</option>
+              </select>
+
+              {/* Date Filter */}
+              <input
+                key={`from-${selectedFY}`}   
+                type="date"
+                className="form-control"
+                style={{ width: "150px" }}
+                value={fromDate}
+                min={fyStart}
+                max={toDate || calendarMax}
+                onChange={(e) => validateAndSetFrom(e.target.value)}
+              />
+              <span>to</span>
+
+              <input
+                key={`to-${selectedFY}`}   
+                type="date"
+                className="form-control"
+                style={{ width: "150px" }}
+                value={toDate}
+                min={fromDate || fyStart}
+                max={calendarMax}
+                onChange={(e) => validateAndSetTo(e.target.value)}
+              />
+
+              <Button variant="primary" onClick={handleFilter} disabled={isFilterDisabled}>
+                Filter
+              </Button>
+
+              {(appliedFrom || appliedTo) && (
+                <Button variant="outline-secondary" onClick={handleReset}>
+                  Reset
+                </Button>
               )}
             </div>
 
-
-            <div className="float-right text-end">
+            {/* RIGHT — Search + Export */}
+            <div className="d-flex align-items-center gap-2">
               <SearchInput
                 value={search}
                 onChange={setSearch}
-                placeholder="Search expenses..."
-
+                placeholder="Search Paid Expenses..."
               />
-            </div>
-
-            {/* RIGHT SIDE */}
-            <div className="d-flex align-items-center flex-wrap gap-2">
-
-
-              {/* DATE FILTER */}
-              <div className="d-flex align-items-center gap-2 flex-wrap">
-                <input
-                  type="date"
-                  className={"form-control" + (dateError && fromDate && toDate && fromDate > toDate ? " is-invalid" : "")}
-                  style={{ width: "150px" }}
-                  value={fromDate}
-                  onChange={(e) => validateAndSetFrom(e.target.value)}
-                />
-
-                <span>to</span>
-
-                <input
-                  type="date"
-                  className={"form-control" + (dateError && toDate && (toDate > TODAY || (fromDate && toDate < fromDate)) ? " is-invalid" : "")}
-                  style={{ width: "150px" }}
-                  value={toDate}
-                  min={fromDate || undefined}
-                  max={TODAY}
-                  onChange={(e) => validateAndSetTo(e.target.value)}
-                />
-
-                <Button
-                  variant="primary"
-                  onClick={handleFilter}
-                  disabled={isFilterDisabled}
-                >
-                  Filter
-                </Button>
-
-                {(appliedFrom || appliedTo) && (
-                  <Button
-                    variant="outline-secondary"
-                    onClick={handleReset}
-                  >
-                    Reset
-                  </Button>
-                )}
-              </div>
-
-              {/* EXPORT */}
               <TableExportActions
                 data={exportData}
                 columns={exportColumns}
                 fileName="Paid_Expense_Report"
               />
-
-
-
-
             </div>
-
-
-
 
           </Card.Header>
 

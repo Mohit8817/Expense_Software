@@ -131,20 +131,41 @@ export const UserDashboard = async (req, res) => {
         `;
 
         // ─── 5. Latest 5 Expenses ─────────────────────────
+        // const AllExpenseData = await prisma.$queryRaw`
+        //     SELECT
+        //         ep.*,
+        //         p.name AS project_name
+        //     FROM ExpensePayment ep
+        //     LEFT JOIN Project p ON ep.project_name = p.id
+        //     WHERE ep.company_id   = ${company_id}
+        //       AND ep.requested_by = ${user_id}
+        //       ${fyFragment}
+        //       ${projectFragment}
+        //       ${interventionFragment}
+        //     ORDER BY ep.id DESC
+        //     LIMIT 5
+        // `;
         const AllExpenseData = await prisma.$queryRaw`
-            SELECT
-                ep.*,
-                p.name AS project_name
-            FROM ExpensePayment ep
-            LEFT JOIN Project p ON ep.project_name = p.id
-            WHERE ep.company_id   = ${company_id}
-              AND ep.requested_by = ${user_id}
-              ${fyFragment}
-              ${projectFragment}
-              ${interventionFragment}
-            ORDER BY ep.id DESC
-            LIMIT 5
-        `;
+    SELECT
+        ep.*,
+        p.name AS project_name,
+
+        DATE_FORMAT(ep.requested_date, '%Y-%m-%d %H:%i:%s') AS requested_date,
+        DATE_FORMAT(ep.created_at, '%Y-%m-%d %H:%i:%s') AS created_at,
+        DATE_FORMAT(ep.updated_at, '%Y-%m-%d %H:%i:%s') AS updated_at
+
+    FROM ExpensePayment ep
+    LEFT JOIN Project p ON ep.project_name = p.id
+
+    WHERE ep.company_id   = ${company_id}
+      AND ep.requested_by = ${user_id}
+      ${fyFragment}
+      ${projectFragment}
+      ${interventionFragment}
+
+    ORDER BY ep.id DESC
+    LIMIT 5
+`;
 
         // ─── 6. Available FY List ─────────────────────────
         const availableFYList = await prisma.$queryRaw`

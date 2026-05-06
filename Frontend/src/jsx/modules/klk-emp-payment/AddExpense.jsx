@@ -145,21 +145,21 @@ const AddExpense = () => {
   // };
 
   const handleChange = (e) => {
-  const { name, value, files } = e.target;
-  
-  // Fix: check if files exists and has items
-  let newValue;
-  if (name === "document") {
-    newValue = files && files.length > 0 ? files[0] : null;
-  } else {
-    newValue = value;
-  }
+    const { name, value, files } = e.target;
 
-  setFormData((prev) => ({ ...prev, [name]: newValue }));
+    // Fix: check if files exists and has items
+    let newValue;
+    if (name === "document") {
+      newValue = files && files.length > 0 ? files[0] : null;
+    } else {
+      newValue = value;
+    }
 
-  const error = validateField(name, newValue);
-  setErrors((prev) => ({ ...prev, [name]: error }));
-};
+    setFormData((prev) => ({ ...prev, [name]: newValue }));
+
+    const error = validateField(name, newValue);
+    setErrors((prev) => ({ ...prev, [name]: error }));
+  };
 
   // SUBMIT FORM
   const handleSubmit = async (e) => {
@@ -358,14 +358,14 @@ const AddExpense = () => {
               {/* Document */}
               <div className="col-lg-12 mb-3">
                 <label>Upload Document</label>
-        <input
-  type="file"
-  name="document"
-  className={`form-control ${errors.document ? "is-invalid" : ""}`}
-  onChange={handleChange}
-  accept=".jpg,.jpeg,.png,.pdf,image/jpeg,image/png,image/jpg,application/pdf"
-  multiple={false}
-/>
+                <input
+                  type="file"
+                  name="document"
+                  className={`form-control ${errors.document ? "is-invalid" : ""}`}
+                  onChange={handleChange}
+                  accept=".jpg,.jpeg,.png,.pdf,image/jpeg,image/png,image/jpg,application/pdf"
+                  multiple={false}
+                />
                 <small className="text-muted">
                   Allowed: JPG, PNG, PDF — Max size: 5MB
                 </small>

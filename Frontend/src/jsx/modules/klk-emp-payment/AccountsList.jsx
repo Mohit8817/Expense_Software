@@ -30,7 +30,7 @@ const PaymentListBase = ({ status, pageTitle, cardTitle }) => {
       const res = await axios.get(
         `${import.meta.env.VITE_BACKEND_API_URL}expense/accounts-expenses`,
         {
-          params: { status }, // ✅ ?status=0 or ?status=2
+          params: { status },
           headers: {
             Authorization: `Bearer ${localStorage.getItem("token")}`,
           },
@@ -91,20 +91,22 @@ const PaymentListBase = ({ status, pageTitle, cardTitle }) => {
     payment_status:
       item.payment_status === 2 ? "Fully Paid" :
         item.payment_status === 1 ? "Partially Paid" : "Unpaid",
-    requested_date: new Date(item.requested_date).toLocaleDateString(),
   }));
 
-  const columns = [
-    { label: "Raised By", key: "raised_by" },
-    { label: "Date", key: "requested_date" },
-    { label: "Project", key: "project" },
-    { label: "Intervention", key: "intervention" },
-    { label: "Manager", key: "manager_name" },
-    { label: "Document", key: "document" },
-    { label: "Amount", key: "final_approved_amount" },
-    { label: "Paid", key: "paid_amount" },
-    { label: "Payment Status", key: "payment_status" },
-  ];
+
+const columns = [
+  { label: "Raised By", key: "raised_by" },
+  { label: "Raised Date", key: "requested_date" },
+  { label: "Project", key: "project" },
+  { label: "Intervention", key: "intervention" },
+  { label: "Manager", key: "manager_name" },
+  { label: "Manager Appr Date", key: "manager_approved_date" },
+  { label: "Document", key: "document" },
+  { label: "Amount (₹)", key: "final_approved_amount" },
+  { label: "Paid (₹)", key: "paid_amount" },
+  { label: "Balance Amount (₹)", key: "balance_amount" },
+  { label: "Payment Status", key: "payment_status" },
+];
 
   /* ---------------- HANDLERS ---------------- */
   const handleAccount = (item) => {
@@ -213,10 +215,11 @@ const PaymentListBase = ({ status, pageTitle, cardTitle }) => {
                 <tr>
                   <th>Sno</th>
                   <th>Raised By</th>
-                  <th>Date</th>
+                  <th>Raised Date</th>
                   <th>Project</th>
                   <th>Intervention</th>
                   <th>Manager</th>
+                  <th>Manager  Appr Date</th>
                   <th>Document</th>
                   <th>Amount</th>
                   <th>Paid</th>
@@ -239,11 +242,11 @@ const PaymentListBase = ({ status, pageTitle, cardTitle }) => {
                       <tr key={item.id}>
                         <td>{indexOfFirst + index + 1}</td>
                         <td>{item.raised_by}</td>
-                        <td>{new Date(item.requested_date).toLocaleDateString()}</td>
+                        <td>{item.requested_date}</td>
                         <td>{item.project}</td>
                         <td>{item.intervention}</td>
                         <td>{item.manager_name}</td>
-
+                        <td className="text-center">{item.manager_approved_date}</td>
                         <td>
                           {item.document ? (
                             <a

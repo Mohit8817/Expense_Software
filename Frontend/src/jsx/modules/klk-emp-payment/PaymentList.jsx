@@ -68,7 +68,7 @@ const PaymentList = () => {
     keys: [
       "project_name", "state", "district", "village", "intervention_name",
       "raised_by", "manager_name", "amount", "remarks", "payment_amount",
-      "created_at", "reviewer_status", "approval_status", "payment_status",
+      "requested_date", "reviewer_status", "approval_status", "payment_status",
     ],
     itemsPerPage: 100,
   });
@@ -306,11 +306,12 @@ const PaymentList = () => {
     { label: "Village", key: "village" },
     { label: "Intervention", key: "intervention_name" },
     { label: "Raised By", key: "raised_by" },
+    { label: "Request Date", key: "requested_date" },
     { label: "Manager", key: "manager_name" },
+    { label: "Manager Approved Date", key: "manager_approved_at" },
     { label: "Amount", key: "amount" },
     { label: "Approved Amount", key: "final_approved_amount" },
     { label: "Document", key: "document" },
-    { label: "Request Date", key: "created_at" },
     { label: "Payment Amount", key: "payment_amount" },
     { label: "Remarks", key: "remarks" },
     { label: "Reviewer Status", key: "reviewer_status" },
@@ -320,11 +321,9 @@ const PaymentList = () => {
 
   const exportData = expenses.map((item) => ({
     ...item,
-    created_at: item.created_at
-      ? new Date(item.created_at).toLocaleDateString("en-IN")
-      : "N/A",
+    requested_date: item.requested_date || "N/A",
+    manager_approved_at: item.manager_approved_at || "N/A",
   }));
-
   /* ---------------- STATUS BADGE ---------------- */
   const getBadgeClass = (status) => {
     if (status === "Approved" || status === "Paid") return "bg-success";
@@ -372,12 +371,14 @@ const PaymentList = () => {
                   <th>Village</th>
                   <th>Intervention</th>
                   <th>Raised By</th>
+                  <th>Raised Date</th>
                   <th>Manager</th>
+                  <th>Manager Appr Date</th>
                   <th>Amount</th>
                   <th>Remarks</th>
                   <th>Approved Amount</th>
                   <th>Document</th>
-                  <th>Request Date</th>
+                  {/* <th>Request Date</th> */}
                   <th>Payment Amount</th>
                   <th>Reviewer Status</th>
                   <th>Approval Status</th>
@@ -398,7 +399,17 @@ const PaymentList = () => {
                       <td>{item.village || "N/A"}</td>
                       <td>{item.intervention_name || "N/A"}</td>
                       <td>{item.raised_by || "N/A"}</td>
+
+                      <td>
+                        {item.requested_date}
+                      </td>
+
                       <td>{item.manager_name || "N/A"}</td>
+
+                      <td className="text-center">
+                        {item.manager_approved_at}
+                      </td>
+
                       <td>₹ {item.amount}</td>
                       <td>{item.remarks || "N/A"}</td>
                       <td>₹ {item.final_approved_amount || 0}</td>
@@ -417,11 +428,7 @@ const PaymentList = () => {
                         )}
                       </td>
 
-                      <td>
-                        {item.created_at
-                          ? new Date(item.created_at).toLocaleDateString("en-IN")
-                          : "N/A"}
-                      </td>
+
 
                       <td>₹ {item.payment_amount || 0}</td>
 

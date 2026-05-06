@@ -55,7 +55,7 @@ export const InterventionReport = async (req, res) => {
         // ─── Step 2: Flat rows — one per (user × intervention) ──
         const rawRows = await prisma.$queryRaw`
             SELECT
-                u.id            AS user_id,
+            u.id            AS user_id,
                 u.username      AS employee_name,
                 u.email         AS employee_email,
                 i.id            AS intervention_id,
@@ -82,6 +82,7 @@ export const InterventionReport = async (req, res) => {
             LEFT JOIN User u         ON u.id  = ep.requested_by
             LEFT JOIN Intervention i ON i.id  = ep.intervention
             WHERE ep.company_id = ${company_id}
+            ${fyFragment}
             GROUP BY u.id, u.username, u.email, i.id, i.name
             ORDER BY u.username ASC, i.id ASC
         `;
