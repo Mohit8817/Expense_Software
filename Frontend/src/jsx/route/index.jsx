@@ -48,11 +48,11 @@ import PermissionList from "../modules/RolePermission/PermissionList";
 import PermissionForm from "../modules/RolePermission/PermissionForm"
 import AssignPermission from "../modules/RolePermission/AssignPermission"
 import InterventionReports from "../modules/Report/InterventionReports";
+import PaidExpense from "../modules/Report/PaidExpense";
 import ManagerPendingPayments from "../modules/klk-emp-payment/ManagerPendingPayments";
 import ManagerApprovedPayments from "../modules/klk-emp-payment/ManagerApprovedPayments";
 import AccountPaidPayments from "../modules/klk-emp-payment/Accountpaidpayments";
 import AccountPendingPayments from "../modules/klk-emp-payment/AccountPendingPayments";
-import PaidExpense from "../modules/Report/PaidExpense";
 
 
 

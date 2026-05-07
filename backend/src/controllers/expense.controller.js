@@ -245,6 +245,7 @@ export const getMyCreatedExpenses = async (req, res) => {
 
                 final_approved_amount: exp.final_approved_amount ?? 0,
                 payment_amount: exp.paid_amount ?? 0,
+                review_assign: Number(exp.review_assign),
 
                 reviewer_status: getStatusText(exp.reviewer_approval_status),
                 approval_status: getStatusText(exp.approval_status),

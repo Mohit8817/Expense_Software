@@ -314,7 +314,7 @@ const PaymentList = () => {
     { label: "Document", key: "document" },
     { label: "Payment Amount", key: "payment_amount" },
     { label: "Remarks", key: "remarks" },
-    { label: "Reviewer Status", key: "reviewer_status" },
+    // { label: "Reviewer Status", key: "reviewer_status" },
     { label: "Approval Status", key: "approval_status" },
     { label: "Payment Status", key: "payment_status" },
   ];
@@ -380,7 +380,7 @@ const PaymentList = () => {
                   <th>Document</th>
                   {/* <th>Request Date</th> */}
                   <th>Payment Amount</th>
-                  <th>Reviewer Status</th>
+                  {/* <th>Reviewer Status</th> */}
                   <th>Approval Status</th>
                   <th>Payment Status</th>
                   <th>View History</th>
@@ -432,11 +432,11 @@ const PaymentList = () => {
 
                       <td>₹ {item.payment_amount || 0}</td>
 
-                      <td>
+                      {/* <td>
                         <span className={`badge ${getBadgeClass(item.reviewer_status)}`}>
                           {item.reviewer_status}
                         </span>
-                      </td>
+                      </td> */}
 
                       <td>
                         <span className={`badge ${getBadgeClass(item.approval_status)}`}>
@@ -467,9 +467,9 @@ const PaymentList = () => {
                         )}
                       </td>
 
-                      {/* Action: Edit + Delete — only when approval_status is Pending */}
+
                       <td className="text-center">
-                        {item.approval_status === "Pending" ? (
+                        {item.approval_status === "Pending" && item.review_assign === 0 ? (
                           <div className="d-flex gap-1 justify-content-center">
                             <button
                               className="btn btn-warning btn-sm text-white"
@@ -487,11 +487,13 @@ const PaymentList = () => {
                             </button>
                           </div>
                         ) : (
-                          <span className="text-muted">
+                          <span className="text-muted" title="Action not allowed">
                             <i className="fa fa-lock" />
                           </span>
                         )}
                       </td>
+
+
                     </tr>
                   ))
                 ) : (
