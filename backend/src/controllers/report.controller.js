@@ -132,6 +132,13 @@ export const InterventionReport = async (req, res) => {
             grandTotal += user.row_total;
         }
 
+        const availableFYList = await prisma.$queryRaw`
+            SELECT DISTINCT financial_year AS fy_year
+            FROM ExpensePayment ep
+            WHERE ep.company_id   = ${company_id}
+            ORDER BY financial_year DESC
+        `;
+
         // ─── Serialize & Respond ──────────────────────────
         const responseData = ({
             activeFilters: {
@@ -146,6 +153,7 @@ export const InterventionReport = async (req, res) => {
             rows: [...userMap.values()],          // → table rows (pivoted)
             columnTotals,                         // → footer totals per intervention
             grandTotal,                           // → bottom-right total
+            availableFYList,                      // → list of available financial years
         });
 
         return res.status(200).json({ success: true, data: responseData });
@@ -228,7 +236,13 @@ export const PaidExpenseReport = async (req, res) => {
 
   ORDER BY ept.payment_date DESC, ep.id DESC
 `;
-        return res.status(200).json({ success: true, data: paidExpenses });
+        const availableFYList = await prisma.$queryRaw`
+            SELECT DISTINCT financial_year AS fy_year
+            FROM ExpensePayment ep
+            WHERE ep.company_id   = ${company_id}
+            ORDER BY financial_year DESC
+        `;
+        return res.status(200).json({ success: true, data: paidExpenses, availableFYList });
 
     } catch (error) {
         return res.status(500).json({

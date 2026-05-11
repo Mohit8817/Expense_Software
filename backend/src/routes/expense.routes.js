@@ -5,6 +5,7 @@ import { createExpense, getExpenseFormData, getMyCreatedExpenses, getManagerExpe
 
 import { createExpenseValidator } from "../validators/expense.validator.js";
 
+// import { createExpense, getExpenseFormData, getMyCreatedExpenses, getManagerExpenses, getReviewers, assignReviewer, getReviewerExpenses, reviewerApprove, managerApproveExpense, getAccountsExpenses , processPayment, getPaymentHistory, paymentReceipt, deleteExpense , editExpense, updateExpense} from "../controllers/expense.controller.js";
 
 const router = Router();
 
@@ -24,6 +25,8 @@ router.post("/process-payment/:id", checkPermission("account_expense"), processP
 router.get("/payment-receipt/:id", checkPermission("account_expense"),  paymentReceipt);
 router.get("/payment-history/:id", getPaymentHistory);
 router.delete("/delete-expense/:id", deleteExpense);
+router.get("/edit-expense/:id", checkPermission("edit_expense"),  editExpense);
+router.post("/update-expense/:id", checkPermission("edit_expense"), upload.single("document"), updateExpense);
 
 router.delete("/delete-expense/:id", deleteExpense);
 

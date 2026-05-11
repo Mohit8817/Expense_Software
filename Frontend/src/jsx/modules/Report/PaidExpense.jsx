@@ -7,49 +7,38 @@ import { useSearchFilter, SearchInput } from "../../components/Common/useSearchF
 
 // ─── FY Helpers ────────────────────────────────────────────────────────────────
 
-/** Returns the FY string for a given date, e.g. "2025-2026" */
-const getFYFromDate = (dateStr) => {
-  if (!dateStr) return null;
-  const d = new Date(dateStr);
-  const year = d.getFullYear();
-  const month = d.getMonth() + 1;
-  return month >= 4 ? `${year}-${year + 1}` : `${year - 1}-${year}`;
-};
-
-/** Returns the current FY string */
-const getCurrentFY = () => getFYFromDate(new Date().toISOString());
-
 /** Returns { fyStart: "YYYY-MM-DD", fyEnd: "YYYY-MM-DD" } for a given FY string */
 const getFYDateRange = (fy) => {
+  if (!fy || fy === "0") return { fyStart: "", fyEnd: "" };
   const startYear = parseInt(fy.split("-")[0], 10);
   return {
     fyStart: `${startYear}-04-01`,
-    fyEnd: `${startYear + 1}-03-31`,
+    fyEnd:   `${startYear + 1}-03-31`,
   };
 };
 
 // ───────────────────────────────────────────────────────────────────────────────
 
 const PaidExpense = () => {
-  const [rows, setRows] = useState([]);
+  const [rows, setRows]       = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [error, setError]     = useState(null);
 
   const TODAY = new Date().toISOString().split("T")[0];
 
-  // FY state — default to current FY; options built from data
-  const [selectedFY, setSelectedFY] = useState(getCurrentFY());
-  const [fyOptions, setFyOptions] = useState([getCurrentFY()]);
+  //   No static FY — everything comes from API
+  const [selectedFY, setSelectedFY] = useState("");
+  const [fyOptions, setFyOptions]   = useState([]);
 
-  const [fromDate, setFromDate] = useState("");
-  const [toDate, setToDate] = useState("");
+  const [fromDate, setFromDate]     = useState("");
+  const [toDate, setToDate]         = useState("");
   const [appliedFrom, setAppliedFrom] = useState("");
-  const [appliedTo, setAppliedTo] = useState("");
-  const [dateError, setDateError] = useState("");
+  const [appliedTo, setAppliedTo]     = useState("");
+  const [dateError, setDateError]     = useState("");
 
-  // Calendar bounds derived from the selected FY
+  // Calendar bounds — only when a real FY is selected
   const { fyStart, fyEnd } = getFYDateRange(selectedFY);
-  const calendarMax = fyEnd > TODAY ? TODAY : fyEnd; 
+  const calendarMax = fyEnd && fyEnd < TODAY ? fyEnd : TODAY;
 
   const {
     search,
@@ -76,48 +65,10 @@ const PaidExpense = () => {
     itemsPerPage: 100,
   });
 
-  // On mount — fetch all data (no FY filter) to derive available FY options from data
+  // On mount — fetch without FY to get availableFYList, then auto-select first FY
   useEffect(() => {
-    fetchData("", "", "", { buildFYOptions: true });
+    fetchData("", "", "", { initFYOptions: true });
   }, []);
-
-  const buildFYOptionsFromData = (data) => {
-    const currentFY = getCurrentFY();
-    const currentFYStart = parseInt(currentFY.split("-")[0], 10);
-
-    if (!data || data.length === 0) {
-      setFyOptions([currentFY]);
-      return;
-    }
-
-    let minYear = null;
-    data.forEach((row) => {
-      ["requested_date", "payment_date", "updated_at"].forEach((key) => {
-        if (row[key]) {
-          const d = new Date(row[key]);
-          if (!isNaN(d)) {
-            // Which FY does this date belong to?
-            const fy = getFYFromDate(row[key]);
-            const fyStartYear = parseInt(fy.split("-")[0], 10);
-            if (minYear === null || fyStartYear < minYear) minYear = fyStartYear;
-          }
-        }
-      });
-    });
-
-    if (minYear === null) {
-      setFyOptions([currentFY]);
-      return;
-    }
-
-    // Build descending list: currentFY → minFY
-    const options = [];
-    for (let y = currentFYStart; y >= minYear; y--) {
-      options.push(`${y}-${y + 1}`);
-    }
-
-    setFyOptions(options.length ? options : [currentFY]);
-  };
 
   const fetchData = async (from, to, fy, options = {}) => {
     setLoading(true);
@@ -125,12 +76,13 @@ const PaidExpense = () => {
     try {
       const params = new URLSearchParams();
       if (from) params.append("from_date", from);
-      if (to) params.append("to_date", to);
-      if (fy) params.append("fy_year", fy);
+      if (to)   params.append("to_date",   to);
+      if (fy && fy !== "0") params.append("fy_year", fy);
 
       const queryString = params.toString();
-      const url = `${import.meta.env.VITE_BACKEND_API_URL}reports/paid-expense-report${queryString ? `?${queryString}` : ""
-        }`;
+      const url = `${import.meta.env.VITE_BACKEND_API_URL}reports/paid-expense-report${
+        queryString ? `?${queryString}` : ""
+      }`;
 
       const res = await fetch(url, {
         headers: {
@@ -146,8 +98,17 @@ const PaidExpense = () => {
         setRows(json.data);
         setCurrentPage(1);
 
-        if (options.buildFYOptions) {
-          buildFYOptionsFromData(json.data);
+        //   FY options sirf API se, kuch bhi static nahi
+        if (options.initFYOptions && Array.isArray(json.availableFYList) && json.availableFYList.length > 0) {
+          const fyFromApi = json.availableFYList.map((item) => item.fy_year);
+          setFyOptions(fyFromApi);
+
+          // Auto-select first FY from API (latest year)
+          const firstFY = fyFromApi[0];
+          setSelectedFY(firstFY);
+
+          // Fetch data for that FY now
+          fetchData("", "", firstFY);
         }
       }
     } catch (err) {
@@ -160,8 +121,7 @@ const PaidExpense = () => {
 
   const handleFYChange = (fy) => {
     setSelectedFY(fy);
-    const { fyStart: newStart } = getFYDateRange(fy);
-    setFromDate(newStart);
+    setFromDate("");
     setToDate("");
     setAppliedFrom("");
     setAppliedTo("");
@@ -223,31 +183,31 @@ const PaidExpense = () => {
   };
 
   const exportColumns = [
-    { label: "Name", key: "requested_by_name" },
-    { label: "Email", key: "requested_by_email" },
-    { label: "Manager", key: "manager_name" },
-    { label: "Project", key: "project_name" },
-    { label: "Intervention", key: "intervention_name" },
-    { label: "Request Amount", key: "amount" },
-    { label: "Request Date", key: "requested_date" },
-    { label: "Final Approved Amount", key: "final_approved_amount" },
-    { label: "Final Approve Date", key: "updated_at" },
-    { label: "Paid Amount", key: "paid_amount" },
-    { label: "Paid Date", key: "payment_date" },
+    { label: "Name",                  key: "requested_by_name"    },
+    { label: "Email",                 key: "requested_by_email"   },
+    { label: "Manager",               key: "manager_name"         },
+    { label: "Project",               key: "project_name"         },
+    { label: "Intervention",          key: "intervention_name"    },
+    { label: "Request Amount",        key: "amount"               },
+    { label: "Request Date",          key: "requested_date"       },
+    { label: "Final Approved Amount", key: "final_approved_amount"},
+    { label: "Final Approve Date",    key: "updated_at"           },
+    { label: "Paid Amount",           key: "paid_amount"          },
+    { label: "Paid Date",             key: "payment_date"         },
   ];
 
   const exportData = rows.map((row) => ({
-    requested_by_name: row.requested_by_name || "N/A",
-    requested_by_email: row.requested_by_email || "N/A",
-    manager_name: row.manager_name || "N/A",
-    project_name: row.project_name || "N/A",
-    intervention_name: row.intervention_name || "N/A",
-    amount: row.amount ?? 0,
-    requested_date: formatDate(row.requested_date),
-    final_approved_amount: row.final_approved_amount ?? 0,
-    updated_at: formatDate(row.updated_at),
-    paid_amount: row.paid_amount ?? 0,
-    payment_date: formatDate(row.payment_date),
+    requested_by_name:    row.requested_by_name    || "N/A",
+    requested_by_email:   row.requested_by_email   || "N/A",
+    manager_name:         row.manager_name         || "N/A",
+    project_name:         row.project_name         || "N/A",
+    intervention_name:    row.intervention_name    || "N/A",
+    amount:               row.amount               ?? 0,
+    requested_date:       formatDate(row.requested_date),
+    final_approved_amount:row.final_approved_amount ?? 0,
+    updated_at:           formatDate(row.updated_at),
+    paid_amount:          row.paid_amount           ?? 0,
+    payment_date:         formatDate(row.payment_date),
   }));
 
   return (
@@ -259,61 +219,67 @@ const PaidExpense = () => {
           <Card.Header className="d-flex justify-content-between align-items-center flex-wrap gap-2">
 
             {/* LEFT — Title */}
-            <Card.Title className="mb-0">Paid Expense Reports
-            </Card.Title>
+            <Card.Title className="mb-0">Paid Expense Reports</Card.Title>
 
             {/* CENTER — FY Selector + Date Filter */}
             <div className="d-flex align-items-center gap-2 flex-wrap justify-content-center">
 
-              {/* FY Year Select */}
+              {/*   FY dropdown — 100% API driven */}
               <select
                 className="form-select"
                 style={{ width: "145px" }}
                 value={selectedFY}
                 onChange={(e) => handleFYChange(e.target.value)}
+                disabled={fyOptions.length === 0}
               >
-
                 {fyOptions.map((fy) => (
-                  <option key={fy} value={fy}>
-                    {fy}
-                    
-                  </option>
+                  <option key={fy} value={fy}>{fy}</option>
                 ))}
-                <option value="0">All Years</option>
+                <option value="all">All Years</option>
               </select>
 
-              {/* Date Filter */}
-              <input
-                key={`from-${selectedFY}`}   
-                type="date"
-                className="form-control"
-                style={{ width: "150px" }}
-                value={fromDate}
-                min={fyStart}
-                max={toDate || calendarMax}
-                onChange={(e) => validateAndSetFrom(e.target.value)}
-              />
-              <span>to</span>
+              {/* Date Filter — hide when "All Years" selected */}
+              {selectedFY && selectedFY !== "0" && (
+                <>
+                  <input
+                    key={`from-${selectedFY}`}
+                    type="date"
+                    className="form-control"
+                    style={{ width: "150px" }}
+                    value={fromDate}
+                    min={fyStart}
+                    max={toDate || calendarMax}
+                    onChange={(e) => validateAndSetFrom(e.target.value)}
+                  />
+                  <span>to</span>
+                  <input
+                    key={`to-${selectedFY}`}
+                    type="date"
+                    className="form-control"
+                    style={{ width: "150px" }}
+                    value={toDate}
+                    min={fromDate || fyStart}
+                    max={calendarMax}
+                    onChange={(e) => validateAndSetTo(e.target.value)}
+                  />
+                  <Button
+                    variant="primary"
+                    onClick={handleFilter}
+                    disabled={isFilterDisabled}
+                  >
+                    Filter
+                  </Button>
+                  {(appliedFrom || appliedTo) && (
+                    <Button variant="outline-secondary" onClick={handleReset}>
+                      Reset
+                    </Button>
+                  )}
+                </>
+              )}
 
-              <input
-                key={`to-${selectedFY}`}   
-                type="date"
-                className="form-control"
-                style={{ width: "150px" }}
-                value={toDate}
-                min={fromDate || fyStart}
-                max={calendarMax}
-                onChange={(e) => validateAndSetTo(e.target.value)}
-              />
-
-              <Button variant="primary" onClick={handleFilter} disabled={isFilterDisabled}>
-                Filter
-              </Button>
-
-              {(appliedFrom || appliedTo) && (
-                <Button variant="outline-secondary" onClick={handleReset}>
-                  Reset
-                </Button>
+              {/* Date error message */}
+              {dateError && (
+                <span className="text-danger small">{dateError}</span>
               )}
             </div>
 
@@ -357,18 +323,17 @@ const PaidExpense = () => {
                       <th>Paid Date</th>
                     </tr>
                   </thead>
-
                   <tbody>
                     {paginatedData.length > 0 ? (
                       paginatedData.map((row, index) => (
                         <tr key={row.id}>
                           <td>{indexOfFirst + index + 1}</td>
-                          <td>{row.requested_by_name || "N/A"}</td>
-                          <td>{row.requested_by_email || "N/A"}</td>
-                          <td>{row.manager_name || "N/A"}</td>
-                          <td>{row.project_name || "N/A"}</td>
-                          <td>{row.intervention_name || "N/A"}</td>
-                          <td>{row.amount ?? 0}</td>
+                          <td>{row.requested_by_name    || "N/A"}</td>
+                          <td>{row.requested_by_email   || "N/A"}</td>
+                          <td>{row.manager_name         || "N/A"}</td>
+                          <td>{row.project_name         || "N/A"}</td>
+                          <td>{row.intervention_name    || "N/A"}</td>
+                          <td>{row.amount               ?? 0}</td>
                           <td>{formatDate(row.requested_date)}</td>
                           <td className="fw-bold">{row.final_approved_amount ?? 0}</td>
                           <td>{formatDate(row.updated_at)}</td>
@@ -378,9 +343,7 @@ const PaidExpense = () => {
                       ))
                     ) : (
                       <tr>
-                        <td colSpan={12} className="text-center">
-                          No Data Found
-                        </td>
+                        <td colSpan={12} className="text-center">No Data Found</td>
                       </tr>
                     )}
                   </tbody>

@@ -100,11 +100,11 @@ model ExpensePayment {
   manager_approved_at DateTime? // ✅ NEW
 
   // ✅ Reviewer
-  review_assign     Boolean   @default(false)
+  review_assign            Boolean  @default(false)
   assign_date       DateTime?
-  managertoreviewer String    @default("")
-  reviewer_id       Int?
-  reviewer_remarks  String?
+  managertoreviewer        String @default("")
+  reviewer_id              Int?
+  reviewer_remarks         String?
 
   reviewer_approval_status Int       @default(0)
   reviewer_status          Boolean   @default(false)

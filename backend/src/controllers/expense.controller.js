@@ -1,5 +1,4 @@
 import { PrismaClient } from "@prisma/client";
-import { request } from "express";
 import PDFDocument from "pdfkit";
 const prisma = new PrismaClient();
 
@@ -13,6 +12,7 @@ function formatDate(date) {
     const year = d.getFullYear();
     return `${day}-${month}-${year}`;
 }
+
 export const getExpenseFormData = async (req, res) => {
     try {
         const company_id = req.user?.company_id;
@@ -239,6 +239,8 @@ export const getMyCreatedExpenses = async (req, res) => {
                 document: exp.document,
                 remarks: exp.remarks || "N/A",
                 created_at: exp.created_at,
+                
+                review_assign: Number(exp.review_assign),
 
                 raised_by: userMap[userId] || "N/A",
                 manager_name: userMap[managerId] || "N/A",
@@ -268,6 +270,7 @@ export const getMyCreatedExpenses = async (req, res) => {
         });
     }
 };
+
 
 
 
@@ -345,7 +348,6 @@ export const updateExpense = async (req, res) => {
         });
     }
 };
-
 
 export const deleteExpense = async (req, res) => {
     try {
@@ -444,7 +446,6 @@ export const getManagerExpenses = async (req, res) => {
             return "Pending";
         };
 
-
         // ✅ Final Response
         const result = expenses.map((exp) => ({
             id: exp.id,
@@ -465,6 +466,7 @@ export const getManagerExpenses = async (req, res) => {
             manager_name: userMap[Number(exp.manager_id)] || "N/A",
             reviewer_name: userMap[Number(exp.reviewer_id)] || "N/A",
             document: exp.document,
+
             review_assign: exp.review_assign,
             managertoreviewer: exp.managertoreviewer,
             approved_amount: exp.approved_amount || "N/A",
@@ -472,8 +474,8 @@ export const getManagerExpenses = async (req, res) => {
             paid_amount: exp.paid_amount || "N/A",
             reviewer_approval_status: Number(exp.reviewer_approval_status), // raw value
             reviewer_approval_text: getStatusText(exp.reviewer_approval_status), // label
-            reviewer_remarks: exp.reviewer_remarks || "N/A",
 
+            reviewer_remarks: exp.reviewer_remarks || "N/A",
 
             requested_date: formatDate(exp.requested_date),
             assign_date: formatDate(exp.assign_date),
@@ -505,20 +507,25 @@ export const getReviewers = async (req, res) => {
             });
         }
 
-        const reviewers = await prisma.user.findMany({
-            where: {
-                company_id: company_id,
-                status: true,
-            },
-            select: {
-                id: true,
-                username: true,
-                email: true,
-            },
-            orderBy: {
-                username: "asc",
-            },
-        });
+        const REQUIRED_PERMISSION = "reviewer_expense";
+        const reviewers = await prisma.$queryRaw`
+        SELECT 
+            id,
+            username,
+            email,
+            role_id
+        FROM User
+        WHERE 
+            company_id = ${company_id}
+            AND status = 1
+            AND role_id IN (
+                SELECT rp.role_id
+                FROM RolePermission rp
+                JOIN Permission p ON p.id = rp.permission_id
+                WHERE p.name = ${REQUIRED_PERMISSION}
+            )
+        ORDER BY username ASC
+      `;
 
         return res.status(200).json(reviewers);
 
@@ -850,10 +857,10 @@ export const getAccountsExpenses = async (req, res) => {
             document: exp.document,
 
             // ✅ IMPORTANT
-            final_approved_amount: exp.final_approved_amount,
+               final_approved_amount: exp.final_approved_amount,
             manager_approved_date: formatDate(exp.manager_approved_at),
             paid_amount: exp.paid_amount || 0,              
-            payment_status: exp.payment_status || 0,        
+            payment_status: exp.payment_status || 0,   
 
             // ✅ USERS
             raised_by: userMap[Number(exp.requested_by)] || "N/A",
@@ -861,8 +868,6 @@ export const getAccountsExpenses = async (req, res) => {
 
             // ✅ STATUS
             manager_status: getStatusText(exp.approval_status),
-
-
         }));
 
         return res.json(result);

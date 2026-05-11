@@ -15,7 +15,6 @@ import dashboardRoutes from "./src/routes/dashboard.routes.js";
 import roleRoutes from "./src/routes/role.routes.js"
 import permissionRoutes from "./src/routes/permission.routes.js"
 import reportRoutes from "./src/routes/report.routes.js"
-import advanceExpenseRoutes from "./src/routes/advance-expense.route.js";
 
 
 
@@ -76,7 +75,6 @@ app.use("/api/dashboard", dashboardRoutes);
 app.use("/api/role", roleRoutes);
 app.use("/api/permission", permissionRoutes);
 app.use("/api/reports", reportRoutes);
-app.use("/api/advance-expense", advanceExpenseRoutes);
 
 
 app.get("/", (req, res) => {

@@ -227,7 +227,7 @@ const ManagerExpenseTable = ({ status, pageTitle, cardTitle }) => {
       alert("Manager decision saved");
       setShowModal(false);
       fetchExpenses();
-    } catch (error) {
+    } catch (error) { 
       console.error(error);
     }
   };

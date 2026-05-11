@@ -56,6 +56,7 @@ import AccountPendingPayments from "../modules/klk-emp-payment/AccountPendingPay
 
 
 
+
 const ProtectedRoute = ({ children }) => {
     const token = localStorage.getItem("token");
     const user = localStorage.getItem("user");
@@ -144,7 +145,8 @@ const Markup = () => {
         { path: '/account/paid-payments', element: <AccountPaidPayments /> },
         { path: '/account/pending-payments', element: <AccountPendingPayments /> },
 
-    ];
+    
+     ];
 
     return (
         <>

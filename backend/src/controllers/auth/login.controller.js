@@ -22,7 +22,7 @@ export const loginUser = async (req, res) => {
     }
 
     // ✅ Fetch user from MySQL via Prisma
-    const user = await prisma.user.findUnique({
+    const user = await prisma.User.findUnique({
       where: { email: email },
     });
 

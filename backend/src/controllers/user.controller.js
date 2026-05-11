@@ -38,7 +38,7 @@ export const createUser = async (req, res) => {
 
     const statusValue = status === "1" || status === 1 || status === true;
 
-    const employee = await prisma.user.create({
+    const employee = await prisma.User.create({
       data: {
         company_id,
         user_id,
@@ -80,7 +80,7 @@ export const createUser = async (req, res) => {
 
 export const getAllUsers = async (req, res) => {
   try {
-    const users = await prisma.user.findMany({
+    const users = await prisma.User.findMany({
       where: {
         company_id: req.user.company_id,
       },
@@ -98,7 +98,7 @@ export const getAllUsers = async (req, res) => {
 //  GET REPORTING HEADS (FOR DROPDOWN)
 export const getReportingHeads = async (req, res) => {
   try {
-    const users = await prisma.user.findMany({
+    const users = await prisma.User.findMany({
       where: {
         company_id: req.user.company_id,
       },
@@ -124,7 +124,7 @@ export const getUserById = async (req, res) => {
   try {
     const { id } = req.params;
       // Reporting heads
-    const reportingHeads = await prisma.user.findMany({
+    const reportingHeads = await prisma.User.findMany({
       where: {
         company_id: req.user.company_id,
       },
@@ -136,7 +136,7 @@ export const getUserById = async (req, res) => {
       },
     });
 
-    const user = await prisma.user.findUnique({
+    const user = await prisma.User.findUnique({
       where: { id: Number(id) },
     });
 
@@ -229,7 +229,7 @@ export const updateUser = async (req, res) => {
     // 🔍 DEBUG
     console.log("FINAL UPDATE DATA:", updatedData);
 
-    const user = await prisma.user.update({
+    const user = await prisma.User.update({
       where: { id: Number(id) },
       data: updatedData,
     });
@@ -253,7 +253,7 @@ export const deleteUser = async (req, res) => {
     const { id } = req.params;
 
     // 🔍 Find user first
-    const existingUser = await prisma.user.findUnique({
+    const existingUser = await prisma.User.findUnique({
       where: { id: Number(id) },
     });
 
@@ -275,7 +275,7 @@ export const deleteUser = async (req, res) => {
     }
 
     // ❌ Delete user from DB
-    await prisma.user.delete({
+    await prisma.User.delete({
       where: { id: Number(id) },
     });
 
@@ -299,7 +299,7 @@ export const changeUserStatus = async (req, res) => {
       status = status === "true";
     }
 
-    const user = await prisma.user.update({
+    const user = await prisma.User.update({
       where: { id: Number(id) },
       data: { status },
     });

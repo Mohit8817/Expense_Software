@@ -83,6 +83,17 @@ export const MenuList = [
   },
 
   {
+    title: 'Reports',
+    classsChange: 'mm-collapse',
+    iconStyle: <i className=" flaticon-project" />,
+    permission: "view_reports",
+    content: [
+      { title: 'Intervention Reports', to: '/Intervention-Reports' },
+      { title: 'Paid Expenses', to: '/Paid-Expense'}
+    ],
+  },
+
+  {
     title: 'Settings',
     classsChange: 'mm-collapse',
     iconStyle: <i className="flaticon-registration" />,
@@ -95,15 +106,4 @@ export const MenuList = [
     ],
   },
 
-
-  {
-    title: 'Reports',
-    classsChange: 'mm-collapse',
-    iconStyle: <i className=" flaticon-project" />,
-    permission: "",
-    content: [
-      { title: 'Intervention Reports', to: '/Intervention-Reports', permission: "" },
-    { title: 'Paid Expenses', to: '/Paid-Expense', permission: "paid_expense" }
-    ],
-  },
 ];

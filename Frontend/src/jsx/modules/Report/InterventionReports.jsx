@@ -6,19 +6,7 @@ import TableExportActions from "../../components/Common/TableExportActions";
 import Pagination from "../../components/Common/Pagination";
 import { useSearchFilter, SearchInput } from "../../components/Common/useSearchFilter";
 
-// ─── FY Helpers ────────────────────────────────────────────────────────────────
-
-const getFYFromDate = (dateStr) => {
-    if (!dateStr) return null;
-    const d = new Date(dateStr);
-    const year = d.getFullYear();
-    const month = d.getMonth() + 1;
-    return month >= 4 ? `${year}-${year + 1}` : `${year - 1}-${year}`;
-};
-
-const getCurrentFY = () => getFYFromDate(new Date().toISOString());
-
-// ───────────────────────────────────────────────────────────────────────────────
+// ─── No FY helpers needed — everything comes from backend ─────────────────────
 
 const InterventionReports = () => {
     const [rows, setRows] = useState([]);
@@ -28,9 +16,9 @@ const InterventionReports = () => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
 
-    // FY state — default to current FY; options built from data
-    const [selectedFY, setSelectedFY] = useState(getCurrentFY());
-    const [fyOptions, setFyOptions] = useState([getCurrentFY()]);
+    //   FY state — options & current FY come from API, not hardcoded
+    const [selectedFY, setSelectedFY] = useState("current");
+    const [fyOptions, setFyOptions] = useState([]);
 
     /* SEARCH + PAGINATION */
     const {
@@ -42,60 +30,21 @@ const InterventionReports = () => {
         paginatedData,
         indexOfFirst,
     } = useSearchFilter(rows, {
-        keys: ["employee_name", "interventions"],
+        keys: ["employee_name"],
         itemsPerPage: 100,
     });
 
-    // On mount — fetch all data (no FY filter) to derive available FY options from rows
+    //   Single fetch on mount — "current" lets backend decide the active FY
     useEffect(() => {
-        fetchData("0", { buildFYOptions: true });
+        fetchData("current");
     }, []);
 
-    // Exactly like PaidExpense: scan rows for date fields → extract unique FYs → build dropdown
-    const buildFYOptionsFromData = (apiRows) => {
-        const currentFY = getCurrentFY();
-        const currentFYStart = parseInt(currentFY.split("-")[0], 10);
-
-        if (!apiRows || apiRows.length === 0) {
-            setFyOptions([currentFY]);
-            return;
-        }
-
-        let minYear = null;
-
-        apiRows.forEach((row) => {
-            // Check any date-like fields available on intervention rows
-            ["payment_date", "requested_date", "updated_at", "created_at"].forEach((key) => {
-                if (row[key]) {
-                    const fy = getFYFromDate(row[key]);
-                    if (fy) {
-                        const fyStartYear = parseInt(fy.split("-")[0], 10);
-                        if (minYear === null || fyStartYear < minYear) minYear = fyStartYear;
-                    }
-                }
-            });
-        });
-
-        if (minYear === null) {
-            setFyOptions([currentFY]);
-            return;
-        }
-
-        // Build descending list: currentFY → minFY (same as PaidExpense)
-        const options = [];
-        for (let y = currentFYStart; y >= minYear; y--) {
-            options.push(`${y}-${y + 1}`);
-        }
-
-        setFyOptions(options.length ? options : [currentFY]);
-    };
-
-    const fetchData = async (fyYear, options = {}) => {
+    const fetchData = async (fyYear) => {
         setLoading(true);
         setError(null);
         try {
             const params = new URLSearchParams();
-            params.append("fy_year", fyYear || "0");
+            params.append("fy_year", fyYear || "current");
 
             const res = await fetch(
                 `${import.meta.env.VITE_BACKEND_API_URL}reports/intervention-report?${params.toString()}`,
@@ -111,20 +60,24 @@ const InterventionReports = () => {
             const json = await res.json();
 
             if (json.success) {
-                const validInterventions = json.data.interventions.filter(
+                //   Filter out null interventions
+                const validInterventions = (json.data.interventions || []).filter(
                     (i) => i.intervention_id !== null
                 );
                 setInterventions(validInterventions);
-                setRows(json.data.rows);
-                setColumnTotals(json.data.columnTotals);
-                setGrandTotal(json.data.grandTotal);
+                setRows(json.data.rows || []);
+                setColumnTotals(json.data.columnTotals || {});
+                setGrandTotal(json.data.grandTotal || 0);
 
-                // Build FY options from all rows (only on initial mount call)
-                if (options.buildFYOptions) {
-                    buildFYOptionsFromData(json.data.rows);
-                    // After building options, fetch current FY data to show by default
-                    fetchData(getCurrentFY());
-                    return;
+                //   Populate FY dropdown from backend's availableFYList
+                if (json.data.availableFYList?.length > 0) {
+                    setFyOptions(json.data.availableFYList.map((f) => f.fy_year));
+                }
+
+                //   Sync selectedFY with what backend actually filtered on
+                const activeFY = json.data.activeFilters?.fy;
+                if (activeFY && activeFY !== "all") {
+                    setSelectedFY(activeFY);
                 }
 
                 setCurrentPage(1);
@@ -145,6 +98,7 @@ const InterventionReports = () => {
     /* EXPORT */
     const exportColumns = [
         { label: "Employee Name", key: "employee_name" },
+        { label: "Employee Email", key: "employee_email" },
         ...interventions.map((i) => ({
             label: i.intervention_name,
             key: `intervention_${i.intervention_id}`,
@@ -153,7 +107,10 @@ const InterventionReports = () => {
     ];
 
     const exportData = rows.map((row) => {
-        const flat = { employee_name: row.employee_name || "N/A" };
+        const flat = {
+            employee_name: row.employee_name || "N/A",
+            employee_email: row.employee_email || "N/A",
+        };
         interventions.forEach((i) => {
             flat[`intervention_${i.intervention_id}`] =
                 row.interventions?.[i.intervention_id]?.total_paid ?? 0;
@@ -173,13 +130,14 @@ const InterventionReports = () => {
                         {/* LEFT — Title */}
                         <Card.Title className="mb-0">Intervention Reports</Card.Title>
 
-                        {/* CENTER — FY Year Dropdown */}
+                        {/* CENTER — FY Year Dropdown (dynamic from backend) */}
                         <div className="d-flex align-items-center gap-2 flex-wrap justify-content-center">
                             <select
                                 className="form-select"
                                 style={{ width: "145px" }}
                                 value={selectedFY}
                                 onChange={(e) => handleFYChange(e.target.value)}
+                                disabled={loading}
                             >
                                 {fyOptions.map((fy) => (
                                     <option key={fy} value={fy}>
@@ -218,6 +176,7 @@ const InterventionReports = () => {
                                         <tr>
                                             <th>Sno</th>
                                             <th>Employee Name</th>
+                                            <th>Employee Email</th>
                                             {interventions.map((i) => (
                                                 <th key={i.intervention_id}>{i.intervention_name}</th>
                                             ))}
@@ -231,19 +190,22 @@ const InterventionReports = () => {
                                                 <tr key={row.user_id}>
                                                     <td>{indexOfFirst + index + 1}</td>
                                                     <td>{row.employee_name || "N/A"}</td>
+                                                    <td>{row.employee_email || "N/A"}</td>
                                                     {interventions.map((i) => (
                                                         <td key={i.intervention_id}>
                                                             {row.interventions?.[i.intervention_id]
                                                                 ?.total_paid ?? 0}
                                                         </td>
                                                     ))}
-                                                    <td className="fw-bold">{row.row_total}</td>
+                                                    <td className="fw-bold text-success">
+                                                        {row.row_total}
+                                                    </td>
                                                 </tr>
                                             ))
                                         ) : (
                                             <tr>
                                                 <td
-                                                    colSpan={interventions.length + 3}
+                                                    colSpan={interventions.length + 4}
                                                     className="text-center"
                                                 >
                                                     No Data Found
@@ -254,8 +216,7 @@ const InterventionReports = () => {
                                         {/* COLUMN TOTALS ROW */}
                                         {rows.length > 0 && (
                                             <tr className="fw-bold bg-light">
-                                                <td></td>
-                                                <td>Total</td>
+                                                <td colSpan={3}>Total</td>
                                                 {interventions.map((i) => (
                                                     <td key={i.intervention_id}>
                                                         {columnTotals?.[i.intervention_id] ?? 0}
