@@ -53,6 +53,7 @@ import ManagerPendingPayments from "../modules/klk-emp-payment/ManagerPendingPay
 import ManagerApprovedPayments from "../modules/klk-emp-payment/ManagerApprovedPayments";
 import AccountPaidPayments from "../modules/klk-emp-payment/Accountpaidpayments";
 import AccountPendingPayments from "../modules/klk-emp-payment/AccountPendingPayments";
+import UserExpenseReports from "../modules/Report/UserExpenseReports";
 
 
 
@@ -119,7 +120,8 @@ const Markup = () => {
 
         { path: '/Intervention-Reports', element: <InterventionReports /> },
         { path: '/Paid-Expense', element: <PaidExpense /> },
-   
+        { path: '/User-Expense-Reports', element: <UserExpenseReports /> },
+
 
 
         

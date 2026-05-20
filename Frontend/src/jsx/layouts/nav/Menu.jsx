@@ -89,7 +89,8 @@ export const MenuList = [
     permission: "view_reports",
     content: [
       { title: 'Intervention Reports', to: '/Intervention-Reports' },
-      { title: 'Paid Expenses', to: '/Paid-Expense'}
+      { title: 'Paid Expenses', to: '/Paid-Expense'},
+      { title: 'User Expense Reports', to: '/User-Expense-Reports' }
     ],
   },
 
