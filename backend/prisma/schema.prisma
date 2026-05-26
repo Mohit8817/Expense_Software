@@ -94,12 +94,12 @@ model ExpensePayment {
   financial_year        String   @default("")
   manager_id            Int
 
-  // ✅ Manager approval
+  //   Manager approval
   approval_status     Int       @default(0)
   manager_remarks     String?
-  manager_approved_at DateTime? // ✅ NEW
+  manager_approved_at DateTime? //   NEW
 
-  // ✅ Reviewer
+  //   Reviewer
   review_assign            Boolean  @default(false)
   assign_date       DateTime?
   managertoreviewer        String @default("")
@@ -108,9 +108,9 @@ model ExpensePayment {
 
   reviewer_approval_status Int       @default(0)
   reviewer_status          Boolean   @default(false)
-  reviewer_approved_at     DateTime? // ✅ NEW
+  reviewer_approved_at     DateTime? //   NEW
 
-  // ✅ Payment
+  //   Payment
   paid_amount    Float @default(0)
   payment_status Int   @default(0)
 
@@ -129,7 +129,7 @@ model ExpensePayment {
 model ExpensePaymentTransaction {
   id            Int  @id @default(autoincrement())
   expense_id    Int
-  accountant_id Int? // ✅ from session (no relation)
+  accountant_id Int? //   from session (no relation)
 
   payment_amount Float
   payment_mode   String
@@ -140,10 +140,10 @@ model ExpensePaymentTransaction {
 
   created_at DateTime @default(now())
 
-  // ✅ ONLY relation with Expense
+  //   ONLY relation with Expense
   expense ExpensePayment @relation(fields: [expense_id], references: [id], onDelete: Cascade)
 
-  // ✅ INDEXES
+  //   INDEXES
   @@index([expense_id])
   @@index([accountant_id])
 }
@@ -223,7 +223,7 @@ model WalletHistory {
   amount       Decimal  @db.Decimal(10, 2)
   balance      Decimal  @default(0.00) @db.Decimal(10, 2)
   createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt // ✅ FIXED
+  updatedAt    DateTime @updatedAt //   FIXED
   user         User     @relation(fields: [user_id], references: [id])
   wallet       Wallet   @relation(fields: [wallet_id], references: [id])
 }

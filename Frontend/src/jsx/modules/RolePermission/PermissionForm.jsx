@@ -42,7 +42,7 @@ const PermissionForm = () => {
 
     try {
       await createPermission(formData);
-      alert("Permission created ✅");
+      alert("Permission created  ");
       navigate("/permission/list");
     } catch (error) {
       console.error(error);

@@ -169,10 +169,10 @@ export const updateUser = async (req, res) => {
       status,
       dob,
       qualification,
-      role_id, // ✅ added
+      role_id, //   added
     } = req.body;
 
-    // ✅ SAFE STATUS CONVERSION
+    //   SAFE STATUS CONVERSION
     let parsedStatus;
     if (status !== undefined) {
       if (
@@ -192,7 +192,7 @@ export const updateUser = async (req, res) => {
       }
     }
 
-    // ✅ CLEAN UPDATE OBJECT
+    //   CLEAN UPDATE OBJECT
     const updatedData = {};
 
     if (empName) updatedData.username = empName;
@@ -209,17 +209,17 @@ export const updateUser = async (req, res) => {
     if (dol) updatedData.dol = new Date(dol);
     if (dob) updatedData.dob = new Date(dob);
 
-    // ✅ STATUS UPDATE
+    //   STATUS UPDATE
     if (parsedStatus !== undefined) {
       updatedData.status = parsedStatus;
     }
 
-    // ✅ ROLE UPDATE (FIXED)
+    //   ROLE UPDATE (FIXED)
     if (role_id !== undefined) {
       updatedData.role_id = Number(role_id);
     }
 
-    // ✅ IMAGE UPDATE
+    //   IMAGE UPDATE
     if (req.file) {
       updatedData.user_img = req.file.filename;
     }

@@ -727,7 +727,7 @@ const ManagerDashboard = () => {
 					<div className="card overflow-hidden">
 						<div className="card-header border-0 pb-0 flex-wrap">
 							<div className="blance-media">
-								<h5 className="mb-0">Expense Overview</h5>
+								<h5 className="mb-0">Expense Overview </h5>
 								<h4 className="mb-0 text-dark">
 									{formatINR(totalExpense)}{" "}
 									<span className="badge badge-sm badge-success light">FY {selectedFY}</span>

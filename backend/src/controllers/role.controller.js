@@ -1,7 +1,7 @@
 import { PrismaClient } from "@prisma/client";
 const prisma = new PrismaClient();
 
-// ✅ CREATE ROLE
+//   CREATE ROLE
 export const createRole = async (req, res) => {
   try {
     const { name, description } = req.body;
@@ -33,7 +33,7 @@ export const createRole = async (req, res) => {
   }
 };
 
-// ✅ GET ROLES WITH PERMISSIONS
+//   GET ROLES WITH PERMISSIONS
 export const getRoles = async (req, res) => {
   try {
     const company_id = req.user?.company_id;
@@ -80,7 +80,7 @@ export const getRoleById = async (req, res) => {
 
     return res.json({
       success: true,
-      data: role, // ✅ FIXED
+      data: role, //   FIXED
     });
 
   } catch (error) {
@@ -151,7 +151,7 @@ export const assignPermissionsToRole = async (req, res) => {
       where: { role_id: Number(role_id) },
     });
 
-    // ✅ Add new permissions
+    //   Add new permissions
     const data = permission_ids.map((pid) => ({
       role_id: Number(role_id),
       permission_id: Number(pid),

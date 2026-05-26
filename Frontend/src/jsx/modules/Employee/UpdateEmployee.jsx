@@ -37,7 +37,7 @@ const UpdateEmployee = () => {
     photo: null,
   });
 
-  // ✅ Fetch Reporting Heads + Roles
+  //   Fetch Reporting Heads + Roles
   useEffect(() => {
     const fetchData = async () => {
       const headsRes = await getReportingHeads();
@@ -54,7 +54,7 @@ const UpdateEmployee = () => {
     fetchData();
   }, []);
 
-  // ✅ Fetch Employee
+  //   Fetch Employee
   useEffect(() => {
     if (!id) return;
 
@@ -62,7 +62,7 @@ const UpdateEmployee = () => {
       try {
         const res = await getEmployeeById(id);
 
-        // ✅ FIXED: correct data path
+        //   FIXED: correct data path
         const data = res.user;
 
         setFormData({
@@ -78,8 +78,8 @@ const UpdateEmployee = () => {
           dob: data.dob ? data.dob.split("T")[0] : "",
           gender: data.gender || "",
           qualification: data.qualification || "",
-          status: data.status ? "1" : "0", // ✅ FIXED
-          role_id: data.role_id ? String(data.role_id) : "", // ✅ FIXED
+          status: data.status ? "1" : "0", //   FIXED
+          role_id: data.role_id ? String(data.role_id) : "", //   FIXED
           photo: null,
         });
 
@@ -97,7 +97,7 @@ const UpdateEmployee = () => {
     fetchEmployee();
   }, [id]);
 
-  // ✅ Handle Change
+  //   Handle Change
   const handleChange = (e) => {
     const { name, value, files } = e.target;
 
@@ -110,7 +110,7 @@ const UpdateEmployee = () => {
     }
   };
 
-  // ✅ Submit
+  //   Submit
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);

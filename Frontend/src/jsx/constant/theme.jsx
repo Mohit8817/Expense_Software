@@ -95,6 +95,208 @@ export const SVGICON = {
             <path d="M10,8 L8,8 L8,7 C8,5.34314575 9.34314575,4 11,4 L13,4 C14.6568542,4 16,5.34314575 16,7 L16,8 L14,8 L14,7 C14,6.44771525 13.5522847,6 13,6 L11,6 C10.4477153,6 10,6.44771525 10,7 L10,8 Z" fill="var(--text-dark)" fillRule="nonzero" opacity="0.3" />
         </g>
     </svg>,
+
+
+    // ───────── ADVANCE PAYMENT TAB SVG ICONS ─────────
+
+advancePending:
+<svg
+    xmlns="http://www.w3.org/2000/svg"
+    xmlnsXlink="http://www.w3.org/1999/xlink"
+    width="24px"
+    height="24px"
+    viewBox="0 0 24 24"
+    version="1.1"
+    className="svg-main-icon"
+>
+    <g stroke="none" strokeWidth="1" fill="none" fillRule="evenodd">
+        <rect x="0" y="0" width="24" height="24" />
+        
+        <circle
+            fill="var(--text-dark)"
+            opacity="0.3"
+            cx="12"
+            cy="12"
+            r="9"
+        />
+
+        <path
+            d="M12,7 L12,12 L15.5,14"
+            stroke="var(--text-dark)"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+        />
+    </g>
+</svg>,
+
+
+advanceApproved:
+<svg
+    xmlns="http://www.w3.org/2000/svg"
+    xmlnsXlink="http://www.w3.org/1999/xlink"
+    width="24px"
+    height="24px"
+    viewBox="0 0 24 24"
+    version="1.1"
+    className="svg-main-icon"
+>
+    <g stroke="none" strokeWidth="1" fill="none" fillRule="evenodd">
+        <rect x="0" y="0" width="24" height="24" />
+
+        <circle
+            fill="var(--text-dark)"
+            opacity="0.3"
+            cx="12"
+            cy="12"
+            r="9"
+        />
+
+        <path
+            d="M8,12.5 L11,15.5 L17,9.5"
+            stroke="var(--text-dark)"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+        />
+    </g>
+</svg>,
+
+
+advancePaid:
+<svg
+    xmlns="http://www.w3.org/2000/svg"
+    xmlnsXlink="http://www.w3.org/1999/xlink"
+    width="24px"
+    height="24px"
+    viewBox="0 0 24 24"
+    version="1.1"
+    className="svg-main-icon"
+>
+    <g stroke="none" strokeWidth="1" fill="none" fillRule="evenodd">
+        <rect x="0" y="0" width="24" height="24" />
+
+        <rect
+            fill="var(--text-dark)"
+            opacity="0.3"
+            x="3"
+            y="6"
+            width="18"
+            height="12"
+            rx="2"
+        />
+
+        <path
+            d="M3,10 L21,10"
+            stroke="var(--text-dark)"
+            strokeWidth="2"
+            strokeLinecap="round"
+        />
+
+        <circle
+            fill="var(--text-dark)"
+            cx="16"
+            cy="14"
+            r="1.5"
+        />
+    </g>
+</svg>,
+
+
+advanceSettled:
+<svg
+    xmlns="http://www.w3.org/2000/svg"
+    xmlnsXlink="http://www.w3.org/1999/xlink"
+    width="24px"
+    height="24px"
+    viewBox="0 0 24 24"
+    version="1.1"
+    className="svg-main-icon"
+>
+    <g stroke="none" strokeWidth="1" fill="none" fillRule="evenodd">
+        <rect x="0" y="0" width="24" height="24" />
+
+        <circle
+            fill="var(--text-dark)"
+            opacity="0.3"
+            cx="12"
+            cy="12"
+            r="9"
+        />
+
+        <path
+            d="M8,12.5 L11,15.5 L16,9.5"
+            stroke="var(--text-dark)"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+        />
+
+        <path
+            d="M17,7 L19,7"
+            stroke="var(--text-dark)"
+            strokeWidth="2"
+            strokeLinecap="round"
+        />
+    </g>
+</svg>,
+
+
+advanceProject:
+<svg
+    xmlns="http://www.w3.org/2000/svg"
+    xmlnsXlink="http://www.w3.org/1999/xlink"
+    width="24px"
+    height="24px"
+    viewBox="0 0 24 24"
+    version="1.1"
+    className="svg-main-icon"
+>
+    <g stroke="none" strokeWidth="1" fill="none" fillRule="evenodd">
+        <rect x="0" y="0" width="24" height="24" />
+
+        <rect
+            fill="var(--text-dark)"
+            opacity="0.3"
+            x="4"
+            y="4"
+            width="6"
+            height="6"
+            rx="1"
+        />
+
+        <rect
+            fill="var(--text-dark)"
+            opacity="0.3"
+            x="14"
+            y="4"
+            width="6"
+            height="6"
+            rx="1"
+        />
+
+        <rect
+            fill="var(--text-dark)"
+            opacity="0.3"
+            x="4"
+            y="14"
+            width="6"
+            height="6"
+            rx="1"
+        />
+
+        <rect
+            fill="var(--text-dark)"
+            x="14"
+            y="14"
+            width="6"
+            height="6"
+            rx="1"
+        />
+    </g>
+</svg>,
+
+
     scale: <svg xmlns="http://www.w3.org/2000/svg" xmlnsXlink="http://www.w3.org/1999/xlink" width="24px" height="24px" viewBox="0 0 24 24" version="1.1" className="svg-main-icon">
         <g stroke="none" strokeWidth="1" fill="none" fillRule="evenodd">
             <rect x="0" y="0" width="24" height="24" />

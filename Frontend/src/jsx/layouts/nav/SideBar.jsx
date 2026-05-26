@@ -19,7 +19,7 @@ function SideBar() {
   const [state, setState] = useReducer(reducer, initialState);
   const [menuData, setMenuData] = useState(MenuList);
 
-  // ✅ FETCH PERMISSIONS
+  //   FETCH PERMISSIONS
   useEffect(() => {
     fetchPermissions();
   }, []);
@@ -34,14 +34,14 @@ function SideBar() {
     console.log("User Permissions:", permKeys); // 🔍 debug
 
     const filteredMenu = MenuList
-      // ✅ FIRST: filter parent menus (IMPORTANT for dashboards)
+      //   FIRST: filter parent menus (IMPORTANT for dashboards)
       .filter((menu) => {
         // allow if no permission required
         if (!menu.permission) return true;
 
         return permKeys.includes(menu.permission);
       })
-      // ✅ SECOND: filter submenus
+      //   SECOND: filter submenus
       .map((menu) => {
         if (!menu.content) return menu;
 
@@ -53,10 +53,10 @@ function SideBar() {
 
         return { ...menu, content: filteredSub };
       })
-      // ✅ THIRD: remove empty menus
+      //   THIRD: remove empty menus
       .filter((menu) => !menu.content || menu.content.length > 0);
 
-    // ✅ FINAL: no unsafe fallback
+    //   FINAL: no unsafe fallback
     setMenuData(filteredMenu);
 
   } catch (error) {

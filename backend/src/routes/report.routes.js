@@ -1,4 +1,5 @@
 import { Router } from "express";
+import { checkPermission } from "../middlewares/checkPermission.js";
 import { InterventionReport,PaidExpenseReport,UserwiseExpenseReport,} from "../controllers/report.controller.js";
 const router = Router();
 

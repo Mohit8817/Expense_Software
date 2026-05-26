@@ -90,7 +90,21 @@ export const MenuList = [
     content: [
       { title: 'Intervention Reports', to: '/Intervention-Reports' },
       { title: 'Paid Expenses', to: '/Paid-Expense'},
-      { title: 'User Expense Reports', to: '/User-Expense-Reports' }
+      { title: 'User Expense Reports', to: '/User-Expense-Reports' },
+      { title: 'User Detail Reports', to: '/User-Expense-Reports' }
+    ],
+  },
+
+  {
+    title: 'Advance Payment',
+    classsChange: 'mm-collapse',
+    iconStyle: <i className=" flaticon-project" />,
+    permission: "",
+    content: [
+      // { title: 'Advance Payment Dashboard', to: '/AdvancePayDashboard' },
+      { title: 'Advance Payment Dashboard', to: '/AdvancePaymentDashboard' },
+      { title: 'Add Advance Payment', to: '/AdvancePayForm' },
+      { title: 'Advance Payment List', to: '/AdvancePayList' },
     ],
   },
 

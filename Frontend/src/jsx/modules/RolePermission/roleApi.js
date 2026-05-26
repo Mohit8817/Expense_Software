@@ -2,7 +2,7 @@ import axios from "axios";
 
 const API  = import.meta.env.VITE_BACKEND_API_URL;
 
-// ✅ COMMON HEADERS
+//   COMMON HEADERS
 const authHeaders = () => ({
   Authorization: `Bearer ${localStorage.getItem("token")}`,
 });
@@ -48,7 +48,7 @@ export const getRoleById = async (id) => {
 export const updateRole = async (id, data) => {
   try {
     const res = await axios.put(`${API}role/update-role/${id}`, data, {
-      headers: authHeaders(),   // ✅ FIXED
+      headers: authHeaders(),   //   FIXED
     });
     return res.data;
   } catch (error) {

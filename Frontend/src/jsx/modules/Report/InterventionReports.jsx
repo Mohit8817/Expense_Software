@@ -1,12 +1,23 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 import React, { useState, useEffect } from "react";
-import { Col, Card, Table } from "react-bootstrap";
+import { Col, Card, Table, Button } from "react-bootstrap";
 import PageTitle from "../../layouts/PageTitle";
 import TableExportActions from "../../components/Common/TableExportActions";
 import Pagination from "../../components/Common/Pagination";
 import { useSearchFilter, SearchInput } from "../../components/Common/useSearchFilter";
 
-// ─── No FY helpers needed — everything comes from backend ─────────────────────
+// ─── FY Helpers ────────────────────────────────────────────────────────────────
+
+const getFYDateRange = (fy) => {
+  if (!fy || fy === "0") return { fyStart: "", fyEnd: "" };
+  const startYear = parseInt(fy.split("-")[0], 10);
+  return {
+    fyStart: `${startYear}-04-01`,
+    fyEnd: `${startYear + 1}-03-31`,
+  };
+};
+
+// ───────────────────────────────────────────────────────────────────────────────
 
 const InterventionReports = () => {
     const [rows, setRows] = useState([]);
@@ -16,11 +27,24 @@ const InterventionReports = () => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
 
-    //   FY state — options & current FY come from API, not hardcoded
     const [selectedFY, setSelectedFY] = useState("current");
     const [fyOptions, setFyOptions] = useState([]);
 
-    /* SEARCH + PAGINATION */
+    const [sortConfig, setSortConfig] = useState({ key: null, direction: "asc" });
+
+    // ─── Date filter state (same as PaidExpense) ───────────────────────────────
+    const TODAY = new Date().toISOString().split("T")[0];
+
+    const [fromDate, setFromDate] = useState("");
+    const [toDate, setToDate] = useState("");
+    const [appliedFrom, setAppliedFrom] = useState("");
+    const [appliedTo, setAppliedTo] = useState("");
+    const [dateError, setDateError] = useState("");
+
+    const { fyStart, fyEnd } = getFYDateRange(selectedFY);
+    const calendarMax = fyEnd && fyEnd < TODAY ? fyEnd : TODAY;
+    // ──────────────────────────────────────────────────────────────────────────
+
     const {
         search,
         setSearch,
@@ -34,17 +58,18 @@ const InterventionReports = () => {
         itemsPerPage: 100,
     });
 
-    //   Single fetch on mount — "current" lets backend decide the active FY
     useEffect(() => {
         fetchData("current");
     }, []);
 
-    const fetchData = async (fyYear) => {
+    const fetchData = async (fyYear, from = "", to = "") => {
         setLoading(true);
         setError(null);
         try {
             const params = new URLSearchParams();
             params.append("fy_year", fyYear || "current");
+            if (from) params.append("from_date", from);
+            if (to) params.append("to_date", to);
 
             const res = await fetch(
                 `${import.meta.env.VITE_BACKEND_API_URL}reports/intervention-report?${params.toString()}`,
@@ -60,7 +85,6 @@ const InterventionReports = () => {
             const json = await res.json();
 
             if (json.success) {
-                //   Filter out null interventions
                 const validInterventions = (json.data.interventions || []).filter(
                     (i) => i.intervention_id !== null
                 );
@@ -69,12 +93,10 @@ const InterventionReports = () => {
                 setColumnTotals(json.data.columnTotals || {});
                 setGrandTotal(json.data.grandTotal || 0);
 
-                //   Populate FY dropdown from backend's availableFYList
                 if (json.data.availableFYList?.length > 0) {
                     setFyOptions(json.data.availableFYList.map((f) => f.fy_year));
                 }
 
-                //   Sync selectedFY with what backend actually filtered on
                 const activeFY = json.data.activeFilters?.fy;
                 if (activeFY && activeFY !== "all") {
                     setSelectedFY(activeFY);
@@ -92,8 +114,95 @@ const InterventionReports = () => {
 
     const handleFYChange = (fy) => {
         setSelectedFY(fy);
+        setFromDate("");
+        setToDate("");
+        setAppliedFrom("");
+        setAppliedTo("");
+        setDateError("");
         fetchData(fy);
     };
+
+    // ─── Date filter handlers (same as PaidExpense) ────────────────────────────
+    const handleFilter = () => {
+        setAppliedFrom(fromDate);
+        setAppliedTo(toDate);
+        fetchData(selectedFY, fromDate, toDate);
+    };
+
+    const handleReset = () => {
+        setFromDate("");
+        setToDate("");
+        setAppliedFrom("");
+        setAppliedTo("");
+        setDateError("");
+        fetchData(selectedFY);
+    };
+
+    const validateAndSetFrom = (val) => {
+        if (!val) { setFromDate(""); setDateError(""); return; }
+        if (toDate && val > toDate) {
+            setDateError("From date cannot be after To date.");
+            setFromDate(val);
+            return;
+        }
+        setFromDate(val);
+        setDateError("");
+    };
+
+    const validateAndSetTo = (val) => {
+        if (!val) { setToDate(""); setDateError(""); return; }
+        if (val > calendarMax) {
+            setDateError("To date cannot be a future date.");
+            setToDate(val);
+            return;
+        }
+        if (fromDate && val < fromDate) {
+            setDateError("To date cannot be before From date.");
+            setToDate(val);
+            return;
+        }
+        setToDate(val);
+        setDateError("");
+    };
+
+    const isFilterDisabled = (!fromDate && !toDate) || !!dateError;
+    // ──────────────────────────────────────────────────────────────────────────
+
+    const handleSort = (key) => {
+        setSortConfig((prev) => ({
+            key,
+            direction: prev.key === key && prev.direction === "asc" ? "desc" : "asc",
+        }));
+    };
+
+    const getSortIcon = (key) => {
+        if (sortConfig.key !== key) return " ↕";
+        return sortConfig.direction === "asc" ? " ↑" : " ↓";
+    };
+
+    const sortedData = [...paginatedData].sort((a, b) => {
+        if (!sortConfig.key) return 0;
+
+        let aVal, bVal;
+
+        if (sortConfig.key === "employee_name") {
+            aVal = (a.employee_name || "").toLowerCase();
+            bVal = (b.employee_name || "").toLowerCase();
+        } else if (sortConfig.key === "employee_email") {
+            aVal = (a.employee_email || "").toLowerCase();
+            bVal = (b.employee_email || "").toLowerCase();
+        } else if (sortConfig.key === "row_total") {
+            aVal = a.row_total ?? 0;
+            bVal = b.row_total ?? 0;
+        } else {
+            aVal = a.interventions?.[sortConfig.key]?.total_paid ?? 0;
+            bVal = b.interventions?.[sortConfig.key]?.total_paid ?? 0;
+        }
+
+        if (aVal < bVal) return sortConfig.direction === "asc" ? -1 : 1;
+        if (aVal > bVal) return sortConfig.direction === "asc" ? 1 : -1;
+        return 0;
+    });
 
     /* EXPORT */
     const exportColumns = [
@@ -113,7 +222,7 @@ const InterventionReports = () => {
         };
         interventions.forEach((i) => {
             flat[`intervention_${i.intervention_id}`] =
-                row.interventions?.[i.intervention_id]?.total_paid ?? 0;
+                row.interventions?.[i.intervention_id]?.total_4paid ?? 0;
         });
         flat.row_total = row.row_total;
         return flat;
@@ -130,14 +239,14 @@ const InterventionReports = () => {
                         {/* LEFT — Title */}
                         <Card.Title className="mb-0">Intervention Reports</Card.Title>
 
-                        {/* CENTER — FY Year Dropdown (dynamic from backend) */}
                         <div className="d-flex align-items-center gap-2 flex-wrap justify-content-center">
+                            {/* FY Selector */}
                             <select
                                 className="form-select"
                                 style={{ width: "145px" }}
                                 value={selectedFY}
                                 onChange={(e) => handleFYChange(e.target.value)}
-                                disabled={loading}
+                                disabled={loading || fyOptions.length === 0}
                             >
                                 {fyOptions.map((fy) => (
                                     <option key={fy} value={fy}>
@@ -146,6 +255,47 @@ const InterventionReports = () => {
                                 ))}
                                 <option value="0">All Years</option>
                             </select>
+
+                            {/* Date Range Filter (same as PaidExpense) */}
+                            <>
+                                <input
+                                    key={`from-${selectedFY}`}
+                                    type="date"
+                                    className="form-control"
+                                    style={{ width: "150px" }}
+                                    value={fromDate}
+                                    min={fyStart}
+                                    max={toDate || calendarMax}
+                                    onChange={(e) => validateAndSetFrom(e.target.value)}
+                                />
+                                <span>to</span>
+                                <input
+                                    key={`to-${selectedFY}`}
+                                    type="date"
+                                    className="form-control"
+                                    style={{ width: "150px" }}
+                                    value={toDate}
+                                    min={fromDate || fyStart}
+                                    max={calendarMax}
+                                    onChange={(e) => validateAndSetTo(e.target.value)}
+                                />
+                                <Button
+                                    variant="primary"
+                                    onClick={handleFilter}
+                                    disabled={isFilterDisabled}
+                                >
+                                    Filter
+                                </Button>
+                                {(appliedFrom || appliedTo) && (
+                                    <Button variant="outline-secondary" onClick={handleReset}>
+                                        Reset
+                                    </Button>
+                                )}
+                            </>
+
+                            {dateError && (
+                                <span className="text-danger small">{dateError}</span>
+                            )}
                         </div>
 
                         {/* RIGHT — Search + Export */}
@@ -175,19 +325,52 @@ const InterventionReports = () => {
                                     <thead>
                                         <tr>
                                             <th>Sno</th>
-                                            <th>Employee Name</th>
-                                            <th>Employee Email</th>
+
+                                            {/* Employee Name */}
+                                            <th
+                                                className="sorting c-pointer"
+                                                onClick={() => handleSort("employee_name")}
+                                                style={{ cursor: "pointer" }}
+                                            >
+                                                Employee Name{getSortIcon("employee_name")}
+                                            </th>
+
+                                            {/* Employee Email */}
+                                            <th
+                                                className="sorting c-pointer"
+                                                onClick={() => handleSort("employee_email")}
+                                                style={{ cursor: "pointer" }}
+                                            >
+                                                Employee Email{getSortIcon("employee_email")}
+                                            </th>
+
+                                            {/* Each Intervention Column */}
                                             {interventions.map((i) => (
-                                                <th key={i.intervention_id}>{i.intervention_name}</th>
+                                                <th
+                                                    key={i.intervention_id}
+                                                    className="sorting c-pointer"
+                                                    onClick={() => handleSort(i.intervention_id)}
+                                                    style={{ cursor: "pointer" }}
+                                                >
+                                                    {i.intervention_name}{getSortIcon(i.intervention_id)}
+                                                </th>
                                             ))}
-                                            <th>Total</th>
+
+                                            {/* Total */}
+                                            <th
+                                                className="sorting c-pointer"
+                                                onClick={() => handleSort("row_total")}
+                                                style={{ cursor: "pointer" }}
+                                            >
+                                                Total{getSortIcon("row_total")}
+                                            </th>
                                         </tr>
                                     </thead>
 
                                     <tbody>
-                                        {paginatedData.length > 0 ? (
-                                            paginatedData.map((row, index) => (
-                                                <tr key={row.user_id}>
+                                        {sortedData.length > 0 ? (
+                                            sortedData.map((row, index) => (
+                                                <tr key={row.user_id} className="odd" role="row">
                                                     <td>{indexOfFirst + index + 1}</td>
                                                     <td>{row.employee_name || "N/A"}</td>
                                                     <td>{row.employee_email || "N/A"}</td>

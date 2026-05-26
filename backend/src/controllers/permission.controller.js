@@ -1,7 +1,7 @@
 import { PrismaClient } from "@prisma/client";
 const prisma = new PrismaClient();
 
-// ✅ CREATE PERMISSION
+//   CREATE PERMISSION
 export const createPermission = async (req, res) => {
   try {
     const { name, label, module } = req.body;
@@ -36,7 +36,7 @@ export const createPermission = async (req, res) => {
   }
 };
 
-// ✅ GET PERMISSIONS (COMPANY BASED)
+//   GET PERMISSIONS (COMPANY BASED)
 export const getPermissions = async (req, res) => {
   try {
     const company_id = req.user?.company_id;

@@ -13,7 +13,7 @@ const AddRole = () => {
 
   const [errors, setErrors] = useState({});
 
-  // ✅ Validation
+  //   Validation
   const validate = () => {
     const newErrors = {};
 
@@ -29,7 +29,7 @@ const AddRole = () => {
     return Object.keys(newErrors).length === 0;
   };
 
-  // ✅ Handle Change
+  //   Handle Change
   const handleChange = (e) => {
     const { name, value } = e.target;
 
@@ -40,7 +40,7 @@ const AddRole = () => {
     }
   };
 
-  // ✅ Submit
+  //   Submit
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -54,7 +54,7 @@ const AddRole = () => {
         return;
       }
 
-      alert("Role created successfully ✅");
+      alert("Role created successfully  ");
       navigate("/role/list", { replace: true });
 
     } catch (error) {

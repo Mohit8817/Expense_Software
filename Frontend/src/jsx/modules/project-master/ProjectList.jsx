@@ -5,7 +5,7 @@ import TableExportActions from "../../components/Common/TableExportActions";
 import Pagination from "../../components/Common/Pagination";
 import { useLocation, useNavigate } from "react-router-dom";
 import { getAllProjects, deleteProject, getManagers } from "./projectApi";
-import { useSearchFilter, SearchInput } from "../../components/Common/useSearchFilter"; // ✅ Added
+import { useSearchFilter, SearchInput } from "../../components/Common/useSearchFilter"; //   Added
 
 const ProjectMasterList = () => {
   const navigate = useNavigate();

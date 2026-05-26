@@ -437,7 +437,7 @@ export const AdminDashboard = async (req, res) => {
             END
         ), 0) AS totalPaid,
 
-        -- ✅ Correct Pending (approved - paid)
+        --   Correct Pending (approved - paid)
         COALESCE(SUM(
             CASE 
                 WHEN ep.approval_status = 1 
@@ -494,7 +494,7 @@ export const AdminDashboard = async (req, res) => {
             END
         ), 0) AS totalPaid,
 
-        -- ✅ Correct Pending
+        --   Correct Pending
         COALESCE(SUM(
             CASE 
                 WHEN ep.approval_status = 1 
@@ -834,7 +834,7 @@ export const ManagerDashboard = async (req, res) => {
             END
         ), 0) AS totalPaid,
 
-        -- ✅ Correct Pending (approved - paid)
+        --   Correct Pending (approved - paid)
         COALESCE(SUM(
             CASE 
                 WHEN ep.approval_status = 1 
@@ -892,7 +892,7 @@ export const ManagerDashboard = async (req, res) => {
             END
         ), 0) AS totalPaid,
 
-        -- ✅ Correct Pending
+        --   Correct Pending
         COALESCE(SUM(
             CASE 
                 WHEN ep.approval_status = 1 

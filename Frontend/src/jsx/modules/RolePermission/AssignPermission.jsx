@@ -62,7 +62,7 @@ const AssignPermission = () => {
         permission_ids: selected,
       });
 
-      alert("Permissions updated ✅");
+      alert("Permissions updated  ");
     } catch (error) {
       console.error(error);
       alert("Error updating permissions");
@@ -94,7 +94,7 @@ const AssignPermission = () => {
                   <input
                     type="checkbox"
                     className="form-check-input"
-                    checked={selected.includes(perm.id)}   // ✅ FIXED
+                    checked={selected.includes(perm.id)}   //   FIXED
                     onChange={() => handleCheck(perm.id)}
                   />
 

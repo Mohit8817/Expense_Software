@@ -52,7 +52,6 @@ const UserExpenseReports = () => {
       "user_phone",
       "approvedAmount",
       "totalPaid",
-      "pendingAmount",
     ],
     itemsPerPage: 1000,
   });
@@ -175,7 +174,6 @@ const UserExpenseReports = () => {
     { label: "Phone",            key: "user_phone" },
     { label: "Approved Amount",  key: "approvedAmount" },
     { label: "Total Paid",       key: "totalPaid" },
-    { label: "Pending Amount",   key: "pendingAmount" },
   ];
 
   const exportData = rows.map((row) => ({
@@ -184,7 +182,6 @@ const UserExpenseReports = () => {
     user_phone:      row.user_phone      || "N/A",
     approvedAmount:  row.approvedAmount  ?? 0,
     totalPaid:       row.totalPaid       ?? 0,
-    pendingAmount:   row.pendingAmount   ?? 0,
   }));
 
   return (
@@ -284,7 +281,6 @@ const UserExpenseReports = () => {
                       <th>Phone</th>
                       <th>Approved Amount (₹)</th>
                       <th>Total Paid (₹)</th>
-                      <th>Pending Amount (₹)</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -297,7 +293,6 @@ const UserExpenseReports = () => {
                           <td>{row.user_phone || "N/A"}</td>
                           <td className="fw-bold">{formatAmount(row.approvedAmount)}</td>
                           <td className="fw-bold text-success">{formatAmount(row.totalPaid)}</td>
-                          <td className="fw-bold text-danger">{formatAmount(row.pendingAmount)}</td>
                         </tr>
                       ))
                     ) : (

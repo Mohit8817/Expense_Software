@@ -23,7 +23,7 @@ export const getExpenseFormData = async (req, res) => {
             });
         }
 
-        // ✅ Fetch Projects
+        //   Fetch Projects
         const projects = await prisma.project.findMany({
             where: {
                 company_id: company_id,
@@ -38,7 +38,7 @@ export const getExpenseFormData = async (req, res) => {
             },
         });
 
-        // ✅ Fetch Interventions
+        //   Fetch Interventions
         const interventions = await prisma.intervention.findMany({
             where: {
                 company_id: company_id,
@@ -81,7 +81,7 @@ export const createExpense = async (req, res) => {
         const created_by = req.user.email;
         const requested_by = req.user.id;
 
-        // ✅ Financial Year Function
+        //   Financial Year Function
         const getFinancialYear = () => {
             const today = new Date();
             const year = today.getFullYear();
@@ -94,7 +94,7 @@ export const createExpense = async (req, res) => {
 
         const financial_year = getFinancialYear();
 
-        // ✅ Get Manager from Project
+        //   Get Manager from Project
         const manager_project_id = await prisma.project.findFirst({
             where: {
                 id: parseInt(project_name),
@@ -116,7 +116,7 @@ export const createExpense = async (req, res) => {
             document = req.file.filename;
         }
 
-        // ✅ Create Expense
+        //   Create Expense
         const expense = await prisma.expensePayment.create({
             data: {
                 company_id,
@@ -186,12 +186,12 @@ export const getMyCreatedExpenses = async (req, res) => {
             }),
         ]);
 
-        // ✅ MAPS
+        //   MAPS
         const projectMap = Object.fromEntries(projects.map(p => [p.id, p.name]));
         const userMap = Object.fromEntries(users.map(u => [u.id, u.username]));
         const interventionMap = Object.fromEntries(interventions.map(i => [i.id, i.name]));
 
-        // ✅ STATUS HELPERS
+        //   STATUS HELPERS
         const getStatusText = (status) => {
             const s = Number(status);
             if (s === 1) return "Approved";
@@ -206,7 +206,7 @@ export const getMyCreatedExpenses = async (req, res) => {
             return "Pending";
         };
 
-        // ✅ SAFE PARSER
+        //   SAFE PARSER
         const safeId = (val) => {
             const n = Number(val);
             return isNaN(n) ? null : n;
@@ -425,7 +425,7 @@ export const getManagerExpenses = async (req, res) => {
             }),
         ]);
 
-        // ✅ Maps
+        //   Maps
         const projectMap = Object.fromEntries(
             projects.map((p) => [p.id, p.name])
         );
@@ -439,14 +439,14 @@ export const getManagerExpenses = async (req, res) => {
         );
 
 
-        // ✅ Status converter
+        //   Status converter
         const getStatusText = (status) => {
             if (Number(status) === 1) return "Approved";
             if (Number(status) === 2) return "Rejected";
             return "Pending";
         };
 
-        // ✅ Final Response
+        //   Final Response
         const result = expenses.map((exp) => ({
             id: exp.id,
 
@@ -461,7 +461,7 @@ export const getManagerExpenses = async (req, res) => {
             amount: exp.amount,
 
 
-            // ✅ CLEAN & CORRECT
+            //   CLEAN & CORRECT
             raised_by: userMap[Number(exp.requested_by)] || "N/A",
             manager_name: userMap[Number(exp.manager_id)] || "N/A",
             reviewer_name: userMap[Number(exp.reviewer_id)] || "N/A",
@@ -603,7 +603,7 @@ export const getReviewerExpenses = async (req, res) => {
             }),
         ]);
 
-        // ✅ Maps
+        //   Maps
         const projectMap = Object.fromEntries(
             projects.map((p) => [p.id, p.name])
         );
@@ -626,7 +626,7 @@ export const getReviewerExpenses = async (req, res) => {
             return "Pending";
         };
 
-        // ✅ FINAL RESPONSE
+        //   FINAL RESPONSE
         const result = expenses.map((exp) => ({
             id: exp.id,
 
@@ -641,7 +641,7 @@ export const getReviewerExpenses = async (req, res) => {
             amount: exp.amount,
             document: exp.document,
 
-            // ✅ ALL 3 NAMES
+            //   ALL 3 NAMES
             raised_by: userMap[exp.requested_by] || exp.requested_by || "N/A",
             manager_name: userMap[exp.manager_id] || "N/A",
             reviewer_name: userMap[exp.reviewer_id] || "N/A",
@@ -731,14 +731,14 @@ export const managerApproveExpense = async (req, res) => {
             final_approved_amount,
         } = req.body;
 
-        // ✅ Validate
+        //   Validate
         if (!approval_status) {
             return res.status(400).json({
                 message: "Approval status is required",
             });
         }
 
-        // ✅ Get existing expense
+        //   Get existing expense
         const expense = await prisma.expensePayment.findUnique({
             where: { id: Number(id) },
         });
@@ -749,7 +749,7 @@ export const managerApproveExpense = async (req, res) => {
             });
         }
 
-        // ✅ Final Amount Logic (IMPORTANT)
+        //   Final Amount Logic (IMPORTANT)
         let finalAmount = Number(final_approved_amount);
 
         if (Number(approval_status) === 2) {
@@ -757,7 +757,7 @@ export const managerApproveExpense = async (req, res) => {
             finalAmount = 0;
         }
 
-        // ✅ Update
+        //   Update
         const updated = await prisma.expensePayment.update({
             where: { id: Number(id) },
             data: {
@@ -792,11 +792,11 @@ export const getAccountsExpenses = async (req, res) => {
             });
         }
 
-        // ✅ Fetch only Manager Approved
+        //   Fetch only Manager Approved
         const expenses = await prisma.expensePayment.findMany({
             where: {
                 company_id,
-                approval_status: 1, // ✅ KEY CONDITION
+                approval_status: 1, //   KEY CONDITION
                 payment_status: Number(status) === 0 ? { in: [0, 1] } : 2, // If status=0, show only unpaid. Else show partially/fully paid
 
             },
@@ -805,7 +805,7 @@ export const getAccountsExpenses = async (req, res) => {
             },
         });
 
-        // ✅ Fetch related data
+        //   Fetch related data
         const [projects, interventions, users] = await Promise.all([
             prisma.project.findMany({
                 where: { company_id },
@@ -821,7 +821,7 @@ export const getAccountsExpenses = async (req, res) => {
             }),
         ]);
 
-        // ✅ Maps
+        //   Maps
         const projectMap = Object.fromEntries(
             projects.map((p) => [p.id, p.name])
         );
@@ -834,14 +834,14 @@ export const getAccountsExpenses = async (req, res) => {
             users.map((u) => [u.id, u.username])
         );
 
-        // ✅ Status helper
+        //   Status helper
         const getStatusText = (status) => {
             if (status === 1) return "Approved";
             if (status === 2) return "Rejected";
             return "Pending";
         };
 
-        // ✅ Final Response
+        //   Final Response
         const result = expenses.map((exp) => ({
             id: exp.id,
 
@@ -856,17 +856,17 @@ export const getAccountsExpenses = async (req, res) => {
             requested_date: formatDate(exp.requested_date),
             document: exp.document,
 
-            // ✅ IMPORTANT
+            //   IMPORTANT
                final_approved_amount: exp.final_approved_amount,
             manager_approved_date: formatDate(exp.manager_approved_at),
             paid_amount: exp.paid_amount || 0,              
             payment_status: exp.payment_status || 0,   
 
-            // ✅ USERS
+            //   USERS
             raised_by: userMap[Number(exp.requested_by)] || "N/A",
             manager_name: userMap[Number(exp.manager_id)] || "N/A",
 
-            // ✅ STATUS
+            //   STATUS
             manager_status: getStatusText(exp.approval_status),
         }));
 
@@ -894,7 +894,7 @@ export const processPayment = async (req, res) => {
 
         const accountant_id = req.user.id;
 
-        // ✅ 1. Get Expense
+        //   1. Get Expense
         const expense = await prisma.expensePayment.findUnique({
             where: { id: expense_id },
         });
@@ -905,7 +905,7 @@ export const processPayment = async (req, res) => {
 
         const finalAmount = expense.final_approved_amount;
 
-        // ✅ 2. Calculate new paid amount
+        //   2. Calculate new paid amount
         const newPaidAmount = (expense.paid_amount || 0) + Number(payment_amount);
 
         // ❌ Prevent overpayment
@@ -915,7 +915,7 @@ export const processPayment = async (req, res) => {
             });
         }
 
-        // ✅ 3. Create Transaction
+        //   3. Create Transaction
         await prisma.expensePaymentTransaction.create({
             data: {
                 expense_id,
@@ -928,7 +928,7 @@ export const processPayment = async (req, res) => {
             },
         });
 
-        // ✅ 4. Decide Payment Status
+        //   4. Decide Payment Status
         let payment_status = 0; // Unpaid
 
         if (newPaidAmount === finalAmount) {
@@ -937,7 +937,7 @@ export const processPayment = async (req, res) => {
             payment_status = 1; // Partially Paid
         }
 
-        // ✅ 5. Update ExpensePayment table
+        //   5. Update ExpensePayment table
         await prisma.expensePayment.update({
             where: { id: expense_id },
             data: {
@@ -964,24 +964,24 @@ export const getPaymentHistory = async (req, res) => {
         const { id } = req.params;
         const company_id = req.user.company_id;
 
-        // ✅ Fetch Transactions
+        //   Fetch Transactions
         const transactions = await prisma.expensePaymentTransaction.findMany({
             where: { expense_id: Number(id) },
             orderBy: { created_at: "desc" },
         });
 
-        // ✅ Fetch Users
+        //   Fetch Users
         const users = await prisma.user.findMany({
             where: { company_id },
             select: { id: true, username: true },
         });
 
-        // ✅ Create Map
+        //   Create Map
         const userMap = Object.fromEntries(
             users.map((u) => [u.id, u.username])
         );
 
-        // ✅ Final Response
+        //   Final Response
         const result = transactions.map((t) => ({
             id: t.id,
             payment_amount: t.payment_amount,
@@ -990,7 +990,7 @@ export const getPaymentHistory = async (req, res) => {
             reference_no: t.reference_no,
             remarks: t.remarks,
 
-            // ✅ MAPPED NAME
+            //   MAPPED NAME
             accountant_name: userMap[Number(t.accountant_id)] || "N/A",
         }));
 
@@ -1008,7 +1008,7 @@ export const getPaymentHistory = async (req, res) => {
 //         const { id } = req.params;
 //         const company_id = req.user.company_id;
 
-//         // ✅ Get Expense
+//         //   Get Expense
 //         const expense = await prisma.expensePayment.findFirst({
 //             where: {
 //                 id: Number(id),
@@ -1020,13 +1020,13 @@ export const getPaymentHistory = async (req, res) => {
 //             return res.status(404).json({ message: "Expense not found" });
 //         }
 
-//         // ✅ Fetch Transactions
+//         //   Fetch Transactions
 //         const transactions = await prisma.expensePaymentTransaction.findMany({
 //             where: { expense_id: Number(id) },
 //             orderBy: { created_at: "asc" },
 //         });
 
-//         // ✅ Fetch related data
+//         //   Fetch related data
 //         const [projects, interventions, users] = await Promise.all([
 //             prisma.project.findMany({
 //                 where: { company_id },
@@ -1042,7 +1042,7 @@ export const getPaymentHistory = async (req, res) => {
 //             }),
 //         ]);
 
-//         // ✅ Maps
+//         //   Maps
 //         const projectMap = Object.fromEntries(
 //             projects.map((p) => [p.id, p.name])
 //         );
@@ -1055,7 +1055,7 @@ export const getPaymentHistory = async (req, res) => {
 //             users.map((u) => [u.id, u.username])
 //         );
 
-//         // ✅ Calculations
+//         //   Calculations
 //         const totalPaid = transactions.reduce(
 //             (sum, t) => sum + Number(t.payment_amount),
 //             0
@@ -1064,7 +1064,7 @@ export const getPaymentHistory = async (req, res) => {
 //         const remaining =
 //             Number(expense.final_approved_amount || expense.amount) - totalPaid;
 
-//         // ✅ PDF INIT
+//         //   PDF INIT
 //         const doc = new PDFDocument({ margin: 40, size: "A4" });
 
 //         res.setHeader("Content-Type", "application/pdf");

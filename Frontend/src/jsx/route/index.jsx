@@ -54,6 +54,10 @@ import ManagerApprovedPayments from "../modules/klk-emp-payment/ManagerApprovedP
 import AccountPaidPayments from "../modules/klk-emp-payment/Accountpaidpayments";
 import AccountPendingPayments from "../modules/klk-emp-payment/AccountPendingPayments";
 import UserExpenseReports from "../modules/Report/UserExpenseReports";
+// import AdvancePayDashboard from "../modules/Advancepayment/AdvancePayDashboard";
+import AdvancePayList from "../modules/Advancepayment/AdvancePayList";
+import AdvancePayForm from "../modules/Advancepayment/AdvancePayForm";
+import AdvancePaymentDashboard from "../modules/Advancepayment/AdvancePaymentDashboard";
 
 
 
@@ -62,14 +66,14 @@ const ProtectedRoute = ({ children }) => {
     const token = localStorage.getItem("token");
     const user = localStorage.getItem("user");
 
-        if (!token || !user) {
-            return <Navigate to="/login" replace />;
-        }
-        
-        if (isTokenExpired(token)) {
-            localStorage.clear();
-            return <Navigate to="/login" replace />;
-        }
+    if (!token || !user) {
+        return <Navigate to="/login" replace />;
+    }
+
+    if (isTokenExpired(token)) {
+        localStorage.clear();
+        return <Navigate to="/login" replace />;
+    }
 
     return children;
 };
@@ -124,7 +128,15 @@ const Markup = () => {
 
 
 
-        
+
+        // { path: '/AdvancePayDashboard', element: <AdvancePayDashboard /> },
+        { path: '/AdvancePaymentDashboard', element: <AdvancePaymentDashboard /> },
+        { path: '/AdvancePayList', element: <AdvancePayList /> },
+        { path: '/AdvancePayForm', element: <AdvancePayForm /> },
+
+
+
+
         { path: '/Account-List', element: <AccountsList /> },
         { path: 'form-element', element: <Element /> },
         { path: 'form-wizard', element: <Wizard /> },
@@ -147,8 +159,8 @@ const Markup = () => {
         { path: '/account/paid-payments', element: <AccountPaidPayments /> },
         { path: '/account/pending-payments', element: <AccountPendingPayments /> },
 
-    
-     ];
+
+    ];
 
     return (
         <>
@@ -202,19 +214,19 @@ const Markup = () => {
 function MainLayout() {
     const { menuToggle, sidebariconHover } = useContext(ThemeContext);
 
-    // ✅ ADD THIS BLOCK
-        useEffect(() => {
-            const timeout = setTimeout(() => {
-                const token = localStorage.getItem("token");
+    //   ADD THIS BLOCK
+    useEffect(() => {
+        const timeout = setTimeout(() => {
+            const token = localStorage.getItem("token");
 
-                if (token && isTokenExpired(token)) {
-                    localStorage.clear();
-                    window.location.replace("/login");
-                }
-            }, 2000);
+            if (token && isTokenExpired(token)) {
+                localStorage.clear();
+                window.location.replace("/login");
+            }
+        }, 2000);
 
-            return () => clearTimeout(timeout);
-        }, []);
+        return () => clearTimeout(timeout);
+    }, []);
 
     return (
         <div

@@ -21,7 +21,7 @@ export const loginUser = async (req, res) => {
       return res.status(400).json({ message: "Email & Password required" });
     }
 
-    // ✅ Fetch user from MySQL via Prisma
+    //   Fetch user from MySQL via Prisma
     const user = await prisma.User.findUnique({
       where: { email: email },
     });

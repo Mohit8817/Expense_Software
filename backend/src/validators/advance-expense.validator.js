@@ -46,7 +46,7 @@ export const createAdvanceExpenseValidator = async (req, res, next) => {
 
   ]);
 
-  // ✅ File Validation (REQUIRED)
+  //   File Validation (REQUIRED)
   const fileErrors = [];
 
 if (req.file) {
@@ -73,7 +73,7 @@ if (req.file) {
     }
   }
 
-  // ✅ Combine errors
+  //   Combine errors
   const errors = validationResult(req);
 
   const allErrors = [

@@ -14,12 +14,12 @@ const router = Router();
 router.post("/create-roles", createRole);
 router.get("/get-roles", getRoles);
 
-// ✅ ADD THESE
+//   ADD THESE
 router.get("/get-role/:id", getRoleById);
 router.put("/update-role/:id", updateRole);
 router.delete("/delete-role/:id", deleteRole);
 
-// ✅ PERMISSION
+//   PERMISSION
 router.post("/assign-permissions", assignPermissionsToRole);
 router.get("/my-permissions", getMyPermissions);
 

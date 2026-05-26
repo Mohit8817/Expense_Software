@@ -36,7 +36,7 @@ const AddExpense = () => {
         );
 
         const data = await res.json();
-        console.log("API DATA 👉", data);
+        console.log("API DATA ", data);
         setProjects(data.projects || []);
         setInterventions(data.interventions || []);
       } catch (error) {
