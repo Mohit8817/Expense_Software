@@ -58,6 +58,7 @@ import UserExpenseReports from "../modules/Report/UserExpenseReports";
 import AdvancePayList from "../modules/Advancepayment/AdvancePayList";
 import AdvancePayForm from "../modules/Advancepayment/AdvancePayForm";
 import AdvancePaymentDashboard from "../modules/Advancepayment/AdvancePaymentDashboard";
+import UserDetailReport from "../modules/Report/UserDetailReport";
 
 
 
@@ -125,6 +126,7 @@ const Markup = () => {
         { path: '/Intervention-Reports', element: <InterventionReports /> },
         { path: '/Paid-Expense', element: <PaidExpense /> },
         { path: '/User-Expense-Reports', element: <UserExpenseReports /> },
+        { path: '/User-Detail-Reports', element: <UserDetailReport /> },
 
 
 

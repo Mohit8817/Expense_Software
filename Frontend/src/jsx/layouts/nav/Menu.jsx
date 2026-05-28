@@ -91,7 +91,7 @@ export const MenuList = [
       { title: 'Intervention Reports', to: '/Intervention-Reports' },
       { title: 'Paid Expenses', to: '/Paid-Expense'},
       { title: 'User Expense Reports', to: '/User-Expense-Reports' },
-      { title: 'User Detail Reports', to: '/User-Expense-Reports' }
+      // { title: 'User Detail Reports', to: '/User-Detail-Reports' }
     ],
   },
 

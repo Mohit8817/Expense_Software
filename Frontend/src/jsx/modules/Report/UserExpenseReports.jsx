@@ -1,9 +1,10 @@
-import React, { useState, useEffect } from "react";
-import { Col, Card, Table, Button } from "react-bootstrap";
+import React, { useState, useEffect, useRef } from "react";
+import { Col, Card, Table, Button, Modal } from "react-bootstrap";
 import PageTitle from "../../layouts/PageTitle";
 import TableExportActions from "../../components/Common/TableExportActions";
 import Pagination from "../../components/Common/Pagination";
 import { useSearchFilter, SearchInput } from "../../components/Common/useSearchFilter";
+import UserDetailReport from "./UserDetailReport"; // adjust path if needed
 
 // ─── FY Helpers ────────────────────────────────────────────────────────────────
 
@@ -28,11 +29,16 @@ const UserExpenseReports = () => {
   const [selectedFY, setSelectedFY] = useState("");
   const [fyOptions, setFyOptions]   = useState([]);
 
+  // ── Date state — persists until explicit Reset ──────────────────────────────
   const [fromDate, setFromDate]       = useState("");
   const [toDate, setToDate]           = useState("");
   const [appliedFrom, setAppliedFrom] = useState("");
   const [appliedTo, setAppliedTo]     = useState("");
   const [dateError, setDateError]     = useState("");
+
+  // ── Modal state ─────────────────────────────────────────────────────────────
+  const [showModal, setShowModal]       = useState(false);
+  const [selectedRow, setSelectedRow]   = useState(null);
 
   const { fyStart, fyEnd } = getFYDateRange(selectedFY);
   const calendarMax = fyEnd && fyEnd < TODAY ? fyEnd : TODAY;
@@ -46,13 +52,7 @@ const UserExpenseReports = () => {
     paginatedData,
     indexOfFirst,
   } = useSearchFilter(rows, {
-    keys: [
-      "Name",
-      "user_email",
-      "user_phone",
-      "approvedAmount",
-      "totalPaid",
-    ],
+    keys: ["Name", "user_email", "user_phone", "approvedAmount", "totalPaid"],
     itemsPerPage: 1000,
   });
 
@@ -75,9 +75,7 @@ const UserExpenseReports = () => {
       }`;
 
       const res = await fetch(url, {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
-        },
+        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
       });
 
       if (!res.ok) throw new Error("Failed to fetch data");
@@ -113,8 +111,8 @@ const UserExpenseReports = () => {
 
   const handleFYChange = (fy) => {
     setSelectedFY(fy);
-    setFromDate("");
-    setToDate("");
+    // NOTE: We do NOT clear fromDate/toDate here intentionally
+    // Dates persist across FY changes — only Reset clears them
     setAppliedFrom("");
     setAppliedTo("");
     setDateError("");
@@ -127,6 +125,7 @@ const UserExpenseReports = () => {
     fetchData(fromDate, toDate, selectedFY);
   };
 
+  // ── Reset clears dates completely ────────────────────────────────────────────
   const handleReset = () => {
     setFromDate("");
     setToDate("");
@@ -136,30 +135,28 @@ const UserExpenseReports = () => {
     fetchData("", "", selectedFY);
   };
 
+  // ── Date validation — dates stick even if there's an error ──────────────────
   const validateAndSetFrom = (val) => {
-    if (!val) { setFromDate(""); setDateError(""); return; }
+    setFromDate(val); // always save the value
+    if (!val) { setDateError(""); return; }
     if (toDate && val > toDate) {
       setDateError("From date cannot be after To date.");
-      setFromDate(val);
       return;
     }
-    setFromDate(val);
     setDateError("");
   };
 
   const validateAndSetTo = (val) => {
-    if (!val) { setToDate(""); setDateError(""); return; }
+    setToDate(val); // always save the value
+    if (!val) { setDateError(""); return; }
     if (val > calendarMax) {
       setDateError("To date cannot be a future date.");
-      setToDate(val);
       return;
     }
     if (fromDate && val < fromDate) {
       setDateError("To date cannot be before From date.");
-      setToDate(val);
       return;
     }
-    setToDate(val);
     setDateError("");
   };
 
@@ -168,21 +165,51 @@ const UserExpenseReports = () => {
   const formatAmount = (val) =>
     val !== undefined && val !== null ? Number(val).toLocaleString("en-IN") : "0";
 
+  // ── Open modal with selected row data ────────────────────────────────────────
+  const handleRowClick = (row) => {
+    setSelectedRow(row);
+    setShowModal(true);
+  };
+
+  const handleCloseModal = () => {
+    setShowModal(false);
+    setSelectedRow(null);
+  };
+
   const exportColumns = [
-    { label: "Name",             key: "Name" },
-    { label: "Email",            key: "user_email" },
-    { label: "Phone",            key: "user_phone" },
-    { label: "Approved Amount",  key: "approvedAmount" },
-    { label: "Total Paid",       key: "totalPaid" },
+    { label: "Name",            key: "Name"           },
+    { label: "Email",           key: "user_email"     },
+    { label: "Phone",           key: "user_phone"     },
+    { label: "Approved Amount", key: "approvedAmount" },
+    { label: "Total Paid",      key: "totalPaid"      },
   ];
 
   const exportData = rows.map((row) => ({
-    Name:            row.Name            || "N/A",
-    user_email:      row.user_email      || "N/A",
-    user_phone:      row.user_phone      || "N/A",
-    approvedAmount:  row.approvedAmount  ?? 0,
-    totalPaid:       row.totalPaid       ?? 0,
+    Name:           row.Name            || "N/A",
+    user_email:     row.user_email      || "N/A",
+    user_phone:     row.user_phone      || "N/A",
+    approvedAmount: row.approvedAmount  ?? 0,
+    totalPaid:      row.totalPaid       ?? 0,
   }));
+
+  // ── Build modal URL params (same as what navigate used to send) ──────────────
+  const getModalParams = (row) => {
+    const params = new URLSearchParams();
+    if (row) {
+      params.set("user_id", row.id);
+      const fyToSend =
+        selectedFY && selectedFY !== "0" && selectedFY !== "all"
+          ? selectedFY
+          : fyOptions[0] || "";
+      if (fyToSend)    params.set("fy_year",   fyToSend);
+      if (appliedFrom) params.set("from_date", appliedFrom);
+      if (appliedTo)   params.set("to_date",   appliedTo);
+      if (row.Name)       params.set("name",  row.Name);
+      if (row.user_email) params.set("email", row.user_email);
+      if (row.user_phone) params.set("phone", row.user_phone);
+    }
+    return params.toString();
+  };
 
   return (
     <>
@@ -192,7 +219,6 @@ const UserExpenseReports = () => {
         <Card>
           <Card.Header className="d-flex justify-content-between align-items-center flex-wrap gap-2">
 
-            {/* LEFT — Title */}
             <Card.Title className="mb-0">Userwise Paid Expense</Card.Title>
 
             <div className="d-flex align-items-center gap-2 flex-wrap justify-content-center">
@@ -210,8 +236,8 @@ const UserExpenseReports = () => {
                 <option value="all">All Years</option>
               </select>
 
+              {/* From date — no key prop so value is NOT reset on FY change */}
               <input
-                key={`from-${selectedFY}`}
                 type="date"
                 className="form-control"
                 style={{ width: "150px" }}
@@ -222,7 +248,6 @@ const UserExpenseReports = () => {
               />
               <span>to</span>
               <input
-                key={`to-${selectedFY}`}
                 type="date"
                 className="form-control"
                 style={{ width: "150px" }}
@@ -249,7 +274,6 @@ const UserExpenseReports = () => {
               )}
             </div>
 
-            {/* RIGHT — Search + Export */}
             <div className="d-flex align-items-center gap-2">
               <SearchInput
                 value={search}
@@ -272,7 +296,7 @@ const UserExpenseReports = () => {
               <div className="text-center text-danger py-4">{error}</div>
             ) : (
               <>
-                <Table responsive bordered className="text-nowrap">
+                <Table responsive className="text-nowrap">
                   <thead>
                     <tr>
                       <th>Sno</th>
@@ -286,9 +310,17 @@ const UserExpenseReports = () => {
                   <tbody>
                     {paginatedData.length > 0 ? (
                       paginatedData.map((row, index) => (
-                        <tr key={row.user_id ?? index}>
+                        <tr
+                          key={row.user_id ?? index}
+                          onClick={() => handleRowClick(row)}
+                          style={{ cursor: "pointer" }}
+                          className="table-row-hover"
+                          title={`View details for ${row.Name}`}
+                        >
                           <td>{indexOfFirst + index + 1}</td>
-                          <td>{row.Name || "N/A"}</td>
+                          <td>
+                            <span className="fw-semibold">{row.Name || "N/A"}</span>
+                          </td>
                           <td>{row.user_email || "N/A"}</td>
                           <td>{row.user_phone || "N/A"}</td>
                           <td className="fw-bold">{formatAmount(row.approvedAmount)}</td>
@@ -297,7 +329,7 @@ const UserExpenseReports = () => {
                       ))
                     ) : (
                       <tr>
-                        <td colSpan={7} className="text-center">No Data Found</td>
+                        <td colSpan={6} className="text-center">No Data Found</td>
                       </tr>
                     )}
                   </tbody>
@@ -314,6 +346,37 @@ const UserExpenseReports = () => {
           </Card.Body>
         </Card>
       </Col>
+
+      {/* ── User Detail Modal ─────────────────────────────────────────────────── */}
+      <Modal
+        show={showModal}
+        onHide={handleCloseModal}
+        size="xl"
+        centered
+        scrollable
+        backdrop="static"
+        keyboard={false}
+      >
+        <Modal.Header closeButton>
+          <Modal.Title>
+            {selectedRow?.Name ? `${selectedRow.Name} — Expense Detail` : "User Expense Detail"}
+          </Modal.Title>
+        </Modal.Header>
+        <Modal.Body style={{ minHeight: "70vh", padding: "1rem" }}>
+          {selectedRow && (
+            <UserDetailReport
+              /* Pass data as props so detail component works in modal mode */
+              modalMode
+              modalParams={getModalParams(selectedRow)}
+            />
+          )}
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={handleCloseModal}>
+            Close
+          </Button>
+        </Modal.Footer>
+      </Modal>
     </>
   );
 };

@@ -306,6 +306,7 @@ export const UserwiseExpenseReport = async (req, res) => {
 
         const userWiseSummary = await prisma.$queryRaw`
     SELECT
+        u.id                AS id,
         u.user_id            AS user_id,
         u.username          AS Name,
         u.email             AS user_email,
@@ -365,6 +366,102 @@ export const UserwiseExpenseReport = async (req, res) => {
             availableFYList,
         });
         return res.status(200).json({ success: true, data: responseData });
+
+    } catch (error) {
+        return res.status(500).json({
+            success: false,
+            message: "Paid Expense Report fetch failed",
+            error: error.message,
+        });
+    }
+};
+
+
+export const UserwisePaidSummary = async (req, res) => {
+    try {
+        const company_id = req.user.company_id;
+        const user_id = req.query.user_id;
+        const rawFY = req.query.fy_year;
+
+        if (!user_id || !rawFY) {
+            return res.status(400).json({
+                success: false,
+                message: "user_id and fy_year are required"
+            });
+        }
+        let fyYear;
+        if (!rawFY || rawFY === "current") {
+            fyYear = getCurrentFYYear();
+        } else if (rawFY === "all" || rawFY === "0") {
+            fyYear = null;
+        } else if (isValidFYYear(rawFY)) {
+            fyYear = rawFY;
+        } else {
+            fyYear = getCurrentFYYear();
+        }
+        const filterUserId = req.query.user_id ? parseInt(req.query.user_id) : null;
+        const filterProjectId = req.query.project_id ? String(req.query.project_id).trim() : null;
+        const filterInterventionId = req.query.intervention_id ? parseInt(req.query.intervention_id) : null;
+
+        // Date range filter
+        const fromDate = req.query.from_date ? new Date(req.query.from_date) : null;
+        const toDate = req.query.to_date ? new Date(req.query.to_date) : null;
+
+        // ─── SQL Fragments ────────────────────────────────
+        const fyFragment = fyYear ? Prisma.sql`AND ep.financial_year = ${fyYear}` : Prisma.empty;
+        const userFragment = filterUserId ? Prisma.sql`AND ep.requested_by = ${filterUserId}` : Prisma.empty;
+        const projectFragment = filterProjectId ? Prisma.sql`AND ep.project_name = ${filterProjectId}` : Prisma.empty;
+        const interventionFragment = filterInterventionId ? Prisma.sql`AND ep.intervention = ${filterInterventionId}` : Prisma.empty;
+        const fromFragment = fromDate ? Prisma.sql`AND ept.payment_date >= ${fromDate}` : Prisma.empty;
+        const toFragment = toDate ? Prisma.sql`AND ept.payment_date <= ${toDate}` : Prisma.empty;
+        const user = await prisma.$queryRaw`
+    SELECT 
+        id,
+        user_id,
+        username,
+                    email,
+                    phone_no,
+        reporting_head
+    FROM User
+    WHERE id = ${user_id}
+`;
+
+        const paidExpenses = await prisma.$queryRaw`
+  SELECT 
+    ep.*, 
+    req.username AS requested_by_name, 
+    req.email AS requested_by_email,
+    mgr.username AS manager_name, 
+    i.name AS intervention_name, 
+    p.name AS project_name, 
+    ept.payment_date
+  FROM ExpensePayment ep
+  JOIN User req ON req.id = ep.requested_by
+  JOIN User mgr ON mgr.id = ep.manager_id
+  JOIN Intervention i ON i.id = ep.intervention
+  JOIN Project p ON p.id = ep.project_name
+  JOIN (
+      SELECT expense_id, MAX(payment_date) as payment_date
+      FROM ExpensePaymentTransaction
+      GROUP BY expense_id
+  ) ept ON ept.expense_id = ep.id
+  WHERE ep.company_id = ${company_id}
+    AND ep.payment_status != 0
+    ${fyFragment}
+    ${userFragment}
+    ${projectFragment}
+    ${interventionFragment}
+    ${fromFragment}
+    ${toFragment}
+  ORDER BY ept.payment_date DESC, ep.id DESC
+`;
+        const availableFYList = await prisma.$queryRaw`
+            SELECT DISTINCT financial_year AS fy_year
+            FROM ExpensePayment ep
+            WHERE ep.company_id   = ${company_id}
+            ORDER BY financial_year DESC
+        `;
+        return res.status(200).json({ success: true, data: paidExpenses, availableFYList, user: user });
 
     } catch (error) {
         return res.status(500).json({
