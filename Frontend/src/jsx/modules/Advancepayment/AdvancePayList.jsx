@@ -1,72 +1,26 @@
-import React, { useState } from "react";
-import { Col, Card, Table } from "react-bootstrap";
-import { useNavigate } from "react-router-dom";
+import React, { useState, useEffect } from "react";
+import { Col, Card, Table, Modal } from "react-bootstrap";
 import PageTitle from "../../layouts/PageTitle";
 import TableExportActions from "../../components/Common/TableExportActions";
 import Pagination from "../../components/Common/Pagination";
 import { useSearchFilter, SearchInput } from "../../components/Common/useSearchFilter";
-
-const STATIC_DATA = [
-  {
-    id: 1,
-    project_name: "Road Repair – Block A",
-    company: "BuildCorp Ltd.",
-    project_state: "Rajasthan",
-    intervention: "Infrastructure",
-    requested_amount: 50000,
-    manager: "Amit Sharma",
-    purpose: "Purchase of raw materials for road repair work in Block A.",
-    status: "pending",
-  },
-  {
-    id: 2,
-    project_name: "Water Supply – Zone B",
-    company: "AquaTech Pvt.",
-    project_state: "Uttar Pradesh",
-    intervention: "Agriculture",
-    requested_amount: 120000,
-    manager: "Priya Singh",
-    purpose: "Installation of water pipelines in Zone B villages.",
-    status: "approved",
-  },
-  {
-    id: 3,
-    project_name: "Solar Panel Setup",
-    company: "GreenEnergy Co.",
-    project_state: "Gujarat",
-    intervention: "Energy",
-    requested_amount: 85000,
-    manager: "Rahul Mehta",
-    purpose: "Advance for solar panel procurement and installation.",
-    status: "rejected",
-  },
-  {
-    id: 4,
-    project_name: "School Renovation",
-    company: "EduBuild Inc.",
-    project_state: "Madhya Pradesh",
-    intervention: "Education",
-    requested_amount: 35000,
-    manager: "Sneha Verma",
-    purpose: "Renovation of classrooms and sanitation facilities.",
-    status: "pending",
-  },
-  {
-    id: 5,
-    project_name: "Health Camp – Rural",
-    company: "MedAid NGO",
-    project_state: "Bihar",
-    intervention: "Healthcare",
-    requested_amount: 20000,
-    manager: "Deepak Jha",
-    purpose: "Medical supplies and logistics for rural health camp.",
-    status: "approved",
-  },
-];
+import { getAdvancePaymentList } from "./AdvancePayAPI";
 
 const AdvancePayList = () => {
-  const [data, setData] = useState(STATIC_DATA);
-  const navigate = useNavigate();
+  const [data, setData] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedUser, setSelectedUser] = useState(null); // for modal
+
+  // FETCH LIST — one row per USER (wallet)
+  useEffect(() => {
+    const fetchList = async () => {
+      setLoading(true);
+      const res = await getAdvancePaymentList();
+      if (res.ok) setData(res.result); // res.result = array of wallet objects
+      setLoading(false);
+    };
+    fetchList();
+  }, []);
 
   const {
     search,
@@ -77,25 +31,11 @@ const AdvancePayList = () => {
     paginatedData,
     indexOfFirst,
   } = useSearchFilter(data, {
-    keys: ["project_name", "company", "project_state", "intervention", "manager", "purpose"],
+    keys: ["username", "email"],
     itemsPerPage: 100,
   });
 
-  const handleDelete = (id) => {
-    if (!window.confirm("Are you sure you want to delete this advance request?")) return;
-    setData((prev) => prev.filter((item) => item.id !== id));
-  };
 
-  const getStatusBadge = (status) => {
-    const map = {
-      pending:  { cls: "badge badge-warning", label: "Pending"  },
-      approved: { cls: "badge badge-success", label: "Approved" },
-      rejected: { cls: "badge badge-danger",  label: "Rejected" },
-    };
-    const s = (status || "pending").toLowerCase();
-    const { cls, label } = map[s] || map["pending"];
-    return <span className={cls}>{label}</span>;
-  };
 
   return (
     <>
@@ -105,117 +45,214 @@ const AdvancePayList = () => {
         <Card>
           <Card.Header className="d-flex justify-content-between align-items-center">
             <Card.Title>Advance Payment List</Card.Title>
-
             <div className="d-flex align-items-center gap-2">
               <SearchInput
                 value={search}
                 onChange={setSearch}
-                placeholder="Search advance payments..."
+                placeholder="Search by user or email..."
               />
-
               <TableExportActions
                 data={data}
                 columns={[
-                  { label: "Project Name",  key: "project_name"     },
-                  { label: "Company",       key: "company"          },
-                  { label: "State",         key: "project_state"    },
-                  { label: "Intervention",  key: "intervention"     },
-                  { label: "Amount (₹)",    key: "requested_amount" },
-                  { label: "Manager",       key: "manager"          },
-                  { label: "Purpose",       key: "purpose"          },
-                  { label: "Status",        key: "status"           },
+                  { label: "User", key: "username" },
+                  { label: "Email", key: "email" },
+                  { label: "Wallet Balance", key: "wallet_balance" },
                 ]}
                 fileName="Advance_Payment_List"
               />
-
-               </div>
+            </div>
           </Card.Header>
 
           <Card.Body>
-            <Table responsive className="text-nowrap">
-              <thead>
-                <tr>
-                  <th>Sno</th>
-                  <th>Project Name</th>
-                  <th>Company</th>
-                  <th>State</th>
-                  <th>Intervention</th>
-                  <th>Amount (₹)</th>
-                  <th>Manager</th>
-                  <th>Purpose</th>
-                  <th>Status</th>
-                  <th>Action</th>
-                </tr>
-              </thead>
-
-              <tbody>
-                {paginatedData.length > 0 ? (
-                  paginatedData.map((item, index) => (
-                    <tr key={item.id || index}>
-                      <td>{indexOfFirst + index + 1}</td>
-                      <td>{item.project_name || "N/A"}</td>
-                      <td>{item.company || "N/A"}</td>
-                      <td>{item.project_state || "N/A"}</td>
-                      <td>{item.intervention || "N/A"}</td>
-                      <td>
-                        {item.requested_amount
-                          ? `₹${Number(item.requested_amount).toLocaleString("en-IN")}`
-                          : "N/A"}
-                      </td>
-                      <td>{item.manager || "N/A"}</td>
-                      <td>
-                        <span
-                          title={item.purpose}
-                          style={{
-                            maxWidth: "150px",
-                            display: "inline-block",
-                            whiteSpace: "nowrap",
-                            overflow: "hidden",
-                            textOverflow: "ellipsis",
-                          }}
-                        >
-                          {item.purpose || "N/A"}
-                        </span>
-                      </td>
-                      <td>{getStatusBadge(item.status)}</td>
-                      <td>
-                        <div className="d-flex">
-                          <button
-                            className="btn btn-primary shadow btn-xs sharp me-1"
-                            onClick={() => navigate(`/update-advance-payment/${item.id}`)}
-                          >
-                            <i className="fas fa-pencil-alt"></i>
-                          </button>
-                          <button
-                            className="btn btn-danger shadow btn-xs sharp"
-                            onClick={() => handleDelete(item.id)}
-                          >
-                            <i className="fa fa-trash"></i>
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))
-                ) : (
+            {loading ? (
+              <div className="text-center py-4">
+                <div className="spinner-border text-primary" role="status" />
+                <p className="mt-2 text-muted">Loading...</p>
+              </div>
+            ) : (
+              <Table responsive className="text-nowrap">
+                <thead>
                   <tr>
-                    <td colSpan="10" className="text-center">
-                      No Data Found
-                    </td>
+                    <th>Sno</th>
+                    <th>User</th>
+                    <th>Email</th>
+                    <th>Wallet Balance</th>
+                    <th>Total Advances</th>
+                    <th>No. of Payments</th>
+                    <th>Action</th>
                   </tr>
-                )}
-              </tbody>
-            </Table>
+                </thead>
+                <tbody>
+                  {paginatedData.length > 0 ? (
+                    paginatedData.map((wallet, index) => (
+                      <tr key={wallet.wallet_id}>
+                        <td>{indexOfFirst + index + 1}</td>
+                        <td>{wallet.username || "N/A"}</td>
+                        <td>{wallet.email || "N/A"}</td>
+                        <td>
+                          ₹{Number(wallet.wallet_balance).toLocaleString("en-IN")}
+                        </td>
+                        <td>
+                          {/* ₹{(wallet.advances).toLocaleString("en-IN")} */}
+                          total advance amount
+                        </td>
+                        <td>
+                          <span className="badge badge-info">
+                            {wallet.advances.length} payment{wallet.advances.length !== 1 ? "s" : ""}
+                          </span>
+                        </td>
+                        <td>
+                          <button
+                            className="btn btn-primary shadow btn-xs sharp"
+                            title="View Advances"
+                            onClick={() => setSelectedUser(wallet)}
+                          >
+                            <i className="fas fa-eye"></i>
+                          </button>
+                        </td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td colSpan="7" className="text-center">No Data Found</td>
+                    </tr>
+                  )}
+                </tbody>
+              </Table>
+            )}
 
             <Pagination
               totalItems={totalItems}
-              itemsPerPage={100}
+              itemsPerPage={10}
               currentPage={currentPage}
               onPageChange={setCurrentPage}
             />
           </Card.Body>
         </Card>
       </Col>
+
+      {/* ADVANCES DETAIL MODAL */}
+      <AdvancesModal
+        user={selectedUser}
+        onClose={() => setSelectedUser(null)}
+      />
     </>
+  );
+};
+
+// MODAL COMPONENT
+const AdvancesModal = ({ user, onClose }) => {
+  if (!user) return null;
+
+
+
+  return (
+    <Modal show={!!user} onHide={onClose} size="xl" centered>
+      <Modal.Header closeButton>
+        <Modal.Title>
+          Advance Payments —{" "}
+          <span className="text-primary">{user.username}</span>
+          <small className="text-muted ms-2" style={{ fontSize: "14px" }}>
+            ({user.email})
+          </small>
+        </Modal.Title>
+      </Modal.Header>
+
+      <Modal.Body>
+        {/* Summary */}
+        <div className="d-flex gap-4 mb-3">
+          <div>
+            <small className="text-muted">Wallet Balance</small>
+            <div className="fw-bold">
+              ₹{Number(user.wallet_balance).toLocaleString("en-IN")}
+            </div>
+          </div>
+          <div>
+            <small className="text-muted">Total Payments</small>
+            <div className="fw-bold">{user.advances.length}</div>
+          </div>
+          <div>
+            <small className="text-muted">Total Amount</small>
+            <div className="fw-bold">
+              ₹{user.advances
+                .reduce((sum, a) => sum + Number(a.amount || 0), 0)
+                .toLocaleString("en-IN")}
+            </div>
+          </div>
+        </div>
+
+        {/* Advances Table */}
+        <Table responsive className="text-nowrap">
+          <thead>
+            <tr>
+              <th>Sno</th>
+              <th>Amount (₹)</th>
+              <th>Payment Mode</th>
+              <th>Payment Date</th>
+              <th>Reference No</th>
+              <th>Remarks</th>
+              <th>Doc</th>
+            </tr>
+          </thead>
+          <tbody>
+            {user.advances.length > 0 ? (
+              user.advances.map((item, index) => (
+                <tr key={item.id}>
+                  <td>{index + 1}</td>
+                  <td>₹{Number(item.amount).toLocaleString("en-IN")}</td>
+                  <td className="text-capitalize">{item.payment_mode || "N/A"}</td>
+                  <td>
+                    {item.payment_date
+                      ? new Date(item.payment_date).toLocaleDateString("en-IN")
+                      : "N/A"}
+                  </td>
+                  <td>{item.reference_no || "—"}</td>
+                  <td>
+                    <span
+                      title={item.remarks}
+                      style={{
+                        maxWidth: "160px",
+                        display: "inline-block",
+                        whiteSpace: "nowrap",
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                      }}
+                    >
+                      {item.remarks || "—"}
+                    </span>
+                  </td>
+                  <td>
+                    {item.doc_file ? (
+                      <a
+                        href={`${import.meta.env.VITE_BACKEND_API_URL}/uploads/${item.doc_file}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="btn btn-xs btn-outline-primary"
+                      >
+                        <i className="fas fa-file"></i>
+                      </a>
+                    ) : (
+                      "—"
+                    )}
+                  </td>
+                 
+                </tr>
+              ))
+            ) : (
+              <tr>
+                <td colSpan="8" className="text-center">No advances found</td>
+              </tr>
+            )}
+          </tbody>
+        </Table>
+      </Modal.Body>
+
+      <Modal.Footer>
+        <button className="btn btn-secondary btn-sm" onClick={onClose}>
+          Close
+        </button>
+      </Modal.Footer>
+    </Modal>
   );
 };
 

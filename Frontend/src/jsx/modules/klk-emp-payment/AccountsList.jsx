@@ -76,6 +76,7 @@ const PaymentListBase = ({ status, pageTitle, cardTitle }) => {
   } = useSearchFilter(data, {
     keys: [
       "raised_by",
+      "raised_by_email",
       "project",
       "intervention",
       "manager_name",
@@ -94,19 +95,20 @@ const PaymentListBase = ({ status, pageTitle, cardTitle }) => {
   }));
 
 
-const columns = [
-  { label: "Raised By", key: "raised_by" },
-  { label: "Raised Date", key: "requested_date" },
-  { label: "Project", key: "project" },
-  { label: "Intervention", key: "intervention" },
-  { label: "Manager", key: "manager_name" },
-  { label: "Manager Appr Date", key: "manager_approved_date" },
-  { label: "Document", key: "document" },
-  { label: "Amount (₹)", key: "final_approved_amount" },
-  { label: "Paid (₹)", key: "paid_amount" },
-  { label: "Balance Amount (₹)", key: "balance_amount" },
-  { label: "Payment Status", key: "payment_status" },
-];
+  const columns = [
+    { label: "Raised By", key: "raised_by" },
+    { label: "Raised Date", key: "requested_date" },
+    { label: "Raised By Email", key: "raised_by_email" },
+    { label: "Project", key: "project" },
+    { label: "Intervention", key: "intervention" },
+    { label: "Manager", key: "manager_name" },
+    { label: "Manager Appr Date", key: "manager_approved_date" },
+    { label: "Document", key: "document" },
+    { label: "Amount (₹)", key: "final_approved_amount" },
+    { label: "Paid (₹)", key: "paid_amount" },
+    { label: "Balance Amount (₹)", key: "balance_amount" },
+    { label: "Payment Status", key: "payment_status" },
+  ];
 
   /* ---------------- HANDLERS ---------------- */
   const handleAccount = (item) => {
@@ -215,6 +217,7 @@ const columns = [
                 <tr>
                   <th>Sno</th>
                   <th>Raised By</th>
+                  <th>Raised By Email</th>
                   <th>Raised Date</th>
                   <th>Project</th>
                   <th>Intervention</th>
@@ -227,14 +230,13 @@ const columns = [
                   <th>Status</th>
                   <th>History</th>
                   <th>Receipt</th>
-                  {/* Pay action — only on Pending/Unpaid page */}
                   {status === 0 && <th>Action</th>}
                 </tr>
               </thead>
 
               <tbody>
                 {paginatedData.length > 0 ? (
-                  paginatedData.map((item, index) => {
+                  paginatedData.map((item, index) => {    
                     const remaining =
                       item.final_approved_amount - (item.paid_amount || 0);
 
@@ -242,6 +244,7 @@ const columns = [
                       <tr key={item.id}>
                         <td>{indexOfFirst + index + 1}</td>
                         <td>{item.raised_by}</td>
+                        <td>{item.raised_by_email}</td>
                         <td>{item.requested_date}</td>
                         <td>{item.project}</td>
                         <td>{item.intervention}</td>

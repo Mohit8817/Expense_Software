@@ -15,6 +15,7 @@ import dashboardRoutes from "./src/routes/dashboard.routes.js";
 import roleRoutes from "./src/routes/role.routes.js"
 import permissionRoutes from "./src/routes/permission.routes.js"
 import reportRoutes from "./src/routes/report.routes.js"
+import paymentRoutes from "./src/routes/payment.routes.js"
 
 
 
@@ -75,6 +76,7 @@ app.use("/api/dashboard", dashboardRoutes);
 app.use("/api/role", roleRoutes);
 app.use("/api/permission", permissionRoutes);
 app.use("/api/reports", reportRoutes);
+app.use("/api/payment", paymentRoutes);
 
 
 app.get("/", (req, res) => {

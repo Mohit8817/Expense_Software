@@ -1,10 +1,10 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect } from "react";
 import { Col, Card, Table, Button, Modal } from "react-bootstrap";
 import PageTitle from "../../layouts/PageTitle";
 import TableExportActions from "../../components/Common/TableExportActions";
 import Pagination from "../../components/Common/Pagination";
 import { useSearchFilter, SearchInput } from "../../components/Common/useSearchFilter";
-import UserDetailReport from "./UserDetailReport"; // adjust path if needed
+import UserDetailReport from "./UserDetailReport"; 
 
 // ─── FY Helpers ────────────────────────────────────────────────────────────────
 
@@ -111,8 +111,6 @@ const UserExpenseReports = () => {
 
   const handleFYChange = (fy) => {
     setSelectedFY(fy);
-    // NOTE: We do NOT clear fromDate/toDate here intentionally
-    // Dates persist across FY changes — only Reset clears them
     setAppliedFrom("");
     setAppliedTo("");
     setDateError("");
@@ -125,7 +123,6 @@ const UserExpenseReports = () => {
     fetchData(fromDate, toDate, selectedFY);
   };
 
-  // ── Reset clears dates completely ────────────────────────────────────────────
   const handleReset = () => {
     setFromDate("");
     setToDate("");
@@ -135,9 +132,8 @@ const UserExpenseReports = () => {
     fetchData("", "", selectedFY);
   };
 
-  // ── Date validation — dates stick even if there's an error ──────────────────
   const validateAndSetFrom = (val) => {
-    setFromDate(val); // always save the value
+    setFromDate(val); 
     if (!val) { setDateError(""); return; }
     if (toDate && val > toDate) {
       setDateError("From date cannot be after To date.");
@@ -147,7 +143,7 @@ const UserExpenseReports = () => {
   };
 
   const validateAndSetTo = (val) => {
-    setToDate(val); // always save the value
+    setToDate(val); 
     if (!val) { setDateError(""); return; }
     if (val > calendarMax) {
       setDateError("To date cannot be a future date.");
@@ -165,7 +161,6 @@ const UserExpenseReports = () => {
   const formatAmount = (val) =>
     val !== undefined && val !== null ? Number(val).toLocaleString("en-IN") : "0";
 
-  // ── Open modal with selected row data ────────────────────────────────────────
   const handleRowClick = (row) => {
     setSelectedRow(row);
     setShowModal(true);
@@ -192,7 +187,6 @@ const UserExpenseReports = () => {
     totalPaid:      row.totalPaid       ?? 0,
   }));
 
-  // ── Build modal URL params (same as what navigate used to send) ──────────────
   const getModalParams = (row) => {
     const params = new URLSearchParams();
     if (row) {
@@ -236,7 +230,6 @@ const UserExpenseReports = () => {
                 <option value="all">All Years</option>
               </select>
 
-              {/* From date — no key prop so value is NOT reset on FY change */}
               <input
                 type="date"
                 className="form-control"
@@ -365,7 +358,6 @@ const UserExpenseReports = () => {
         <Modal.Body style={{ minHeight: "70vh", padding: "1rem" }}>
           {selectedRow && (
             <UserDetailReport
-              /* Pass data as props so detail component works in modal mode */
               modalMode
               modalParams={getModalParams(selectedRow)}
             />

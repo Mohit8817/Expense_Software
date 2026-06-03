@@ -90,7 +90,7 @@ const ProjectMasterForm = () => {
   useEffect(() => {
     const fetchManagers = async () => {
       const { ok, result } = await getManagers();
-      console.log("Managers API response:", ok, result);
+      // console.log("Managers API response:", ok, result);
       if (ok) setManager(result);
     };
     fetchManagers();

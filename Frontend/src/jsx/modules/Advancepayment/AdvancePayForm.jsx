@@ -1,38 +1,98 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Card, Col } from "react-bootstrap";
+import {
+  getUsers,
+  getProjectsAndInterventions,
+  createAdvanceExpense,
+} from "./AdvancePayAPI";
 
 const AdvancePayForm = () => {
+
   const [formData, setFormData] = useState({
-    project_name: "",
-    company: "",
-    project_state: "",
-    project_district: "",
-    project_village: "",
-    intervention: "",
-    requested_amount: "",
-    manager: "",
-    purpose: "",
+    user_id: "",
+    project_id: "",
+    amount: "",
+    payment_mode: "",
+    reference_no: "",
+    payment_date: "",
+    remarks: "",
+    doc_file: null,
   });
 
   const [errors, setErrors] = useState({});
+  const [users, setUsers] = useState([]);
+  const [projects, setProjects] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [dropdownLoading, setDropdownLoading] = useState(true);
 
-  // VALIDATE SINGLE FIELD
+
+
+  // FETCH DROPDOWN DATA
+  useEffect(() => {
+
+    const fetchDropdowns = async () => {
+
+      setDropdownLoading(true);
+
+      try {
+
+        const [usersRes, projectsRes] = await Promise.all([
+          getUsers(),
+          getProjectsAndInterventions(),
+        ]);
+
+        if (usersRes.ok) {
+          setUsers(usersRes.result?.data || usersRes.result || []);
+        }
+
+        if (projectsRes.ok) {
+          setProjects(projectsRes.projects || []);
+        }
+
+      } catch (error) {
+
+        console.error("Dropdown fetch error:", error);
+
+      } finally {
+
+        setDropdownLoading(false);
+
+      }
+    };
+
+    fetchDropdowns();
+
+  }, []);
+
+  // VALIDATION
   const validateField = (name, value) => {
-    switch (name) {
-      case "project_name":
-        return value ? "" : "Project Name is required.";
 
-      case "requested_amount":
-        if (!value) return "Requested Amount is required.";
-        if (isNaN(value) || Number(value) <= 0)
+    switch (name) {
+
+      case "user_id":
+        return value ? "" : "User is required.";
+
+      case "amount":
+
+        if (!value) return "Amount is required.";
+
+        if (isNaN(value) || Number(value) <= 0) {
           return "Amount must be a positive number.";
+        }
+
         return "";
 
-      case "purpose":
-        if (!value.trim()) return "Purpose is required.";
-        if (value.trim().length < 5)
-          return "Purpose must be at least 5 characters.";
-        if (value.length > 500) return "Purpose cannot exceed 500 characters.";
+      case "payment_mode":
+        return value ? "" : "Payment mode is required.";
+
+      case "payment_date":
+
+        if (!value) return "Payment date is required.";
+
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+          return "Invalid date format (YYYY-MM-DD).";
+        }
+
         return "";
 
       default:
@@ -40,230 +100,361 @@ const AdvancePayForm = () => {
     }
   };
 
-  // VALIDATE ALL FIELDS
+  // VALIDATE ALL
   const validateAll = () => {
-    const newErrors = {};
-    const fields = [
-      "project_name",
-      "company",
-      "project_state",
-      "project_district",
-      "project_village",
-      "intervention",
-      "requested_amount",
-      "manager",
-      "purpose",
-    ];
 
-    fields.forEach((field) => {
-      const error = validateField(field, formData[field]);
-      if (error) newErrors[field] = error;
-    });
+    const newErrors = {};
+
+    ["user_id", "amount", "payment_mode", "payment_date"].forEach(
+      (field) => {
+
+        const error = validateField(field, formData[field]);
+
+        if (error) {
+          newErrors[field] = error;
+        }
+      }
+    );
 
     return newErrors;
   };
 
   // HANDLE CHANGE
   const handleChange = (e) => {
-    const { name, value } = e.target;
 
-    setFormData((prev) => ({ ...prev, [name]: value }));
+    const { name, value, files } = e.target;
 
-    const error = validateField(name, value);
-    setErrors((prev) => ({ ...prev, [name]: error }));
-  };
+    if (name === "doc_file") {
 
-  // SUBMIT FORM
-  const handleSubmit = (e) => {
-    e.preventDefault();
+      setFormData((prev) => ({
+        ...prev,
+        doc_file: files[0] || null,
+      }));
 
-    const validationErrors = validateAll();
-    if (Object.values(validationErrors).some((err) => err !== "")) {
-      setErrors(validationErrors);
       return;
     }
 
-    alert("Advance Payment Request Created Successfully");
+    setFormData((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
 
-    // RESET FORM
-    setFormData({
-      project_name: "",
-      company: "",
-      project_state: "",
-      project_district: "",
-      project_village: "",
-      intervention: "",
-      requested_amount: "",
-      manager: "",
-      purpose: "",
-    });
-    setErrors({});
+    const error = validateField(name, value);
+
+    setErrors((prev) => ({
+      ...prev,
+      [name]: error,
+    }));
+  };
+
+  // HANDLE SUBMIT
+  const handleSubmit = async (e) => {
+
+    e.preventDefault();
+
+
+
+    const validationErrors = validateAll();
+
+    if (
+      Object.values(validationErrors).some(
+        (err) => err !== ""
+      )
+    ) {
+
+      setErrors(validationErrors);
+
+      return;
+    }
+
+    setLoading(true);
+    try {
+
+      const response = await createAdvanceExpense(formData);
+
+      // ALERT SUCCESS MESSAGE
+      alert(response?.message || "Request Submitted Successfully");
+
+      setFormData({
+        user_id: "",
+        project_id: "",
+        amount: "",
+        payment_mode: "",
+        reference_no: "",
+        payment_date: "",
+        remarks: "",
+        doc_file: null,
+      });
+
+      setErrors({});
+
+    } catch (error) {
+
+      console.error(error);
+
+
+      alert(
+        error?.response?.data?.message ||
+        error?.message ||
+        "Something went wrong"
+      );
+
+    }
+
   };
 
   return (
     <Col lg={12}>
+
       <Card>
+
         <Card.Header>
-          <Card.Title>New Advance Request</Card.Title>
+          <Card.Title>
+            New Advance Request
+          </Card.Title>
         </Card.Header>
 
         <Card.Body>
           <form onSubmit={handleSubmit} noValidate>
+
             <div className="row">
 
-              {/* Project Name */}
+              {/* USER */}
               <div className="col-lg-6 mb-3">
+
                 <label>
-                  Project Name <span className="text-danger">*</span>
+                  User <span className="text-danger">*</span>
                 </label>
-                <input
-                  type="text"
-                  name="project_name"
-                  className={`form-control ${errors.project_name ? "is-invalid" : ""}`}
-                  value={formData.project_name}
+
+                <select
+                  name="user_id"
+                  className={`form-control ${errors.user_id ? "is-invalid" : ""
+                    }`}
+                  value={formData.user_id}
                   onChange={handleChange}
-                  placeholder="e.g. Road Repair – Block A"
-                />
-                {errors.project_name && (
-                  <div className="invalid-feedback">{errors.project_name}</div>
+                  disabled={dropdownLoading}
+                >
+
+                  <option value="">
+                    {dropdownLoading
+                      ? "Loading users..."
+                      : "-- Select User --"}
+                  </option>
+
+                  {users.map((user) => (
+                    <option key={user.id} value={user.id}>
+                      {user.username} ({user.email})
+                    </option>
+                  ))}
+
+                </select>
+
+                {errors.user_id && (
+                  <div className="invalid-feedback">
+                    {errors.user_id}
+                  </div>
                 )}
+
               </div>
 
-              {/* Company */}
+              {/* PROJECT */}
               <div className="col-lg-6 mb-3">
-                <label>Company</label>
-                <input
-                  type="text"
-                  name="company"
+
+                <label>Project</label>
+
+                <select
+                  name="project_id"
                   className="form-control"
-                  value={formData.company}
+                  value={formData.project_id}
                   onChange={handleChange}
-                  placeholder="Company name"
-                />
+                  disabled={dropdownLoading}
+                >
+
+                  <option value="">
+                    {dropdownLoading
+                      ? "Loading projects..."
+                      : "-- Select Project --"}
+                  </option>
+
+                  {projects.map((project) => (
+                    <option key={project.id} value={project.id}>
+                      {project.name}
+                    </option>
+                  ))}
+
+                </select>
+
               </div>
 
-              {/* State */}
+              {/* AMOUNT */}
               <div className="col-lg-6 mb-3">
-                <label>State</label>
-                <input
-                  type="text"
-                  name="project_state"
-                  className="form-control"
-                  value={formData.project_state}
-                  onChange={handleChange}
-                  placeholder="State"
-                />
-              </div>
 
-              {/* District */}
-              <div className="col-lg-6 mb-3">
-                <label>District</label>
-                <input
-                  type="text"
-                  name="project_district"
-                  className="form-control"
-                  value={formData.project_district}
-                  onChange={handleChange}
-                  placeholder="District"
-                />
-              </div>
-
-              {/* Village */}
-              <div className="col-lg-6 mb-3">
-                <label>Village</label>
-                <input
-                  type="text"
-                  name="project_village"
-                  className="form-control"
-                  value={formData.project_village}
-                  onChange={handleChange}
-                  placeholder="Village"
-                />
-              </div>
-
-              {/* Intervention */}
-              <div className="col-lg-6 mb-3">
-                <label>Intervention</label>
-                <input
-                  type="text"
-                  name="intervention"
-                  className="form-control"
-                  value={formData.intervention}
-                  onChange={handleChange}
-                  placeholder="e.g. Agriculture"
-                />
-              </div>
-
-              {/* Requested Amount */}
-              <div className="col-lg-6 mb-3">
                 <label>
-                  Requested Amount (₹) <span className="text-danger">*</span>
+                  Amount (₹)
+                  <span className="text-danger">*</span>
                 </label>
+
                 <input
                   type="number"
-                  name="requested_amount"
-                  className={`form-control ${errors.requested_amount ? "is-invalid" : ""}`}
-                  value={formData.requested_amount}
+                  name="amount"
+                  className={`form-control ${errors.amount ? "is-invalid" : ""
+                    }`}
+                  value={formData.amount}
                   onChange={handleChange}
                   placeholder="0.00"
-                  min="0.01"
-                  step="0.01"
-                  onKeyDown={(e) => {
-                    if (e.key === "-" || e.key === "e" || e.key === "E") {
-                      e.preventDefault();
-                    }
-                  }}
                 />
-                {errors.requested_amount && (
-                  <div className="invalid-feedback">{errors.requested_amount}</div>
+
+                {errors.amount && (
+                  <div className="invalid-feedback">
+                    {errors.amount}
+                  </div>
                 )}
+
               </div>
 
-              {/* Manager */}
+              {/* PAYMENT MODE */}
               <div className="col-lg-6 mb-3">
-                <label>Manager</label>
+
+                <label>
+                  Payment Mode
+                  <span className="text-danger">*</span>
+                </label>
+
+                <select
+                  name="payment_mode"
+                  className={`form-control ${errors.payment_mode ? "is-invalid" : ""
+                    }`}
+                  value={formData.payment_mode}
+                  onChange={handleChange}
+                >
+
+                  <option value="">
+                    -- Select Payment Mode --
+                  </option>
+
+                  <option value="cash">
+                    Cash
+                  </option>
+
+                  <option value="bank_transfer">
+                    Bank Transfer
+                  </option>
+
+                  <option value="upi">
+                    UPI
+                  </option>
+
+                  <option value="cheque">
+                    Cheque
+                  </option>
+
+                </select>
+
+                {errors.payment_mode && (
+                  <div className="invalid-feedback">
+                    {errors.payment_mode}
+                  </div>
+                )}
+
+              </div>
+
+              {/* PAYMENT DATE */}
+              <div className="col-lg-6 mb-3">
+
+                <label>
+                  Payment Date
+                  <span className="text-danger">*</span>
+                </label>
+
+                <input
+                  type="date"
+                  name="payment_date"
+                  className={`form-control ${errors.payment_date ? "is-invalid" : ""
+                    }`}
+                  value={formData.payment_date}
+                  onChange={handleChange}
+                />
+
+                {errors.payment_date && (
+                  <div className="invalid-feedback">
+                    {errors.payment_date}
+                  </div>
+                )}
+
+              </div>
+
+              {/* REFERENCE */}
+              <div className="col-lg-6 mb-3">
+
+                <label>Reference No</label>
+
                 <input
                   type="text"
-                  name="manager"
+                  name="reference_no"
                   className="form-control"
-                  value={formData.manager}
+                  value={formData.reference_no}
                   onChange={handleChange}
-                  placeholder="e.g. Amit Sharma"
+                  placeholder="TXN123456"
                 />
+
               </div>
 
-              {/* Purpose */}
-              <div className="col-lg-12 mb-3">
-                <label>
-                  Purpose <span className="text-danger">*</span>
-                </label>
-                <textarea
-                  name="purpose"
-                  className={`form-control ${errors.purpose ? "is-invalid" : ""}`}
-                  rows="3"
-                  value={formData.purpose}
+              {/* FILE */}
+              <div className="col-lg-6 mb-3">
+
+                <label>Document</label>
+
+                <input
+                  type="file"
+                  name="doc_file"
+                  className="form-control"
                   onChange={handleChange}
-                  placeholder="Describe the purpose of this advance request (max 500 characters)"
-                  maxLength={500}
-                ></textarea>
-                <small className="text-muted">
-                  {formData.purpose.length}/500
-                </small>
-                {errors.purpose && (
-                  <div className="invalid-feedback">{errors.purpose}</div>
-                )}
+                  accept=".pdf,.jpg,.jpeg,.png"
+                />
+
               </div>
 
+              {/* REMARKS */}
+              <div className="col-lg-12 mb-3">
+
+                <label>Remarks</label>
+
+                <textarea
+                  name="remarks"
+                  className="form-control"
+                  rows="3"
+                  value={formData.remarks}
+                  onChange={handleChange}
+                  placeholder="Optional remarks"
+                />
+
+              </div>
+
+              {/* SUBMIT */}
               <div className="text-end">
-                <button type="submit" className="btn btn-primary">
-                  Submit Request
+
+                <button
+                  type="submit"
+                  className="btn btn-primary"
+                  disabled={loading}
+                >
+
+                  {loading
+                    ? "Submitting..."
+                    : "Submit Request"}
+
                 </button>
+
               </div>
 
             </div>
+
           </form>
+
         </Card.Body>
+
       </Card>
+
     </Col>
   );
 };
