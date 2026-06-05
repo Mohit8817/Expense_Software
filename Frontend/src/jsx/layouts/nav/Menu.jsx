@@ -108,6 +108,20 @@ export const MenuList = [
     ],
   },
 
+
+
+  //   {
+  //   title: 'Advance Payment',
+  //   classsChange: 'mm-collapse',
+  //   iconStyle: <i className=" flaticon-project" />,
+  //   permission: "",
+  //   content: [
+  //     { title: 'Advance Payment Dashboard', to: '/AdvancePaymentDashboard' },
+  
+  //   ],
+  // },
+
+
   {
     title: 'Settings',
     classsChange: 'mm-collapse',

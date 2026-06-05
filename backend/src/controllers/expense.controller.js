@@ -239,7 +239,7 @@ export const getMyCreatedExpenses = async (req, res) => {
                 document: exp.document,
                 remarks: exp.remarks || "N/A",
                 created_at: exp.created_at,
-                
+
                 review_assign: Number(exp.review_assign),
 
                 raised_by: userMap[userId] || "N/A",
@@ -817,7 +817,7 @@ export const getAccountsExpenses = async (req, res) => {
             }),
             prisma.user.findMany({
                 where: { company_id },
-                select: { id: true, username: true,email: true },
+                select: { id: true, username: true, email: true },
             }),
         ]);
 
@@ -857,10 +857,10 @@ export const getAccountsExpenses = async (req, res) => {
             document: exp.document,
 
             //   IMPORTANT
-               final_approved_amount: exp.final_approved_amount,
+            final_approved_amount: exp.final_approved_amount,
             manager_approved_date: formatDate(exp.manager_approved_at),
-            paid_amount: exp.paid_amount || 0,              
-            payment_status: exp.payment_status || 0,   
+            paid_amount: exp.paid_amount || 0,
+            payment_status: exp.payment_status || 0,
 
             //   USERS
             raised_by: userMap[Number(exp.requested_by)] || "N/A",

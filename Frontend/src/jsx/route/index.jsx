@@ -54,7 +54,6 @@ import ManagerApprovedPayments from "../modules/klk-emp-payment/ManagerApprovedP
 import AccountPaidPayments from "../modules/klk-emp-payment/Accountpaidpayments";
 import AccountPendingPayments from "../modules/klk-emp-payment/AccountPendingPayments";
 import UserExpenseReports from "../modules/Report/UserExpenseReports";
-// import AdvancePayDashboard from "../modules/Advancepayment/AdvancePayDashboard";
 import AdvancePayList from "../modules/Advancepayment/AdvancePayList";
 import AdvancePayForm from "../modules/Advancepayment/AdvancePayForm";
 import AdvancePaymentDashboard from "../modules/Advancepayment/AdvancePaymentDashboard";

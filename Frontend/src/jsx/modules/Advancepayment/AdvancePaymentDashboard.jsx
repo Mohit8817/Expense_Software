@@ -254,9 +254,7 @@ const AdvancesModal = ({ user, onClose }) => {
                                     </td>
 
                                     <td>
-                                        {item.payment_date
-                                            ? new Date(item.payment_date).toLocaleDateString("en-IN")
-                                            : "N/A"}
+                                        {item.payment_date}
                                     </td>
 
                                     <td>{item.reference_no || "—"}</td>
@@ -335,12 +333,12 @@ const SettlementsModal = ({ user, onClose }) => {
                     </small>
                 </Modal.Title>
             </Modal.Header>
-    <Modal.Body
-        style={{
-            maxHeight: "70vh",
-            overflowY: "auto",
-        }}
-    >
+            <Modal.Body
+                style={{
+                    maxHeight: "70vh",
+                    overflowY: "auto",
+                }}
+            >
                 <div className="d-flex gap-4 mb-4">
                     <div>
                         <small className="text-muted d-block">Wallet Balance</small>
@@ -366,7 +364,6 @@ const SettlementsModal = ({ user, onClose }) => {
                             <th>Payment Mode</th>
                             <th>Settlement Date</th>
                             <th>Reference No</th>
-                            <th>Balance After</th>
                             <th>Remarks</th>
                         </tr>
                     </thead>
@@ -375,7 +372,7 @@ const SettlementsModal = ({ user, onClose }) => {
                         {user.settlements?.length > 0 ? (
                             user.settlements.map((item, index) => (
                                 <tr key={item.id}>
-                                    <td>{index + 1}</td>
+                                    <td className="">{index + 1}</td>
 
                                     <td style={{ fontWeight: 600, color: "#dc2626" }}>
                                         {formatINR(item.amount)}
@@ -386,24 +383,10 @@ const SettlementsModal = ({ user, onClose }) => {
                                     </td>
 
                                     <td>
-                                        {item.payment_date
-                                            ? new Date(item.payment_date).toLocaleString("en-IN")
-                                            : "N/A"}
+                                        {item.payment_date}
                                     </td>
 
                                     <td>{item.reference_no || "—"}</td>
-
-                                    <td>
-                                        {(() => {
-                                            const tx = user.transaction_history?.find(
-                                                (t) =>
-                                                    t.type === "settlement_expense" &&
-                                                    new Date(t.createdAt).getTime() ===
-                                                        new Date(item.createdAt).getTime()
-                                            );
-                                            return tx ? formatINR(tx.balance) : "—";
-                                        })()}
-                                    </td>
 
                                     <td>{item.remarks || "—"}</td>
                                 </tr>
@@ -430,27 +413,171 @@ const SettlementsModal = ({ user, onClose }) => {
 
 
 // ─────────────────────────────────────────────────────────────
-// TABS
+// TRANSACTION HISTORY MODAL
 // ─────────────────────────────────────────────────────────────
-const TABS = [
-    { key: "all", label: "All" },
-    { key: "1",   label: "Pending" },
-    { key: "2",   label: "Approved" },
-    { key: "3",   label: "Rejected" },
-];
+const TransactionHistoryModal = ({ user, onClose }) => {
+    if (!user) return null;
+
+    const history = user.transaction_history || [];
+
+    return (
+        <Modal show={!!user} onHide={onClose} centered size="xl">
+            <Modal.Header closeButton>
+                <Modal.Title>
+                    Transaction History —{" "}
+                    <span className="text-primary">{user.username}</span>
+                    <small className="text-muted ms-2" style={{ fontSize: 14 }}>
+                        ({user.email})
+                    </small>
+                </Modal.Title>
+            </Modal.Header>
+
+            <Modal.Body
+                style={{
+                    maxHeight: "70vh",
+                    overflowY: "auto",
+                }}
+            >
+                <div
+                    className="d-flex gap-4 mb-4 p-3 rounded"
+                    style={{ background: "#f8fafc", border: "1px solid #e2e8f0" }}
+                >
+                    <div>
+                        <small className="text-muted d-block">Current Balance</small>
+                        <strong className="text-primary fs-5">
+                            {formatINR(user.wallet_balance)}
+                        </strong>
+                    </div>
+                    <div>
+                        <small className="text-muted d-block">Total Transactions</small>
+                        <strong>{history.length}</strong>
+                    </div>
+                    <div>
+                        <small className="text-muted d-block">Total Credits</small>
+                        <strong className="text-success">
+                            {formatINR(
+                                history
+                                    .filter((t) => t.payment_mode === "credit")
+                                    .reduce((s, t) => s + Number(t.amount || 0), 0)
+                            )}
+                        </strong>
+                    </div>
+                    <div>
+                        <small className="text-muted d-block">Total Debits</small>
+                        <strong className="text-danger">
+                            {formatINR(
+                                history
+                                    .filter((t) => t.payment_mode === "debit")
+                                    .reduce((s, t) => s + Number(t.amount || 0), 0)
+                            )}
+                        </strong>
+                    </div>
+                </div>
+
+                <Table responsive className="text-nowrap">
+                    <thead>
+                        <tr>
+                            <th>S.No</th>
+                            <th>Type</th>
+                            <th>Mode</th>
+                            <th>Amount (₹)</th>
+                            <th>Balance After (₹)</th>
+                            <th>Date</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {history.length > 0 ? (
+                            history.map((txn, index) => {
+                                const isCredit = txn.payment_mode === "credit";
+                                const typeLabel =
+                                    txn.type === "advance_expense"
+                                        ? "Advance"
+                                        : txn.type === "settlement_expense"
+                                            ? "Settlement"
+                                            : txn.type || "—";
+
+                                return (
+                                    <tr key={txn.id}>
+                                        <td>{index + 1}</td>
+
+                                        <td>
+                                            <span
+                                                className={`badge ${txn.type === "advance_expense"
+                                                        ? "badge-info"
+                                                        : "badge-warning"
+                                                    }`}
+                                            >
+                                                {typeLabel}
+                                            </span>
+                                        </td>
+
+                                        <td>
+                                            <span
+                                                className={`badge ${isCredit ? "badge-success" : "badge-danger"
+                                                    }`}
+                                            >
+                                                {isCredit ? "↑ Credit" : "↓ Debit"}
+                                            </span>
+                                        </td>
+
+                                        <td
+                                            style={{
+                                                fontWeight: 600,
+                                                color: isCredit ? "#16a34a" : "#dc2626",
+                                            }}
+                                        >
+                                            {isCredit ? "+" : "-"}
+                                            {formatINR(txn.amount)}
+                                        </td>
+
+                                        <td style={{ fontWeight: 600, color: "#2563eb" }}>
+                                            {formatINR(txn.balance)}
+                                        </td>
+
+                                        <td>
+                                            {txn.createdAt
+                                                ? new Date(txn.createdAt).toLocaleString("en-IN", {
+                                                    day: "2-digit",
+                                                    month: "short",
+                                                    year: "numeric",
+                                                })
+                                                : "—"}
+                                        </td>
+                                    </tr>
+                                );
+                            })
+                        ) : (
+                            <tr>
+                                <td colSpan="6" className="text-center py-4 text-muted">
+                                    No transactions found
+                                </td>
+                            </tr>
+                        )}
+                    </tbody>
+                </Table>
+            </Modal.Body>
+
+            <Modal.Footer>
+                <button className="btn btn-secondary btn-sm" onClick={onClose}>
+                    Close
+                </button>
+            </Modal.Footer>
+        </Modal>
+    );
+};
 
 
 // ─────────────────────────────────────────────────────────────
 // MAIN COMPONENT
 // ─────────────────────────────────────────────────────────────
 const AdvancePaymentDashboard = () => {
-    const [activeTab,       setActiveTab]       = useState("all");
-    const [showModal,       setShowModal]       = useState(false);
-    const [selectedUser,    setSelectedUser]    = useState(null); // advances view modal
-    const [settleUser,      setSettleUser]      = useState(null); // settle modal
-    const [settlementsUser, setSettlementsUser] = useState(null); // settlement history modal
-    const [tableData,       setTableData]       = useState([]);
-    const [loading,         setLoading]         = useState(true);
+    const [showModal, setShowModal] = useState(false);
+    const [selectedUser, setSelectedUser] = useState(null);
+    const [settleUser, setSettleUser] = useState(null);
+    const [settlementsUser, setSettlementsUser] = useState(null);
+    const [txnHistoryUser, setTxnHistoryUser] = useState(null);
+    const [tableData, setTableData] = useState([]);
+    const [loading, setLoading] = useState(true);
 
     const fetchData = async () => {
         setLoading(true);
@@ -462,13 +589,6 @@ const AdvancePaymentDashboard = () => {
     useEffect(() => {
         fetchData();
     }, []);
-
-    const filteredData =
-        activeTab === "all"
-            ? tableData
-            : tableData.filter((wallet) =>
-                  wallet.advances.some((a) => String(a.status) === activeTab)
-              );
 
     return (
         <>
@@ -592,50 +712,6 @@ const AdvancePaymentDashboard = () => {
                             <Card.Title>Advance Payment List</Card.Title>
                         </Card.Header>
 
-                        {/* TABS */}
-                        <div
-                            style={{
-                                borderBottom: "1px solid #e5e7eb",
-                                paddingLeft: 16,
-                                paddingRight: 16,
-                            }}
-                        >
-                            <ul
-                                style={{
-                                    display: "flex",
-                                    gap: 0,
-                                    margin: 0,
-                                    padding: 0,
-                                    listStyle: "none",
-                                }}
-                            >
-                                {TABS.map((tab) => (
-                                    <li key={tab.key}>
-                                        <button
-                                            onClick={() => setActiveTab(tab.key)}
-                                            style={{
-                                                padding: "10px 16px",
-                                                fontSize: 14,
-                                                fontWeight: activeTab === tab.key ? 600 : 400,
-                                                color: activeTab === tab.key ? "#2563eb" : "#6b7280",
-                                                background: "none",
-                                                border: "none",
-                                                borderBottom:
-                                                    activeTab === tab.key
-                                                        ? "2px solid #2563eb"
-                                                        : "2px solid transparent",
-                                                cursor: "pointer",
-                                                marginBottom: -1,
-                                                transition: "color 0.2s, border-color 0.2s",
-                                            }}
-                                        >
-                                            {tab.label}
-                                        </button>
-                                    </li>
-                                ))}
-                            </ul>
-                        </div>
-
                         <Card.Body className="p-0">
                             {loading ? (
                                 <div className="text-center py-4">
@@ -644,25 +720,22 @@ const AdvancePaymentDashboard = () => {
                                 </div>
                             ) : (
                                 <div className="table-responsive">
-                                    <table
-                                        className="table mb-0"
-                                        style={{ borderCollapse: "separate", borderSpacing: 0 }}
-                                    >
+                                    <table className="table mb-0">
                                         <thead>
                                             <tr>
                                                 <th>S.No</th>
                                                 <th>User</th>
                                                 <th>Balance</th>
                                                 <th>Payments</th>
-                                                <th>Settlements</th>
                                                 <th>View</th>
+                                                <th>Settlements</th>
                                                 <th>Settle</th>
                                             </tr>
                                         </thead>
 
                                         <tbody>
-                                            {filteredData.length > 0 ? (
-                                                filteredData.map((wallet, index) => (
+                                            {tableData.length > 0 ? (
+                                                tableData.map((wallet, index) => (
                                                     <tr key={wallet.wallet_id}>
                                                         <td>{index + 1}</td>
 
@@ -677,9 +750,22 @@ const AdvancePaymentDashboard = () => {
                                                             </small>
                                                         </td>
 
-                                                        {/* BALANCE */}
-                                                        <td style={{ fontWeight: 600, color: "#2563eb" }}>
-                                                            {formatINR(wallet.wallet_balance)}
+                                                        {/* BALANCE — clickable → transaction history */}
+                                                        <td>
+                                                            <span
+                                                                style={{
+                                                                    fontWeight: 600,
+                                                                    color: "#2563eb",
+                                                                    cursor: "pointer",
+                                                                    textDecoration: "underline",
+                                                                    textDecorationStyle: "dotted",
+                                                                    textUnderlineOffset: 3,
+                                                                }}
+                                                                title="Click to view transaction history"
+                                                                onClick={() => setTxnHistoryUser(wallet)}
+                                                            >
+                                                                {formatINR(wallet.wallet_balance)}
+                                                            </span>
                                                         </td>
 
                                                         {/* PAYMENTS */}
@@ -690,7 +776,18 @@ const AdvancePaymentDashboard = () => {
                                                             </span>
                                                         </td>
 
-                                                        {/* SETTLEMENTS — clickable if any exist */}
+                                                        {/* VIEW */}
+                                                        <td>
+                                                            <button
+                                                                className="btn btn-outline-info btn-sm"
+                                                                title="View Advances"
+                                                                onClick={() => setSelectedUser(wallet)}
+                                                            >
+                                                                View
+                                                            </button>
+                                                        </td>
+
+                                                        {/* SETTLEMENTS */}
                                                         <td>
                                                             <span
                                                                 className="badge badge-warning"
@@ -709,17 +806,6 @@ const AdvancePaymentDashboard = () => {
                                                                 {wallet.settlements?.length || 0} settlement
                                                                 {wallet.settlements?.length !== 1 ? "s" : ""}
                                                             </span>
-                                                        </td>
-
-                                                        {/* VIEW */}
-                                                        <td>
-                                                            <button
-                                                                className="btn btn-outline-info btn-sm"
-                                                                title="View Advances"
-                                                                onClick={() => setSelectedUser(wallet)}
-                                                            >
-                                                                View
-                                                            </button>
                                                         </td>
 
                                                         {/* SETTLE */}
@@ -751,7 +837,6 @@ const AdvancePaymentDashboard = () => {
                 </Col>
             </div>
 
-
             {/* ── ADVANCES VIEW MODAL ──────────────────────────────── */}
             <AdvancesModal
                 user={selectedUser}
@@ -772,6 +857,12 @@ const AdvancePaymentDashboard = () => {
                     setSettleUser(null);
                     fetchData();
                 }}
+            />
+
+            {/* ── TRANSACTION HISTORY MODAL ────────────────────────── */}
+            <TransactionHistoryModal
+                user={txnHistoryUser}
+                onClose={() => setTxnHistoryUser(null)}
             />
 
             {/* ── RAISE ADVANCE MODAL ──────────────────────────────── */}
@@ -795,7 +886,12 @@ const AdvancePaymentDashboard = () => {
                                 />
                             </div>
                             <div className="modal-body">
-                                <AdvancePayForm onSuccess={() => setShowModal(false)} />
+                                <AdvancePayForm
+                                    onSuccess={() => {
+                                        setShowModal(false);
+                                        fetchData();
+                                    }}
+                                />
                             </div>
                         </div>
                     </div>
