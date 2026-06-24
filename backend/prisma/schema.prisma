@@ -193,6 +193,7 @@ model Wallet {
 model Payments {
   id            Int      @id @default(autoincrement())
   company_id    String
+  financial_year  String
   user_id       Int
   accountant_id Int
   project_id    Int      @default(0)

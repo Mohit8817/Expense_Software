@@ -503,8 +503,8 @@ const TransactionHistoryModal = ({ user, onClose }) => {
                                         <td>
                                             <span
                                                 className={`badge ${txn.type === "advance_expense"
-                                                        ? "badge-info"
-                                                        : "badge-warning"
+                                                    ? "badge-info"
+                                                    : "badge-warning"
                                                     }`}
                                             >
                                                 {typeLabel}
@@ -578,17 +578,51 @@ const AdvancePaymentDashboard = () => {
     const [txnHistoryUser, setTxnHistoryUser] = useState(null);
     const [tableData, setTableData] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [summary, setSummary] = useState(null);
 
-    const fetchData = async () => {
+    // ── FILTER STATE ──────────────────────────────────────────
+    const [filterOptions, setFilterOptions] = useState({
+        availableFYList: [],
+        availableProjects: [],
+    });
+    const [selectedFY, setSelectedFY] = useState("");
+    const [selectedProject, setSelectedProject] = useState("");
+
+    // ─────────────────────────────────────────────────────────
+    const fetchData = async (fyYear = "", projectId = "") => {
         setLoading(true);
-        const res = await getAdvancePaymentList();
-        if (res.ok) setTableData(res.result);
+        const res = await getAdvancePaymentList(fyYear, projectId);
+        if (res.ok) {
+            setTableData(res.result);
+            setSummary(res.summary);
+            if (res.filterOptions) setFilterOptions(res.filterOptions);
+        }
         setLoading(false);
     };
 
     useEffect(() => {
         fetchData();
     }, []);
+
+    const handleApplyFilters = () => {
+        fetchData(selectedFY, selectedProject);
+    };
+
+    // ── DERIVED SUMMARY VALUES ────────────────────────────────
+    const totalAdvanced = summary?.totalAdvanced ?? 0;
+    const totalSettled = summary?.totalSettled ?? 0;
+    const totalPending = summary?.totalPending ?? 0;
+    const fullySettledEmployees = summary?.fullySettledEmployees ?? 0;
+
+    const settledPct = totalAdvanced > 0
+        ? Math.round((totalSettled / totalAdvanced) * 100)
+        : 0;
+    const pendingPct = totalAdvanced > 0
+        ? Math.round((totalPending / totalAdvanced) * 100)
+        : 0;
+    const settledEmpPct = tableData.length > 0
+        ? Math.round((fullySettledEmployees / tableData.length) * 100)
+        : 0;
 
     return (
         <>
@@ -602,18 +636,45 @@ const AdvancePaymentDashboard = () => {
                     <div className="col-12 col-md-5">
                         <div className="d-flex flex-column flex-md-row align-items-stretch align-items-md-center gap-2 justify-content-md-end">
                             <div className="d-flex gap-2 flex-grow-1 flex-md-grow-0">
-                                <select className="form-select flex-fill">
-                                    <option>KLK Project</option>
-                                    <option>ERP Development</option>
-                                    <option>CRM Project</option>
-                                    <option>Mobile App</option>
-                                </select>
-                                <select className="form-select flex-fill">
-                                    <option>FY 2025-26</option>
-                                    <option>FY 2024-25</option>
-                                    <option>FY 2023-24</option>
+
+                                {/* ── PROJECT FILTER (from API) ── */}
+                             <select
+    className="form-select flex-fill"
+    value={selectedProject}
+    onChange={(e) => setSelectedProject(parseInt(e.target.value) || 0)}
+>
+    <option value={0}>All Projects</option>
+    {filterOptions.availableProjects
+        .filter((p) => p.project_id)
+        .map((p) => (
+            <option key={p.project_id} value={p.project_id}>
+                {p.project_name}
+            </option>
+        ))}
+</select>
+                                {/* ── FY FILTER (from API) ── */}
+                                <select
+                                    className="form-select flex-fill"
+                                    value={selectedFY}
+                                    onChange={(e) => setSelectedFY(e.target.value)}
+                                >
+                                    <option value="">All Years</option>
+                                    {filterOptions.availableFYList.map((fy) => (
+                                        <option key={fy.fy_year} value={fy.fy_year}>
+                                            {fy.fy_year}
+                                        </option>
+                                    ))}
                                 </select>
                             </div>
+
+                            {/* ── APPLY BUTTON ── */}
+                            <button
+                                className="btn btn-outline-primary btn-sm px-3"
+                                onClick={handleApplyFilters}
+                            >
+                                Apply
+                            </button>
+
                             <button
                                 className="btn btn-primary d-flex justify-content-center align-items-center px-3"
                                 onClick={() => setShowModal(true)}
@@ -627,77 +688,99 @@ const AdvancePaymentDashboard = () => {
 
             {/* ── DASHBOARD SUMMARY CARDS ──────────────────────────── */}
             <div className="row">
+
+                {/* Total Advanced */}
                 <div className="col-xl-3 col-sm-6">
                     <div className="card">
                         <div className="card-header border-0 pb-0">
-                            <h6 className="mb-0">Total Requests</h6>
+                            <h6 className="mb-0">Total Advanced</h6>
                         </div>
                         <div className="card-body pt-2">
-                            <h2 className="card-title mb-0">5</h2>
-                            <small className="text-primary font-w600">All financial years</small>
+                            <h2 className="card-title mb-0">{formatINR(totalAdvanced)}</h2>
+                            <small className="text-primary font-w600">
+                                {selectedFY || "All Financial Years"}
+                            </small>
                             <div className="progress mt-3" style={{ height: "6px" }}>
                                 <div className="progress-bar bg-primary" style={{ width: "100%" }}></div>
                             </div>
                             <div className="d-flex justify-content-between mt-1">
-                                <small className="text-muted">All Requests</small>
+                                <small className="text-muted">Total Disbursed</small>
                                 <small className="text-muted font-w600">100%</small>
                             </div>
                         </div>
                     </div>
                 </div>
 
+                {/* Total Settled */}
                 <div className="col-xl-3 col-sm-6">
                     <div className="card">
                         <div className="card-header border-0 pb-0">
-                            <h6 className="mb-0">Pending Approval</h6>
+                            <h6 className="mb-0">Total Settled</h6>
                         </div>
                         <div className="card-body pt-2">
-                            <h2 className="card-title mb-0">1</h2>
-                            <small className="text-warning font-w600">Action required</small>
+                            <h2 className="card-title mb-0">{formatINR(totalSettled)}</h2>
+                            <small className="text-success font-w600">
+                                {settledPct}% of advances settled
+                            </small>
                             <div className="progress mt-3" style={{ height: "6px" }}>
-                                <div className="progress-bar bg-warning" style={{ width: "20%" }}></div>
+                                <div
+                                    className="progress-bar bg-success"
+                                    style={{ width: `${settledPct}%` }}
+                                ></div>
                             </div>
                             <div className="d-flex justify-content-between mt-1">
-                                <small className="text-muted">Pending Requests</small>
-                                <small className="text-muted font-w600">20%</small>
+                                <small className="text-muted">Settled Amount</small>
+                                <small className="text-muted font-w600">{settledPct}%</small>
                             </div>
                         </div>
                     </div>
                 </div>
 
+                {/* Total Pending */}
                 <div className="col-xl-3 col-sm-6">
                     <div className="card">
                         <div className="card-header border-0 pb-0">
-                            <h6 className="mb-0">Total Approved</h6>
+                            <h6 className="mb-0">Total Pending</h6>
                         </div>
                         <div className="card-body pt-2">
-                            <h2 className="card-title mb-0">₹75,000</h2>
-                            <small className="text-success font-w600">3 advances approved</small>
+                            <h2 className="card-title mb-0">{formatINR(totalPending)}</h2>
+                            <small className="text-warning font-w600">
+                                {pendingPct}% still outstanding
+                            </small>
                             <div className="progress mt-3" style={{ height: "6px" }}>
-                                <div className="progress-bar bg-success" style={{ width: "75%" }}></div>
-                            </div>
-                            <div className="d-flex justify-content-between mt-1">
-                                <small className="text-muted">Approved Amount</small>
-                                <small className="text-muted font-w600">75%</small>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <div className="col-xl-3 col-sm-6">
-                    <div className="card">
-                        <div className="card-header border-0 pb-0">
-                            <h6 className="mb-0">Outstanding Balance</h6>
-                        </div>
-                        <div className="card-body pt-2">
-                            <h2 className="card-title mb-0">₹8,000</h2>
-                            <small className="text-danger font-w600">Unsettled advance</small>
-                            <div className="progress mt-3" style={{ height: "6px" }}>
-                                <div className="progress-bar bg-danger" style={{ width: "10%" }}></div>
+                                <div
+                                    className="progress-bar bg-warning"
+                                    style={{ width: `${pendingPct}%` }}
+                                ></div>
                             </div>
                             <div className="d-flex justify-content-between mt-1">
                                 <small className="text-muted">Outstanding Amount</small>
-                                <small className="text-muted font-w600">10%</small>
+                                <small className="text-muted font-w600">{pendingPct}%</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Fully Settled Employees */}
+                <div className="col-xl-3 col-sm-6">
+                    <div className="card">
+                        <div className="card-header border-0 pb-0">
+                            <h6 className="mb-0">Fully Settled Employees</h6>
+                        </div>
+                        <div className="card-body pt-2">
+                            <h2 className="card-title mb-0">{fullySettledEmployees}</h2>
+                            <small className="text-danger font-w600">
+                                of {tableData.length} employees cleared
+                            </small>
+                            <div className="progress mt-3" style={{ height: "6px" }}>
+                                <div
+                                    className="progress-bar bg-danger"
+                                    style={{ width: `${settledEmpPct}%` }}
+                                ></div>
+                            </div>
+                            <div className="d-flex justify-content-between mt-1">
+                                <small className="text-muted">Fully Cleared</small>
+                                <small className="text-muted font-w600">{settledEmpPct}%</small>
                             </div>
                         </div>
                     </div>
@@ -855,7 +938,7 @@ const AdvancePaymentDashboard = () => {
                 onClose={() => setSettleUser(null)}
                 onSuccess={() => {
                     setSettleUser(null);
-                    fetchData();
+                    fetchData(selectedFY, selectedProject);
                 }}
             />
 
@@ -889,7 +972,7 @@ const AdvancePaymentDashboard = () => {
                                 <AdvancePayForm
                                     onSuccess={() => {
                                         setShowModal(false);
-                                        fetchData();
+                                        fetchData(selectedFY, selectedProject);
                                     }}
                                 />
                             </div>
