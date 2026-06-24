@@ -604,9 +604,6 @@ const AdvancePaymentDashboard = () => {
         fetchData();
     }, []);
 
-    const handleApplyFilters = () => {
-        fetchData(selectedFY, selectedProject);
-    };
 
     // ── DERIVED SUMMARY VALUES ────────────────────────────────
     const totalAdvanced = summary?.totalAdvanced ?? 0;
@@ -638,10 +635,14 @@ const AdvancePaymentDashboard = () => {
                             <div className="d-flex gap-2 flex-grow-1 flex-md-grow-0">
 
                                 {/* ── PROJECT FILTER (from API) ── */}
-                             <select
+                           <select
     className="form-select flex-fill"
     value={selectedProject}
-    onChange={(e) => setSelectedProject(parseInt(e.target.value) || 0)}
+    onChange={(e) => {
+        const val = e.target.value;
+        setSelectedProject(val);        // ✅ was setSelectedFY
+        fetchData(selectedFY, val);     // ✅ correct order: (fy, project)
+    }}
 >
     <option value={0}>All Projects</option>
     {filterOptions.availableProjects
@@ -652,28 +653,27 @@ const AdvancePaymentDashboard = () => {
             </option>
         ))}
 </select>
-                                {/* ── FY FILTER (from API) ── */}
-                                <select
-                                    className="form-select flex-fill"
-                                    value={selectedFY}
-                                    onChange={(e) => setSelectedFY(e.target.value)}
-                                >
-                                    <option value="">All Years</option>
-                                    {filterOptions.availableFYList.map((fy) => (
-                                        <option key={fy.fy_year} value={fy.fy_year}>
-                                            {fy.fy_year}
-                                        </option>
-                                    ))}
-                                </select>
+
+
+                            <select
+    className="form-select flex-fill"
+    value={selectedFY}
+    onChange={(e) => {
+        const val = e.target.value;
+        setSelectedFY(val);                 // ✅ was setSelectedProject with parseInt
+        fetchData(val, selectedProject);    // ✅ correct order: (fy, project)
+    }}
+>
+    <option value="">All Years</option>
+    {filterOptions.availableFYList.map((fy) => (
+        <option key={fy.fy_year} value={fy.fy_year}>
+            {fy.fy_year}
+        </option>
+    ))}
+</select>
                             </div>
 
-                            {/* ── APPLY BUTTON ── */}
-                            <button
-                                className="btn btn-outline-primary btn-sm px-3"
-                                onClick={handleApplyFilters}
-                            >
-                                Apply
-                            </button>
+                         
 
                             <button
                                 className="btn btn-primary d-flex justify-content-center align-items-center px-3"
