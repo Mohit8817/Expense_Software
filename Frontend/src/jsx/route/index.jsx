@@ -60,6 +60,15 @@ import AdvancePaymentDashboard from "../modules/Advancepayment/AdvancePaymentDas
 import UserDetailReport from "../modules/Report/UserDetailReport";
 
 
+import CreditNote from "../modules/Tally/CreditNote/CreditNote";
+import DebitNote from "../modules/Tally/DebitNote/DebitNote";
+import DeliveryChallan from "../modules/Tally/DeliveryChallan/DeliveryChallan";
+import Expense from "../modules/Tally/Expense/Expense";
+import MaterialTransfer from "../modules/Tally/MaterialTransfer/MaterialTransfer";
+import Payment from "../modules/Tally/Payment/Payment";
+import PurchaseInvoice from "../modules/Tally/PurchaseInvoice/PurchaseInvoice";
+
+
 
 
 const ProtectedRoute = ({ children }) => {
@@ -159,7 +168,17 @@ const Markup = () => {
         { path: '/manager/approved-payments', element: <ManagerApprovedPayments /> },
         { path: '/account/paid-payments', element: <AccountPaidPayments /> },
         { path: '/account/pending-payments', element: <AccountPendingPayments /> },
+        
 
+        // Tally 
+
+        { path: '/tally/credit-note', element: <CreditNote /> },
+        { path: '/tally/debit-note', element: <DebitNote /> },
+        { path: '/tally/Delivery-Challan', element: <DeliveryChallan /> },
+        { path: '/tally/Expense', element: <Expense /> },
+        { path: '/tally/Material-Transfer', element: <MaterialTransfer /> },
+        { path: '/tally/Payment', element: <Payment /> },
+        { path: '/tally/Purchase-Invoice', element: <PurchaseInvoice /> },
 
     ];
 

@@ -635,45 +635,45 @@ const AdvancePaymentDashboard = () => {
                             <div className="d-flex gap-2 flex-grow-1 flex-md-grow-0">
 
                                 {/* ── PROJECT FILTER (from API) ── */}
-                           <select
-    className="form-select flex-fill"
-    value={selectedProject}
-    onChange={(e) => {
-        const val = e.target.value;
-        setSelectedProject(val);        // ✅ was setSelectedFY
-        fetchData(selectedFY, val);     // ✅ correct order: (fy, project)
-    }}
->
-    <option value={0}>All Projects</option>
-    {filterOptions.availableProjects
-        .filter((p) => p.project_id)
-        .map((p) => (
-            <option key={p.project_id} value={p.project_id}>
-                {p.project_name}
-            </option>
-        ))}
-</select>
+                                <select
+                                    className="form-select flex-fill"
+                                    value={selectedProject}
+                                    onChange={(e) => {
+                                        const val = e.target.value;
+                                        setSelectedProject(val);
+                                        fetchData(selectedFY, val);
+                                    }}
+                                >
+                                    <option value={0}>All Projects</option>
+                                    {filterOptions.availableProjects
+                                        .filter((p) => p.project_id)
+                                        .map((p) => (
+                                            <option key={p.project_id} value={p.project_id}>
+                                                {p.project_name}
+                                            </option>
+                                        ))}
+                                </select>
 
 
-                            <select
-    className="form-select flex-fill"
-    value={selectedFY}
-    onChange={(e) => {
-        const val = e.target.value;
-        setSelectedFY(val);                 // ✅ was setSelectedProject with parseInt
-        fetchData(val, selectedProject);    // ✅ correct order: (fy, project)
-    }}
->
-    <option value="">All Years</option>
-    {filterOptions.availableFYList.map((fy) => (
-        <option key={fy.fy_year} value={fy.fy_year}>
-            {fy.fy_year}
-        </option>
-    ))}
-</select>
+                                <select
+                                    className="form-select flex-fill"
+                                    value={selectedFY}
+                                    onChange={(e) => {
+                                        const val = e.target.value;
+                                        setSelectedFY(val);
+                                        fetchData(val, selectedProject);
+                                    }}
+                                >
+                                    <option value="">All Years</option>
+                                    {filterOptions.availableFYList.map((fy) => (
+                                        <option key={fy.fy_year} value={fy.fy_year}>
+                                            {fy.fy_year}
+                                        </option>
+                                    ))}
+                                </select>
                             </div>
 
-                         
+
 
                             <button
                                 className="btn btn-primary d-flex justify-content-center align-items-center px-3"

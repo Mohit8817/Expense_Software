@@ -122,6 +122,75 @@ export const MenuList = [
   // },
 
 
+
+
+
+
+
+
+
+
+
+
+  {
+  title: 'Tally',
+  iconStyle: <i className="flaticon flaticon-shopping-bag" />,
+  classsChange: 'mm-collapse',
+  permission: "",
+  content: [
+
+    {
+      title: 'Sales Invoice',
+      to: 'sales-invoice-list',
+      // permission: "view_sales_invoice"
+    },
+
+    {
+      title: 'Purchase Invoice',
+      to: '/tally/Purchase-Invoice',
+      // permission: "view_purchase_invoice"
+    },
+
+    {
+      title: 'Payment',
+      to: '/tally/Payment',
+      // permission: "view_payment"
+    },
+
+    {
+      title: 'Expense',
+      to: '/tally/Expense',
+      // permission: "view_expense"
+    },
+
+    {
+      title: 'Credit Note',
+      to: '/tally/credit-note',
+      // permission: "view_credit_note"
+    },
+
+    {
+      title: 'Debit Note',
+      to: '/tally/debit-note',
+      // permission: "view_debit_note"
+    },
+
+    {
+      title: 'Delivery Challan',
+      to: '/tally/Delivery-Challan',
+      // permission: "view_delivery_challan"
+    },
+
+    {
+      title: 'Material Transfer',
+      to: '/tally/Material-Transfer',
+      // permission: "view_material_transfer"
+    }
+
+  ]
+},
+
+
   {
     title: 'Settings',
     classsChange: 'mm-collapse',
