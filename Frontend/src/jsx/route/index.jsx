@@ -67,6 +67,7 @@ import Expense from "../modules/Tally/Expense/Expense";
 import MaterialTransfer from "../modules/Tally/MaterialTransfer/MaterialTransfer";
 import Payment from "../modules/Tally/Payment/Payment";
 import PurchaseInvoice from "../modules/Tally/PurchaseInvoice/PurchaseInvoice";
+import SalesInvoice from "../modules/Tally/SalesInvoice/SalesInvoice";
 
 
 
@@ -179,6 +180,7 @@ const Markup = () => {
         { path: '/tally/Material-Transfer', element: <MaterialTransfer /> },
         { path: '/tally/Payment', element: <Payment /> },
         { path: '/tally/Purchase-Invoice', element: <PurchaseInvoice /> },
+        { path: '/tally/Sales-Invoice', element: <SalesInvoice /> },
 
     ];
 

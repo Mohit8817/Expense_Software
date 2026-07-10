@@ -141,7 +141,7 @@ export const MenuList = [
 
     {
       title: 'Sales Invoice',
-      to: 'sales-invoice-list',
+      to: '/tally/Sales-Invoice',
       // permission: "view_sales_invoice"
     },
 
