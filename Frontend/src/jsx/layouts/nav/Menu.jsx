@@ -133,7 +133,7 @@ export const MenuList = [
 
 
   {
-  title: 'Tally',
+  title: 'Account',
   iconStyle: <i className="flaticon flaticon-shopping-bag" />,
   classsChange: 'mm-collapse',
   permission: "",

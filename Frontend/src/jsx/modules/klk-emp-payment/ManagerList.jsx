@@ -34,6 +34,7 @@ const ManagerExpenseTable = ({ status, pageTitle, cardTitle }) => {
   useEffect(() => {
     fetchExpenses();
     fetchReviewers();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [status]);
 
   const fetchExpenses = async () => {
