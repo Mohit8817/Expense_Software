@@ -1,7 +1,7 @@
-import React, { useState } from "react";
-import { Card, Col, Table } from "react-bootstrap";
+import React, { useEffect, useState } from "react";
+import { Table } from "react-bootstrap";
 
-const emptyLedger = { LedgerName: "", Amount: "" };
+const emptyLedger = () => ({ LedgerName: "", Amount: "" });
 
 const ledgerOptions = [
   "XYZ Imprest A/c",
@@ -15,15 +15,19 @@ const ledgerOptions = [
   "UPI",
 ];
 
-const PaymentForm = ({ onSaved }) => {
+const PaymentForm = ({ voucherId, initialData, onDataChange, onClose, onSaved }) => {
   const [formData, setFormData] = useState({
-    VoucherNo: "",
-    VoucherDate: "",
-    Narration: "",
+    VoucherNo: initialData?.VoucherNo || "",
+    VoucherDate: initialData?.VoucherDate || "",
+    Narration: initialData?.Narration || "",
   });
 
-  const [debitLedgers, setDebitLedgers] = useState([{ ...emptyLedger }]);
-  const [creditLedgers, setCreditLedgers] = useState([{ ...emptyLedger }]);
+  const [debitLedgers, setDebitLedgers] = useState(
+    initialData?.DebitLedgers?.length ? initialData.DebitLedgers : [emptyLedger()]
+  );
+  const [creditLedgers, setCreditLedgers] = useState(
+    initialData?.CreditLedgers?.length ? initialData.CreditLedgers : [emptyLedger()]
+  );
 
   // ---- Header field handlers ----
   const handleFieldChange = (e) => {
@@ -40,13 +44,9 @@ const PaymentForm = ({ onSaved }) => {
     });
   };
 
-  const addDebitRow = () => {
-    setDebitLedgers((prev) => [...prev, { ...emptyLedger }]);
-  };
-
-  const removeDebitRow = (index) => {
-    setDebitLedgers((prev) => prev.filter((_, i) => i !== index));
-  };
+  const addDebitRow = () => setDebitLedgers((prev) => [...prev, emptyLedger()]);
+  const removeDebitRow = (index) =>
+    setDebitLedgers((prev) => (prev.length > 1 ? prev.filter((_, i) => i !== index) : prev));
 
   // ---- Credit Ledger handlers ----
   const handleCreditChange = (index, field, value) => {
@@ -57,25 +57,33 @@ const PaymentForm = ({ onSaved }) => {
     });
   };
 
-  const addCreditRow = () => {
-    setCreditLedgers((prev) => [...prev, { ...emptyLedger }]);
-  };
-
-  const removeCreditRow = (index) => {
-    setCreditLedgers((prev) => prev.filter((_, i) => i !== index));
-  };
+  const addCreditRow = () => setCreditLedgers((prev) => [...prev, emptyLedger()]);
+  const removeCreditRow = (index) =>
+    setCreditLedgers((prev) => (prev.length > 1 ? prev.filter((_, i) => i !== index) : prev));
 
   // ---- Totals ----
-  const debitTotal = debitLedgers.reduce(
-    (sum, l) => sum + (parseFloat(l.Amount) || 0),
-    0
-  );
-  const creditTotal = creditLedgers.reduce(
-    (sum, l) => sum + (parseFloat(l.Amount) || 0),
-    0
-  );
+  const debitTotal = debitLedgers.reduce((sum, l) => sum + (parseFloat(l.Amount) || 0), 0);
+  const creditTotal = creditLedgers.reduce((sum, l) => sum + (parseFloat(l.Amount) || 0), 0);
   const difference = debitTotal - creditTotal;
   const isBalanced = debitTotal > 0 && difference === 0;
+
+  // Push the current form state up to the parent on every change so the
+  // col-4 preview panel can render totals live, without this component
+  // knowing or caring how (or whether) that panel is displayed.
+  // Amount is always derived from the ledgers — no manual override field,
+  // since a payment voucher's value must equal its balanced Debit/Credit total.
+  useEffect(() => {
+    if (!onDataChange) return;
+    onDataChange({
+      ...formData,
+      Amount: debitTotal,
+      DebitLedgers: debitLedgers,
+      CreditLedgers: creditLedgers,
+      isBalanced,
+      status: initialData?.status || "Draft",
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [formData, debitLedgers, creditLedgers]);
 
   // ---- Submit ----
   const handleSubmit = (e) => {
@@ -84,13 +92,11 @@ const PaymentForm = ({ onSaved }) => {
       alert("Debit and Credit totals must be equal before saving.");
       return;
     }
-    const payload = {
-      ...formData,
-      DebitLedgers: debitLedgers,
-      CreditLedgers: creditLedgers,
-    };
-    console.log("Payment Voucher payload:", payload);
-    // TODO: call your save/update API here
+    alert(
+      voucherId
+        ? `(Static demo) Payment voucher ${voucherId} would be updated here.`
+        : "(Static demo) Payment voucher would be created here."
+    );
     if (onSaved) onSaved();
   };
 
@@ -100,246 +106,201 @@ const PaymentForm = ({ onSaved }) => {
       VoucherDate: "",
       Narration: "",
     });
-    setDebitLedgers([{ ...emptyLedger }]);
-    setCreditLedgers([{ ...emptyLedger }]);
+    setDebitLedgers([emptyLedger()]);
+    setCreditLedgers([emptyLedger()]);
   };
 
   return (
-    <>
-      <Col lg={12}>
-        <Card>
-          <Card.Body>
-            <form onSubmit={handleSubmit}>
-              <div className="row">
-                {/* Voucher No */}
-                <div className="col-md-4 mb-3">
-                  <label>Voucher No</label>
-                  <input
-                    type="text"
-                    name="VoucherNo"
-                    className="form-control"
-                    placeholder="Enter Voucher No"
-                    value={formData.VoucherNo}
-                    onChange={handleFieldChange}
-                  />
-                </div>
+    <form onSubmit={handleSubmit}>
+      {/* Voucher Details */}
+      <h6 className="text-uppercase text-muted small fw-bold mb-3">Voucher Details</h6>
+      <div className="row">
+        <div className="col-md-4 mb-3">
+          <label className="form-label">Voucher No</label>
+          <input
+            type="text"
+            name="VoucherNo"
+            className="form-control"
+            placeholder="Enter Voucher No"
+            value={formData.VoucherNo}
+            onChange={handleFieldChange}
+          />
+        </div>
 
-                {/* Voucher Date */}
-                <div className="col-md-4 mb-3">
-                  <label>Voucher Date</label>
-                  <input
-                    type="date"
-                    name="VoucherDate"
-                    className="form-control"
-                    value={formData.VoucherDate}
-                    onChange={handleFieldChange}
-                  />
-                </div>
+        <div className="col-md-4 mb-3">
+          <label className="form-label">Voucher Date</label>
+          <input
+            type="date"
+            name="VoucherDate"
+            className="form-control"
+            value={formData.VoucherDate}
+            onChange={handleFieldChange}
+          />
+        </div>
 
-                {/* Narration */}
-                <div className="col-md-4 mb-3">
-                  <label>Narration</label>
-                  <input
-                    type="text"
-                    name="Narration"
-                    className="form-control"
-                    placeholder="Enter Narration"
-                    value={formData.Narration}
-                    onChange={handleFieldChange}
-                  />
-                </div>
-              </div>
+        <div className="col-md-4 mb-3">
+          <label className="form-label">Narration</label>
+          <input
+            type="text"
+            name="Narration"
+            className="form-control"
+            placeholder="Enter Narration"
+            value={formData.Narration}
+            onChange={handleFieldChange}
+          />
+        </div>
+      </div>
 
-              {/* Debit Ledgers */}
-              <h5 className="mt-4 mb-3">Debit Ledgers (Paid To)</h5>
+      {/* Debit Ledgers */}
+      <div className="d-flex align-items-center justify-content-between mt-4 mb-3">
+        <h6 className="text-uppercase text-muted small fw-bold mb-0">Debit Ledgers (Paid To)</h6>
+      </div>
 
-              <Table bordered responsive>
-                <thead>
-                  <tr>
-                    <th width="5%">#</th>
-                    <th>Ledger Name</th>
-                    <th width="25%">Amount</th>
-                    <th width="5%"></th>
-                  </tr>
-                </thead>
-
-                <tbody>
-                  {debitLedgers.map((l, index) => (
-                    <tr key={index}>
-                      <td>{index + 1}</td>
-                      <td>
-                        <select
-                          className="form-control"
-                          value={l.LedgerName}
-                          onChange={(e) =>
-                            handleDebitChange(index, "LedgerName", e.target.value)
-                          }
-                        >
-                          <option value="">Select Ledger</option>
-                          {ledgerOptions.map((opt) => (
-                            <option key={opt} value={opt}>
-                              {opt}
-                            </option>
-                          ))}
-                        </select>
-                      </td>
-                      <td>
-                        <input
-                          type="number"
-                          className="form-control"
-                          placeholder="Amount"
-                          value={l.Amount}
-                          onChange={(e) =>
-                            handleDebitChange(index, "Amount", e.target.value)
-                          }
-                        />
-                      </td>
-                      <td className="text-center">
-                        {debitLedgers.length > 1 && (
-                          <button
-                            type="button"
-                            className="btn btn-danger btn-xs sharp"
-                            onClick={() => removeDebitRow(index)}
-                            title="Remove"
-                          >
-                            <i className="fa fa-trash"></i>
-                          </button>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-                <tfoot>
-                  <tr>
-                    <td colSpan="2" className="text-end fw-bold">
-                      Debit Total
-                    </td>
-                    <td className="fw-bold">{debitTotal.toFixed(2)}</td>
-                    <td></td>
-                  </tr>
-                </tfoot>
-              </Table>
-
-              <button
-                type="button"
-                className="btn btn-outline-primary btn-sm mb-4"
-                onClick={addDebitRow}
-              >
-                + Add Debit Ledger
-              </button>
-
-              {/* Credit Ledgers */}
-              <h5 className="mb-3">Credit Ledgers (Paid From)</h5>
-
-              <Table bordered responsive>
-                <thead>
-                  <tr>
-                    <th width="5%">#</th>
-                    <th>Ledger Name</th>
-                    <th width="25%">Amount</th>
-                    <th width="5%"></th>
-                  </tr>
-                </thead>
-
-                <tbody>
-                  {creditLedgers.map((l, index) => (
-                    <tr key={index}>
-                      <td>{index + 1}</td>
-                      <td>
-                        <select
-                          className="form-control"
-                          value={l.LedgerName}
-                          onChange={(e) =>
-                            handleCreditChange(index, "LedgerName", e.target.value)
-                          }
-                        >
-                          <option value="">Select Ledger</option>
-                          {ledgerOptions.map((opt) => (
-                            <option key={opt} value={opt}>
-                              {opt}
-                            </option>
-                          ))}
-                        </select>
-                      </td>
-                      <td>
-                        <input
-                          type="number"
-                          className="form-control"
-                          placeholder="Amount"
-                          value={l.Amount}
-                          onChange={(e) =>
-                            handleCreditChange(index, "Amount", e.target.value)
-                          }
-                        />
-                      </td>
-                      <td className="text-center">
-                        {creditLedgers.length > 1 && (
-                          <button
-                            type="button"
-                            className="btn btn-danger btn-xs sharp"
-                            onClick={() => removeCreditRow(index)}
-                            title="Remove"
-                          >
-                            <i className="fa fa-trash"></i>
-                          </button>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-                <tfoot>
-                  <tr>
-                    <td colSpan="2" className="text-end fw-bold">
-                      Credit Total
-                    </td>
-                    <td className="fw-bold">{creditTotal.toFixed(2)}</td>
-                    <td></td>
-                  </tr>
-                </tfoot>
-              </Table>
-
-              <button
-                type="button"
-                className="btn btn-outline-primary btn-sm mb-4"
-                onClick={addCreditRow}
-              >
-                + Add Credit Ledger
-              </button>
-
-              {/* Balance Summary */}
-              <div className="text-end mb-3">
-                <h6 className="mb-1">
-                  Debit Total: <span>{debitTotal.toFixed(2)}</span>
-                </h6>
-                <h6 className="mb-1">
-                  Credit Total: <span>{creditTotal.toFixed(2)}</span>
-                </h6>
-                <h5 className={isBalanced ? "text-success" : "text-danger"}>
-                  {isBalanced
-                    ? "Balanced"
-                    : `Difference: ${difference.toFixed(2)}`}
-                </h5>
-              </div>
-
-              {/* Buttons */}
-              <div className="text-end">
-                <button
-                  type="button"
-                  className="btn btn-secondary me-2"
-                  onClick={handleReset}
+      <Table bordered responsive className="align-middle">
+        <thead>
+          <tr>
+            <th width="5%">#</th>
+            <th>Ledger Name</th>
+            <th width="25%">Amount</th>
+            <th width="6%"></th>
+          </tr>
+        </thead>
+        <tbody>
+          {debitLedgers.map((l, index) => (
+            <tr key={index}>
+              <td>{index + 1}</td>
+              <td>
+                <select
+                  className="form-control"
+                  value={l.LedgerName}
+                  onChange={(e) => handleDebitChange(index, "LedgerName", e.target.value)}
                 >
-                  Reset
-                </button>
+                  <option value="">Select Ledger</option>
+                  {ledgerOptions.map((opt) => (
+                    <option key={opt} value={opt}>
+                      {opt}
+                    </option>
+                  ))}
+                </select>
+              </td>
+              <td>
+                <input
+                  type="number"
+                  className="form-control"
+                  placeholder="Amount"
+                  value={l.Amount}
+                  onChange={(e) => handleDebitChange(index, "Amount", e.target.value)}
+                />
+              </td>
+              <td className="text-center">
+                {debitLedgers.length > 1 && (
+                  <button
+                    type="button"
+                    className="btn btn-light btn-sm text-danger"
+                    onClick={() => removeDebitRow(index)}
+                    title="Remove"
+                  >
+                    <i className="fa fa-trash"></i>
+                  </button>
+                )}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </Table>
 
-                <button type="submit" className="btn btn-primary">
-                  Save Payment Voucher
-                </button>
-              </div>
-            </form>
-          </Card.Body>
-        </Card>
-      </Col>
-    </>
+      <button type="button" className="btn btn-outline-primary btn-sm mb-4" onClick={addDebitRow}>
+        + Add Debit Ledger
+      </button>
+
+      {/* Credit Ledgers */}
+      <h6 className="text-uppercase text-muted small fw-bold mb-3">Credit Ledgers (Paid From)</h6>
+
+      <Table bordered responsive className="align-middle">
+        <thead>
+          <tr>
+            <th width="5%">#</th>
+            <th>Ledger Name</th>
+            <th width="25%">Amount</th>
+            <th width="6%"></th>
+          </tr>
+        </thead>
+        <tbody>
+          {creditLedgers.map((l, index) => (
+            <tr key={index}>
+              <td>{index + 1}</td>
+              <td>
+                <select
+                  className="form-control"
+                  value={l.LedgerName}
+                  onChange={(e) => handleCreditChange(index, "LedgerName", e.target.value)}
+                >
+                  <option value="">Select Ledger</option>
+                  {ledgerOptions.map((opt) => (
+                    <option key={opt} value={opt}>
+                      {opt}
+                    </option>
+                  ))}
+                </select>
+              </td>
+              <td>
+                <input
+                  type="number"
+                  className="form-control"
+                  placeholder="Amount"
+                  value={l.Amount}
+                  onChange={(e) => handleCreditChange(index, "Amount", e.target.value)}
+                />
+              </td>
+              <td className="text-center">
+                {creditLedgers.length > 1 && (
+                  <button
+                    type="button"
+                    className="btn btn-light btn-sm text-danger"
+                    onClick={() => removeCreditRow(index)}
+                    title="Remove"
+                  >
+                    <i className="fa fa-trash"></i>
+                  </button>
+                )}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </Table>
+
+      <button type="button" className="btn btn-outline-primary btn-sm mb-4" onClick={addCreditRow}>
+        + Add Credit Ledger
+      </button>
+
+      {/* Balance Summary */}
+      <div className="text-end mb-3">
+        <h6 className="mb-1">
+          Debit Total: <span>{debitTotal.toFixed(2)}</span>
+        </h6>
+        <h6 className="mb-1">
+          Credit Total: <span>{creditTotal.toFixed(2)}</span>
+        </h6>
+        <h5 className={isBalanced ? "text-success" : "text-danger"}>
+          {isBalanced ? "Balanced" : `Difference: ${difference.toFixed(2)}`}
+        </h5>
+      </div>
+
+      {/* Buttons */}
+      <div className="text-end border-top pt-3">
+        <button type="button" className="btn btn-secondary me-2" onClick={handleReset}>
+          Reset
+        </button>
+        {onClose && (
+          <button type="button" className="btn btn-outline-secondary me-2" onClick={onClose}>
+            Cancel
+          </button>
+        )}
+        <button type="submit" className="btn btn-primary">
+          Save Payment Voucher
+        </button>
+      </div>
+    </form>
   );
 };
 
