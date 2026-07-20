@@ -8,6 +8,7 @@ const ledgerOptions = [
   "Accomodation Charges",
   "Conveyance",
   "Office Expenses",
+  "Repair & Maintenance",
   "Cash",
   "Bank",
   "UPI",
@@ -16,9 +17,23 @@ const ledgerOptions = [
 
 const ExpenseForm = ({ voucherId, initialData, onDataChange, onClose, onSaved }) => {
   const [formData, setFormData] = useState({
+    // ---- Company (Header) Details ----
+    CompanyName: initialData?.CompanyName || "",
+    CompanyAddress: initialData?.CompanyAddress || "",
+    CompanyState: initialData?.CompanyState || "",
+    CompanyStateCode: initialData?.CompanyStateCode || "",
+    CompanyCIN: initialData?.CompanyCIN || "",
+    CompanyEmail: initialData?.CompanyEmail || "",
+
+    // ---- Voucher Details ----
+    VoucherType: initialData?.VoucherType || "Journal Voucher",
     VoucherNo: initialData?.VoucherNo || "",
     VoucherDate: initialData?.VoucherDate || "",
+    PayeeName: initialData?.PayeeName || "",
     Narration: initialData?.Narration || "",
+
+    // ---- Signatory ----
+    AuthorisedSignatoryName: initialData?.AuthorisedSignatoryName || "",
   });
 
   const [debitLedgers, setDebitLedgers] = useState(
@@ -96,16 +111,114 @@ const ExpenseForm = ({ voucherId, initialData, onDataChange, onClose, onSaved })
   };
 
   const handleReset = () => {
-    setFormData({ VoucherNo: "", VoucherDate: "", Narration: "" });
+    setFormData({
+      CompanyName: "",
+      CompanyAddress: "",
+      CompanyState: "",
+      CompanyStateCode: "",
+      CompanyCIN: "",
+      CompanyEmail: "",
+      VoucherType: "Journal Voucher",
+      VoucherNo: "",
+      VoucherDate: "",
+      PayeeName: "",
+      Narration: "",
+      AuthorisedSignatoryName: "",
+    });
     setDebitLedgers([emptyLedger()]);
     setCreditLedgers([emptyLedger()]);
   };
 
   return (
     <form onSubmit={handleSubmit}>
+      {/* Company Details */}
+      <h6 className="text-uppercase text-muted small fw-bold mb-3">Company Details</h6>
+      <div className="row">
+        <div className="col-md-4 mb-3">
+          <label className="form-label">Company Name</label>
+          <input
+            type="text"
+            name="CompanyName"
+            className="form-control"
+            placeholder="Enter Company Name"
+            value={formData.CompanyName}
+            onChange={handleFieldChange}
+          />
+        </div>
+        <div className="col-md-8 mb-3">
+          <label className="form-label">Company Address</label>
+          <input
+            type="text"
+            name="CompanyAddress"
+            className="form-control"
+            placeholder="Enter Company Address"
+            value={formData.CompanyAddress}
+            onChange={handleFieldChange}
+          />
+        </div>
+        <div className="col-md-4 mb-3">
+          <label className="form-label">State Name</label>
+          <input
+            type="text"
+            name="CompanyState"
+            className="form-control"
+            placeholder="Enter State Name"
+            value={formData.CompanyState}
+            onChange={handleFieldChange}
+          />
+        </div>
+        <div className="col-md-4 mb-3">
+          <label className="form-label">State Code</label>
+          <input
+            type="text"
+            name="CompanyStateCode"
+            className="form-control"
+            placeholder="Enter State Code"
+            value={formData.CompanyStateCode}
+            onChange={handleFieldChange}
+          />
+        </div>
+        <div className="col-md-4 mb-3">
+          <label className="form-label">CIN</label>
+          <input
+            type="text"
+            name="CompanyCIN"
+            className="form-control"
+            placeholder="Enter CIN"
+            value={formData.CompanyCIN}
+            onChange={handleFieldChange}
+          />
+        </div>
+        <div className="col-md-12 mb-3">
+          <label className="form-label">E-Mail</label>
+          <input
+            type="email"
+            name="CompanyEmail"
+            className="form-control"
+            placeholder="Enter Email"
+            value={formData.CompanyEmail}
+            onChange={handleFieldChange}
+          />
+        </div>
+      </div>
+
       {/* Voucher Details */}
       <h6 className="text-uppercase text-muted small fw-bold mb-3">Voucher Details</h6>
       <div className="row">
+        <div className="col-md-4 mb-3">
+          <label className="form-label">Voucher Type</label>
+          <select
+            name="VoucherType"
+            className="form-control"
+            value={formData.VoucherType}
+            onChange={handleFieldChange}
+          >
+            <option value="Journal Voucher">Journal Voucher</option>
+            <option value="Payment Voucher">Payment Voucher</option>
+            <option value="Expense Voucher">Expense Voucher</option>
+          </select>
+        </div>
+
         <div className="col-md-4 mb-3">
           <label className="form-label">Voucher No</label>
           <input
@@ -119,7 +232,7 @@ const ExpenseForm = ({ voucherId, initialData, onDataChange, onClose, onSaved })
         </div>
 
         <div className="col-md-4 mb-3">
-          <label className="form-label">Voucher Date</label>
+          <label className="form-label">Voucher Date (Dated)</label>
           <input
             type="date"
             name="VoucherDate"
@@ -130,12 +243,24 @@ const ExpenseForm = ({ voucherId, initialData, onDataChange, onClose, onSaved })
         </div>
 
         <div className="col-md-4 mb-3">
-          <label className="form-label">Narration</label>
+          <label className="form-label">To (Payee Name)</label>
+          <input
+            type="text"
+            name="PayeeName"
+            className="form-control"
+            placeholder="Enter Payee Name"
+            value={formData.PayeeName}
+            onChange={handleFieldChange}
+          />
+        </div>
+
+        <div className="col-md-8 mb-3">
+          <label className="form-label">On Account Of (Narration)</label>
           <input
             type="text"
             name="Narration"
             className="form-control"
-            placeholder="Enter Narration"
+            placeholder="e.g. Expenses for the period from ... to ..."
             value={formData.Narration}
             onChange={handleFieldChange}
           />
@@ -294,6 +419,7 @@ const ExpenseForm = ({ voucherId, initialData, onDataChange, onClose, onSaved })
           {isBalanced ? "Balanced" : `Difference: ${difference.toFixed(2)}`}
         </h5>
       </div>
+
 
       {/* Buttons */}
       <div className="text-end border-top pt-3">

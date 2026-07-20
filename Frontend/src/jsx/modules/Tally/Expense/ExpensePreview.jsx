@@ -12,9 +12,9 @@ const formatMoney = (n) =>
 
 /**
  * Renders whatever is currently being typed into ExpenseForm as a
- * live document preview, with running debit/credit totals. Purely
- * presentational — all state lives in the parent (Expense.js) and is
- * passed in as `data`.
+ * live document preview (Journal Voucher style), with company header,
+ * debit/credit particulars and running totals. Purely presentational —
+ * all state lives in the parent (Expense.js) and is passed in as `data`.
  */
 const ExpensePreview = ({ data }) => {
   const debitLedgers = (data?.DebitLedgers || []).filter((l) => l.LedgerName || l.Amount);
@@ -25,7 +25,8 @@ const ExpensePreview = ({ data }) => {
   const difference = debitTotal - creditTotal;
   const isBalanced = debitTotal > 0 && difference === 0;
 
-  const hasContent = data?.VoucherNo || data?.Narration || debitLedgers.length > 0 || creditLedgers.length > 0;
+  const hasContent =
+    data?.CompanyName || data?.VoucherNo || data?.Narration || debitLedgers.length > 0 || creditLedgers.length > 0;
 
   return (
     <Card className="border-0 shadow-sm ev-preview-card">
@@ -46,23 +47,42 @@ const ExpensePreview = ({ data }) => {
           </div>
         ) : (
           <>
-            <div className="mb-3">
-              <div className="text-muted small">Voucher No</div>
-              <div className="fw-bold fs-5">{data?.VoucherNo || "—"}</div>
-            </div>
+            {/* Company Header */}
+            {(data?.CompanyName || data?.CompanyAddress) && (
+              <div className="text-center mb-3">
+                <div className="fw-bold fs-6">{data?.CompanyName || "—"}</div>
+                {data?.CompanyAddress && <div className="text-muted small">{data.CompanyAddress}</div>}
+                {(data?.CompanyState || data?.CompanyStateCode) && (
+                  <div className="text-muted small">
+                    State: {data?.CompanyState || "—"} {data?.CompanyStateCode ? `(Code: ${data.CompanyStateCode})` : ""}
+                  </div>
+                )}
+                {data?.CompanyCIN && <div className="text-muted small">CIN: {data.CompanyCIN}</div>}
+                {data?.CompanyEmail && <div className="text-muted small">E-Mail: {data.CompanyEmail}</div>}
+              </div>
+            )}
+
+            <hr />
+
+            <div className="text-center fw-bold text-uppercase mb-3">{data?.VoucherType || "Journal Voucher"}</div>
 
             <div className="d-flex justify-content-between mb-3">
               <div>
-                <div className="text-muted small">Date</div>
-                <div className="fw-medium">{data?.VoucherDate || "—"}</div>
+                <div className="text-muted small">Voucher No</div>
+                <div className="fw-bold fs-6">{data?.VoucherNo || "—"}</div>
               </div>
               <div className="text-end">
-                <div className="text-muted small">Narration</div>
-                <div className="fw-medium text-truncate" style={{ maxWidth: 160 }}>
-                  {data?.Narration || "—"}
-                </div>
+                <div className="text-muted small">Dated</div>
+                <div className="fw-medium">{data?.VoucherDate || "—"}</div>
               </div>
             </div>
+
+            {data?.PayeeName && (
+              <div className="small mb-3">
+                <span className="text-muted">To: </span>
+                <span className="fw-medium">{data.PayeeName}</span>
+              </div>
+            )}
 
             {debitLedgers.length > 0 && (
               <>
@@ -71,7 +91,7 @@ const ExpensePreview = ({ data }) => {
                 {debitLedgers.map((l, idx) => (
                   <div key={idx} className="d-flex justify-content-between small mb-1">
                     <span className="text-truncate" style={{ maxWidth: "60%" }}>
-                      {l.LedgerName || "Untitled ledger"}
+                      {l.LedgerName || "Untitled ledger"} <span className="text-muted">Dr</span>
                     </span>
                     <span className="fw-medium">{formatMoney(l.Amount)}</span>
                   </div>
@@ -110,6 +130,10 @@ const ExpensePreview = ({ data }) => {
                 {isBalanced ? formatMoney(debitTotal) : formatMoney(difference)}
               </span>
             </div>
+
+  
+
+    
           </>
         )}
       </Card.Body>

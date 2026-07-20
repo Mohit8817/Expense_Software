@@ -1,5 +1,5 @@
 import React from "react";
-import { Card, Badge } from "react-bootstrap";
+import { Card, Badge, Table } from "react-bootstrap";
 
 const statusVariant = {
   Posted: "success",
@@ -12,14 +12,18 @@ const formatMoney = (n) =>
 
 /**
  * Renders whatever is currently being typed into PurchaseInvoiceForm as a
- * live document preview, with running totals. Purely presentational —
- * all state lives in the parent (PurchaseInvoice.js) and is passed in as `data`.
+ * live document preview, with all fields and running totals. Purely
+ * presentational — all state lives in the parent (PurchaseInvoice.js) and
+ * is passed in as `data`.
  */
 const PurchaseInvoicePreview = ({ data }) => {
-  const purchaseItems = (data?.PurchaseItems || []).filter((it) => it.itemname || it.quantity || it.rate);
-  const gstDetails = (data?.GstDetails || []).filter((g) => g.LedgerName || g.amount);
+  const purchaseItems = (data?.PurchaseItems || []).filter(
+    (it) => it.itemname || it.hsnSac || it.quantity || it.rate
+  );
+  const gstDetails = (data?.GstDetails || []).filter((g) => g.LedgerName || g.rate || g.amount);
 
   const itemsTotal = purchaseItems.reduce((sum, it) => sum + (Number(it.amount) || 0), 0);
+  const totalQty = purchaseItems.reduce((sum, it) => sum + (Number(it.quantity) || 0), 0);
   const gstTotal = gstDetails.reduce((sum, g) => sum + (Number(g.amount) || 0), 0);
   const grandTotal = itemsTotal + gstTotal;
 
@@ -44,72 +48,267 @@ const PurchaseInvoicePreview = ({ data }) => {
           </div>
         ) : (
           <>
+            {/* Invoice Type / e-Invoice */}
+            <div className="d-flex justify-content-between align-items-start mb-3">
+              <div>
+                <div className="text-muted small">Invoice Type</div>
+                <div className="fw-bold fs-6">{data?.InvoiceType || "—"}</div>
+              </div>
+              {data?.IRN && (
+                <div className="text-end">
+                  <div className="text-muted small">IRN</div>
+                  <div className="fw-medium text-break" style={{ maxWidth: 220, fontSize: 11 }}>
+                    {data.IRN}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {(data?.AckNo || data?.AckDate) && (
+              <div className="d-flex justify-content-between mb-3 small">
+                <div>
+                  <span className="text-muted">Ack No: </span>
+                  <span className="fw-medium">{data?.AckNo || "—"}</span>
+                </div>
+                <div>
+                  <span className="text-muted">Ack Date: </span>
+                  <span className="fw-medium">{data?.AckDate || "—"}</span>
+                </div>
+              </div>
+            )}
+
             <div className="mb-3">
-              <div className="text-muted small">Purchase No</div>
+              <div className="text-muted small">Purchase / Invoice No</div>
               <div className="fw-bold fs-5">{data?.PurchaseNo || "—"}</div>
             </div>
 
             <div className="d-flex justify-content-between mb-3">
               <div>
-                <div className="text-muted small">Date</div>
+                <div className="text-muted small">Invoice Date</div>
                 <div className="fw-medium">{data?.PurchaseDate || "—"}</div>
               </div>
               <div className="text-end">
-                <div className="text-muted small">PO No</div>
-                <div className="fw-medium">{data?.PONo || "—"}</div>
+                <div className="text-muted small">e-Way Bill No</div>
+                <div className="fw-medium">{data?.EWayBillNo || "—"}</div>
               </div>
             </div>
 
-            <div className="d-flex justify-content-between mb-3">
-              <div>
-                <div className="text-muted small">Vendor</div>
-                <div className="fw-medium">{data?.VendorName || "—"}</div>
+            <hr />
+
+            {/* Vendor (Seller) */}
+            <div className="text-muted small fw-bold text-uppercase mb-2">Vendor (Seller)</div>
+            <div className="mb-1 fw-medium">{data?.VendorName || "—"}</div>
+            {data?.VendorAddress && <div className="small text-muted mb-1">{data.VendorAddress}</div>}
+            <div className="d-flex justify-content-between small mb-3">
+              <span className="text-muted">
+                GSTIN: <span className="fw-medium text-dark">{data?.Vendorgstin || "—"}</span>
+              </span>
+              <span className="text-muted">
+                State: <span className="fw-medium text-dark">{data?.VendorState || "—"} {data?.VendorStateCode ? `(${data.VendorStateCode})` : ""}</span>
+              </span>
+            </div>
+
+            {/* Consignee (Ship to) */}
+            {(data?.ConsigneeName || data?.ConsigneeAddress) && (
+              <>
+                <div className="text-muted small fw-bold text-uppercase mb-2">Consignee (Ship to)</div>
+                <div className="mb-1 fw-medium">{data?.ConsigneeName || "—"}</div>
+                {data?.ConsigneeAddress && <div className="small text-muted mb-1">{data.ConsigneeAddress}</div>}
+                <div className="d-flex justify-content-between small mb-3">
+                  <span className="text-muted">
+                    GSTIN: <span className="fw-medium text-dark">{data?.ConsigneeGstin || "—"}</span>
+                  </span>
+                  <span className="text-muted">
+                    State: <span className="fw-medium text-dark">{data?.ConsigneeState || "—"} {data?.ConsigneeStateCode ? `(${data.ConsigneeStateCode})` : ""}</span>
+                  </span>
+                </div>
+              </>
+            )}
+
+            {/* Buyer (Company / Bill to) */}
+            <div className="text-muted small fw-bold text-uppercase mb-2">Buyer (Bill to)</div>
+            <div className="mb-1 fw-medium">{data?.CompanyName || "—"}</div>
+            {data?.CompanyAddress && <div className="small text-muted mb-1">{data.CompanyAddress}</div>}
+            <div className="d-flex justify-content-between small mb-3">
+              <span className="text-muted">
+                GSTIN: <span className="fw-medium text-dark">{data?.CompanyGstin || "—"}</span>
+              </span>
+              <span className="text-muted">
+                State: <span className="fw-medium text-dark">{data?.CompanyState || "—"} {data?.CompanyStateCode ? `(${data.CompanyStateCode})` : ""}</span>
+              </span>
+            </div>
+
+            <hr />
+
+            {/* Dispatch / Delivery Details */}
+            <div className="text-muted small fw-bold text-uppercase mb-2">Dispatch &amp; Delivery</div>
+            <div className="row small mb-3">
+              <div className="col-6 mb-1">
+                <span className="text-muted">Delivery Note: </span>
+                <span className="fw-medium">{data?.DeliveryNote || "—"}</span>
               </div>
-              <div className="text-end">
-                <div className="text-muted small">Vendor GSTIN</div>
-                <div className="fw-medium">{data?.Vendorgstin || "—"}</div>
+              <div className="col-6 mb-1">
+                <span className="text-muted">Mode/Terms of Payment: </span>
+                <span className="fw-medium">{data?.ModeTermsOfPayment || "—"}</span>
+              </div>
+              <div className="col-6 mb-1">
+                <span className="text-muted">Reference No &amp; Date: </span>
+                <span className="fw-medium">{data?.ReferenceNoDate || "—"}</span>
+              </div>
+              <div className="col-6 mb-1">
+                <span className="text-muted">Other References: </span>
+                <span className="fw-medium">{data?.OtherReferences || "—"}</span>
+              </div>
+              <div className="col-6 mb-1">
+                <span className="text-muted">Buyer's Order No: </span>
+                <span className="fw-medium">{data?.PONo || "—"}</span>
+              </div>
+              <div className="col-6 mb-1">
+                <span className="text-muted">Dated: </span>
+                <span className="fw-medium">{data?.PODate || "—"}</span>
+              </div>
+              <div className="col-6 mb-1">
+                <span className="text-muted">Dispatch Doc No: </span>
+                <span className="fw-medium">{data?.DispatchDocNo || "—"}</span>
+              </div>
+              <div className="col-6 mb-1">
+                <span className="text-muted">Delivery Note Date: </span>
+                <span className="fw-medium">{data?.DeliveryNoteDate || "—"}</span>
+              </div>
+              <div className="col-6 mb-1">
+                <span className="text-muted">Dispatched Through: </span>
+                <span className="fw-medium">{data?.DispatchedThrough || "—"}</span>
+              </div>
+              <div className="col-6 mb-1">
+                <span className="text-muted">Destination: </span>
+                <span className="fw-medium">{data?.Destination || "—"}</span>
+              </div>
+              <div className="col-6 mb-1">
+                <span className="text-muted">Bill of Lading/LR-RR No: </span>
+                <span className="fw-medium">{data?.BillOfLadingNo || "—"}</span>
+              </div>
+              <div className="col-6 mb-1">
+                <span className="text-muted">Motor Vehicle No: </span>
+                <span className="fw-medium">{data?.MotorVehicleNo || "—"}</span>
+              </div>
+              <div className="col-12 mb-1">
+                <span className="text-muted">Terms of Delivery: </span>
+                <span className="fw-medium">{data?.TermsOfDelivery || "—"}</span>
               </div>
             </div>
 
+            {/* Items */}
             {purchaseItems.length > 0 && (
               <>
                 <hr />
-                <div className="text-muted small fw-bold text-uppercase mb-2">Purchase Items</div>
-                {purchaseItems.map((it, idx) => (
-                  <div key={idx} className="d-flex justify-content-between small mb-1">
-                    <span className="text-truncate" style={{ maxWidth: "60%" }}>
-                      {it.itemname || "Untitled item"}{" "}
-                      <span className="text-muted">&times;{it.quantity || 0}</span>
-                    </span>
-                    <span className="fw-medium">{formatMoney(it.amount)}</span>
-                  </div>
-                ))}
+                <div className="text-muted small fw-bold text-uppercase mb-2">Description of Goods</div>
+                <div className="table-responsive">
+                <Table size="sm" borderless className="mb-2 pi-preview-table">
+                  <thead>
+                    <tr className="text-muted small">
+                      <th>Item</th>
+                      <th className="text-center">HSN/SAC</th>
+                      <th className="text-center">Qty</th>
+                      <th className="text-end">Rate</th>
+                      <th className="text-end">Amount</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {purchaseItems.map((it, idx) => (
+                      <tr key={idx} className="small">
+                        <td className="text-truncate" style={{ maxWidth: 140 }}>
+                          {it.itemname || "Untitled item"}
+                        </td>
+                        <td className="text-center text-muted">{it.hsnSac || "—"}</td>
+                        <td className="text-center">
+                          {it.quantity || 0} {it.unit || ""}
+                        </td>
+                        <td className="text-end">{formatMoney(it.rate)}</td>
+                        <td className="text-end fw-medium">{formatMoney(it.amount)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                  <tfoot>
+                    <tr className="small fw-bold border-top">
+                      <td colSpan={2}>Total</td>
+                      <td className="text-center">{totalQty}</td>
+                      <td></td>
+                      <td className="text-end">{formatMoney(itemsTotal)}</td>
+                    </tr>
+                  </tfoot>
+                </Table>
+                </div>
               </>
             )}
 
             <hr />
             <div className="d-flex justify-content-between small mb-1">
-              <span className="text-muted">Items Subtotal</span>
+              <span className="text-muted">Taxable Value</span>
               <span className="fw-medium">{formatMoney(itemsTotal)}</span>
             </div>
 
-            {gstDetails.length > 0 && (
-              <>
-                {gstDetails.map((g, idx) => (
-                  <div key={idx} className="d-flex justify-content-between small mb-1">
-                    <span className="text-muted">{g.LedgerName || "GST"}</span>
-                    <span className="fw-medium">{formatMoney(g.amount)}</span>
-                  </div>
-                ))}
-              </>
-            )}
+            {gstDetails.length > 0 &&
+              gstDetails.map((g, idx) => (
+                <div key={idx} className="d-flex justify-content-between small mb-1">
+                  <span className="text-muted">
+                    {g.LedgerName || "GST"} {g.rate ? `@ ${g.rate}%` : ""}
+                  </span>
+                  <span className="fw-medium">{formatMoney(g.amount)}</span>
+                </div>
+              ))}
 
             <div className="pi-preview-total d-flex justify-content-between align-items-center mt-3 pt-3 border-top">
               <span className="fw-bold">Grand Total</span>
-              <span className="fw-bold fs-4 text-primary">
-         {grandTotal.toFixed(2)}
-              </span>
+              <span className="fw-bold fs-4 text-primary">{formatMoney(grandTotal)}</span>
             </div>
+
+            {data?.AmountInWords && (
+              <div className="small mt-2">
+                <span className="text-muted">Amount in words: </span>
+                <span className="fw-medium">{data.AmountInWords}</span>
+              </div>
+            )}
+            {data?.TaxAmountInWords && (
+              <div className="small mt-1">
+                <span className="text-muted">Tax amount in words: </span>
+                <span className="fw-medium">{data.TaxAmountInWords}</span>
+              </div>
+            )}
+
+            {/* Declaration / Signatory */}
+            {(data?.CompanyPAN || data?.Declaration || data?.AuthorisedSignatoryName || data?.IssuingSignatoryName) && (
+              <>
+                <hr />
+                <div className="text-muted small fw-bold text-uppercase mb-2">Declaration &amp; Signatory</div>
+                {data?.CompanyPAN && (
+                  <div className="small mb-1">
+                    <span className="text-muted">Company's PAN: </span>
+                    <span className="fw-medium">{data.CompanyPAN}</span>
+                  </div>
+                )}
+                {data?.Declaration && <div className="small text-muted fst-italic mb-2">{data.Declaration}</div>}
+                <div className="row small">
+                  {(data?.AuthorisedSignatoryName || data?.AuthorisedSignatoryDesignation) && (
+                    <div className="col-6 mb-1">
+                      <div className="text-muted">Authorised Signatory</div>
+                      <div className="fw-medium">
+                        {data?.AuthorisedSignatoryName || "—"}
+                        {data?.AuthorisedSignatoryDesignation ? `, ${data.AuthorisedSignatoryDesignation}` : ""}
+                      </div>
+                    </div>
+                  )}
+                  {(data?.IssuingSignatoryName || data?.IssuingSignatoryDesignation) && (
+                    <div className="col-6 mb-1">
+                      <div className="text-muted">Issuing Signatory</div>
+                      <div className="fw-medium">
+                        {data?.IssuingSignatoryName || "—"}
+                        {data?.IssuingSignatoryDesignation ? `, ${data.IssuingSignatoryDesignation}` : ""}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </>
+            )}
           </>
         )}
       </Card.Body>
@@ -117,6 +316,7 @@ const PurchaseInvoicePreview = ({ data }) => {
       <style>{`
         .pi-preview-card { border-radius: 14px; }
         .pi-preview-total { background: #f8f9ff; margin: 0 -1rem -1rem; padding: 1rem !important; border-radius: 0 0 14px 14px; }
+        .pi-preview-table th, .pi-preview-table td { padding: 0.35rem 0.4rem; }
       `}</style>
     </Card>
   );

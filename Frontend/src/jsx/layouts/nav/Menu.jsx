@@ -139,6 +139,16 @@ export const MenuList = [
   permission: "",
   content: [
 
+    // {
+    //   title: 'Company Details',
+    //   to: '/tally/Company-Details',
+    //   // permission: "view_sales_invoice"
+    // },
+    // {
+    //   title: 'Sales Invoice',
+    //   to: '/tally/Purchase-Details',
+    //   // permission: "view_sales_invoice"
+    // },
     {
       title: 'Sales Invoice',
       to: '/tally/Sales-Invoice',
@@ -163,17 +173,19 @@ export const MenuList = [
       // permission: "view_expense"
     },
 
+        {
+      title: 'Debit Note',
+      to: '/tally/debit-note',
+      // permission: "view_debit_note"
+    },  
+
     {
       title: 'Credit Note',
       to: '/tally/credit-note',
       // permission: "view_credit_note"
     },
 
-    {
-      title: 'Debit Note',
-      to: '/tally/debit-note',
-      // permission: "view_debit_note"
-    },
+
 
     {
       title: 'Delivery Challan',
