@@ -70,47 +70,20 @@ export const createAdvanceExpense = async (formData) => {
 
 
 // GET ADVANCE PAYMENT LIST
-// export const getAdvancePaymentList = async () => {
-//   const token = localStorage.getItem("token");
-//   try {
-//     const res = await fetch(`${BASE_URL}payment/view`, {
-//       headers: { Authorization: `Bearer ${token}` },
-//     });
-//     const data = await res.json();
-//     return { ok: true, result: data.data || [],
-//       summary: data.summary || null
-//     };
-//   } catch (error) {
-//     console.error("Get Advance Payment List Error:", error);
-//     return { ok: false, result: [] };
-//   }
-// };
-
-
-// GET ADVANCE PAYMENT LIST
-export const getAdvancePaymentList = async (fyYear = "", projectId = "") => {
+export const getAdvancePaymentList = async () => {
   const token = localStorage.getItem("token");
-  const params = new URLSearchParams();
-  if (fyYear) params.set("fy_year", fyYear);
-  if (projectId && parseInt(projectId) !== 0) params.set('project_id', parseInt(projectId));
-
   try {
-    const res = await fetch(
-      `${BASE_URL}payment/view${params.toString() ? "?" + params : ""}`,
-      { headers: { Authorization: `Bearer ${token}` } }
-    );
+    const res = await fetch(`${BASE_URL}payment/view`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
     const data = await res.json();
-    return {
-      ok: true,
-      result: data.data || [],
-      summary: data.summary || null,
-      filterOptions: data.filterOptions || null,
-    };
+    return { ok: true, result: data.data || [] };
   } catch (error) {
     console.error("Get Advance Payment List Error:", error);
-    return { ok: false, result: [], summary: null, filterOptions: null };
+    return { ok: false, result: [] };
   }
 };
+
 
 
 // SETTLE EXPENSE

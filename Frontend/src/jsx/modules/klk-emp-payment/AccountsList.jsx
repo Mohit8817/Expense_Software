@@ -236,7 +236,7 @@ const PaymentListBase = ({ status, pageTitle, cardTitle }) => {
 
               <tbody>
                 {paginatedData.length > 0 ? (
-                  paginatedData.map((item, index) => {
+                  paginatedData.map((item, index) => {    
                     const remaining =
                       item.final_approved_amount - (item.paid_amount || 0);
 

@@ -1,6 +1,7 @@
 import { useEffect, useContext } from "react";
 import { ThemeContext } from "../../context/ThemeContext";
-import { Routes, Route, Outlet, Navigate } from "react-router-dom";
+import { Routes, Route, Outlet, Navigate, useLocation } from "react-router-dom";
+import { getOutletKey } from "../../utils/navUtils";
 import { isTokenExpired } from "../../utils/auth";
 import Nav from "../layouts/nav";
 import Footer from "../layouts/Footer";
@@ -69,6 +70,13 @@ import Payment from "../modules/Tally/Payment/Payment";
 import PurchaseInvoice from "../modules/Tally/PurchaseInvoice/PurchaseInvoice";
 import SalesInvoice from "../modules/Tally/SalesInvoice/SalesInvoice";
 import CompanyDetail from "../modules/Tally/DetailModule/CompanyDetail/CompanyDetail";
+
+import ProductDetail from "../modules/Account/ProductDetail/ProductDetail";
+import AccountDashboard from "../modules/Account/AccountDashboard";
+import AccountReports from "../modules/Account/AccountReports";
+
+
+
 
 
 
@@ -172,7 +180,30 @@ const Markup = () => {
         { path: '/account/pending-payments', element: <AccountPendingPayments /> },
         
 
-        // Tally 
+        { path: '/Intervention-Reports', element: <InterventionReports /> },
+
+
+        { path: '/AdvancePaymentDashboard', element: <AdvancePaymentDashboard /> },
+
+        { path: '/Paid-Expense', element: <PaidExpense /> },
+        { path: '/User-Expense-Reports', element: <UserExpenseReports /> },
+        { path: '/User-Detail-Reports', element: <UserDetailReport /> },
+
+
+        // account 
+
+        { path: '/account/credit-note', element: <CreditNote /> },
+        { path: '/account/debit-note', element: <DebitNote /> },
+        { path: '/account/Delivery-Challan', element: <DeliveryChallan /> },
+        { path: '/account/Expense', element: <Expense /> },
+        { path: '/account/Material-Transfer', element: <MaterialTransfer /> },
+        { path: '/account/Payment', element: <Payment /> },
+        { path: '/account/Purchase-Invoice', element: <PurchaseInvoice /> },
+        { path: '/account/Sales-Invoice', element: <SalesInvoice /> },
+        { path: '/account/Product-Detail', element: <ProductDetail /> },
+        { path: '/account/Company-Detail', element: <CompanyDetail /> },
+        { path: '/account/dashboard', element: <AccountDashboard /> },
+        { path: '/account/reports', element: <AccountReports /> },
 
         { path: '/tally/credit-note', element: <CreditNote /> },
         { path: '/tally/debit-note', element: <DebitNote /> },
@@ -239,6 +270,7 @@ const Markup = () => {
 
 function MainLayout() {
     const { menuToggle, sidebariconHover } = useContext(ThemeContext);
+    const location = useLocation();
 
     //   ADD THIS BLOCK
     useEffect(() => {
@@ -260,9 +292,9 @@ function MainLayout() {
             className={`show ${sidebariconHover ? "iconhover-toggle" : ""} ${menuToggle ? "menu-toggle" : ""}`}
         >
             <Nav />
-            <div className="content-body" style={{ minHeight: "849px" }}>
-                <div className="container-fluid">
-                    <Outlet />
+            <div className="content-body app-content-body">
+                <div className="container-fluid app-page-container">
+                    <Outlet key={getOutletKey(location)} />
                 </div>
             </div>
             <Footer />

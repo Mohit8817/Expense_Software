@@ -157,6 +157,7 @@ model Role {
 }
 
 model Permission {
+<<<<<<< HEAD
   id         Int    @id @default(autoincrement())
   company_id String
   name       String @unique // e.g. "create_expense"
@@ -166,6 +167,19 @@ model Permission {
   roles      RolePermission[]
   created_by String?
   created_at DateTime         @default(now())
+=======
+  id          Int       @id @default(autoincrement())
+  company_id               String
+  name        String              // e.g. "create_expense"
+  label       String              // UI label
+  module      String              // e.g. "Expense", "Accounts"
+
+  roles       RolePermission[]
+  created_by               String?
+  created_at  DateTime  @default(now())
+
+  @@unique([company_id, name])
+>>>>>>> origin/main
 }
 
 model RolePermission {
@@ -190,10 +204,26 @@ model Wallet {
   walletHistories WalletHistory[]
 }
 
+<<<<<<< HEAD
 model Payments {
   id            Int      @id @default(autoincrement())
   company_id    String
   financial_year  String
+=======
+model Wallet {
+  id              Int             @id @default(autoincrement())
+  company_id      String
+  user_id         Int             @unique
+  balance         Decimal         @default(0.00) @db.Decimal(10, 2)
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+  walletHistories WalletHistory[]
+}
+
+model Payments {
+  id            Int      @id @default(autoincrement())
+  company_id    String
+>>>>>>> origin/main
   user_id       Int
   accountant_id Int
   project_id    Int      @default(0)
@@ -221,3 +251,963 @@ model WalletHistory {
   updatedAt    DateTime @updatedAt // ✅ FIXED
   wallet       Wallet   @relation(fields: [wallet_id], references: [id])
 }
+<<<<<<< HEAD
+=======
+
+
+model CompanyDetail {
+  id           Int      @id @default(autoincrement())
+  company_id   String
+  user_id      Int
+  name         String
+  short_name   String
+  gst          String?
+  pan          String?
+  tan          String?
+  cin          String?
+  email        String?
+  state_code   String?
+  address      String
+  city         String
+  state        String
+  zipcode      Int
+  status       Int  @default(0)
+  code         String
+  bank_accounts CompanyBankAccount[]
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt 
+}
+
+model CompanyBankAccount {
+  id                Int           @id @default(autoincrement())
+  company_detail_id Int
+  company           CompanyDetail @relation(fields: [company_detail_id], references: [id], onDelete: Cascade)
+  bank_name         String
+  ac_no             String
+  branch_name       String        @default("")
+  ifsc_code         String        @default("")
+  is_primary        Boolean       @default(false)
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+
+  @@index([company_detail_id])
+}
+
+
+
+model ProductDetail {
+  id           Int      @id @default(autoincrement())
+  company_id   String
+  user_id      Int
+  name         String
+  desc         String
+  hsn_sac      String?
+  units      String?
+  status      Int  @default(0)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt 
+}
+
+
+// Accounts 
+
+model Purchase {
+  id                Int      @id @default(autoincrement())
+  company_id   String
+  user_id      Int
+
+  // e-Invoice details
+  invoice_type      String?
+  irn               String   @unique
+  ack_no            String
+  ack_date          DateTime
+
+  // Invoice details
+  invoice_no        String
+  invoice_date      DateTime
+  eway_bill_no      String?
+  delivery_note     String?
+  mode_of_payment   String?
+  reference_no      String?
+  reference_date    DateTime?
+  buyers_order_no   String?
+  other_references  String?
+  dispatch_doc_no   String?
+  delivery_note_date DateTime?
+  dispatched_through String?
+  destination       String?
+  bill_of_lading_no String?
+  motor_vehicle_no  String?
+  terms_of_delivery String?
+
+  // Company references (master)
+  seller_company_id     Int?
+  consignee_company_id  Int?
+  buyer_company_id      Int?
+
+  // Seller
+  seller_name       String
+  seller_address    String
+  seller_cin        String?
+  seller_gstin      String
+  seller_state      String
+  seller_state_code String
+  seller_email      String?
+
+  // Consignee (Ship to)
+  consignee_name    String?
+  consignee_address String?
+  consignee_gstin   String?
+  consignee_state   String?
+  consignee_state_code String?
+  consignee_email   String?
+
+  // Buyer (Bill to)
+  buyer_name        String
+  buyer_address     String
+  buyer_gstin       String
+  buyer_state       String
+  buyer_state_code  String
+  buyer_pan         String?
+  buyer_email       String?
+
+  // Totals
+  total_quantity    Decimal  @db.Decimal(10, 2)
+  taxable_value     Decimal  @db.Decimal(12, 2)
+  igst_rate         Decimal  @db.Decimal(5, 2)
+  igst_amount       Decimal  @db.Decimal(12, 2)
+  total_tax_amount  Decimal  @db.Decimal(12, 2)
+  total_amount      Decimal  @db.Decimal(12, 2)
+  amount_in_words   String?
+  tax_amount_in_words String?
+
+  vendor_bank_account_id Int?
+
+  // Bank details (snapshot from selected vendor bank account)
+  bank_name         String?
+  bank_account_no   String?
+  bank_ifsc_branch  String?
+
+  // Declaration & signatory
+  declaration                       String?
+  authorised_signatory_name         String?
+  authorised_signatory_designation  String?
+  issuing_signatory_name            String?
+  issuing_signatory_designation     String?
+  jurisdiction                      String?
+
+  // Approval & Tally sync tracking
+  approval_status   ApprovalStatus @default(PENDING)
+  approval_date     DateTime?
+  approval_remarks  String?
+  tally_push_status TallyPushStatus @default(NOT_PUSHED)
+
+  items             PurchaseItem[]
+  gst_details       PurchaseGstDetail[]
+
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@index([invoice_no])
+  @@index([approval_status])
+  @@index([tally_push_status])
+}
+
+model PurchaseGstDetail {
+  id            Int      @id @default(autoincrement())
+  purchase_id   Int
+  purchase      Purchase @relation(fields: [purchase_id], references: [id], onDelete: Cascade)
+
+  ledger_name   String
+  rate          Decimal  @db.Decimal(5, 2)
+  amount        Decimal  @db.Decimal(12, 2)
+
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model PurchaseItem {
+  id            Int      @id @default(autoincrement())
+  purchase_id   Int
+  purchase      Purchase @relation(fields: [purchase_id], references: [id], onDelete: Cascade)
+
+  description   String
+  hsn_sac       String
+  quantity      Decimal  @db.Decimal(10, 2)
+  unit          String?
+  rate          Decimal  @db.Decimal(10, 2)
+  per           String?
+  amount        Decimal  @db.Decimal(12, 2)
+
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+enum ApprovalStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum TallyPushStatus {
+  NOT_PUSHED
+  PUSHED
+  FAILED
+}
+
+
+model Sales {
+  id                 Int      @id @default(autoincrement())
+
+  company_id         String
+  user_id            Int
+
+  // e-Invoice Details
+  invoice_type       String?
+  irn                String?  @unique
+  ack_no             String?
+  ack_date           DateTime?
+
+  // Invoice Details
+  invoice_no         String   @unique
+  invoice_date       DateTime
+
+  eway_bill_no       String?
+  delivery_note      String?
+  mode_of_payment    String?
+  reference_no       String?
+  reference_date     DateTime?
+  buyers_order_no    String?
+  other_references   String?
+  dispatch_doc_no    String?
+  delivery_note_date DateTime?
+  dispatched_through String?
+  destination        String?
+  bill_of_lading_no  String?
+  motor_vehicle_no   String?
+  terms_of_delivery  String?
+
+  // Company references (master)
+  seller_company_id     Int?
+  consignee_company_id  Int?
+  buyer_company_id      Int?
+
+  // Seller (Company)
+  seller_name        String
+  seller_address     String
+  seller_gstin       String
+  seller_state       String
+  seller_state_code  String
+  seller_cin         String?
+  seller_email       String?
+
+  // Consignee (Ship To)
+  consignee_name       String?
+  consignee_address    String?
+  consignee_gstin      String?
+  consignee_state      String?
+  consignee_state_code String?
+  consignee_email      String?
+
+  // Buyer (Bill To)
+  buyer_name         String
+  buyer_address      String
+  buyer_gstin        String
+  buyer_state        String
+  buyer_state_code   String
+  buyer_pan          String?
+  buyer_email        String?
+
+  // Totals
+  total_quantity      Decimal @db.Decimal(10,2)
+  taxable_value       Decimal @db.Decimal(12,2)
+
+  igst_rate           Decimal @db.Decimal(5,2) @default(0)
+  igst_amount         Decimal @db.Decimal(12,2) @default(0)
+
+  cgst_rate           Decimal @db.Decimal(5,2) @default(0)
+  cgst_amount         Decimal @db.Decimal(12,2) @default(0)
+
+  sgst_rate           Decimal @db.Decimal(5,2) @default(0)
+  sgst_amount         Decimal @db.Decimal(12,2) @default(0)
+
+  total_tax_amount    Decimal @db.Decimal(12,2)
+  total_amount        Decimal @db.Decimal(12,2)
+
+  amount_in_words     String?
+  tax_amount_in_words String?
+
+  seller_bank_account_id Int?
+
+  // Bank Details (snapshot from selected seller bank account)
+  bank_name          String?
+  bank_account_no    String?
+  bank_ifsc_branch   String?
+
+  // Declaration & signatory
+  declaration                       String?
+  authorised_signatory_name         String?
+  authorised_signatory_designation  String?
+  issuing_signatory_name            String?
+  issuing_signatory_designation     String?
+  jurisdiction                      String?
+
+  // Approval
+  approval_status    ApprovalStatus @default(PENDING)
+  approval_date      DateTime?
+  approval_remarks   String?
+
+  // Tally
+  tally_push_status  TallyPushStatus @default(NOT_PUSHED)
+
+  items              SalesItem[]
+
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  @@index([company_id])
+  @@index([invoice_no])
+  @@index([approval_status])
+  @@index([tally_push_status])
+}
+
+model SalesItem {
+  id          Int    @id @default(autoincrement())
+
+  sales_id    Int
+  sales       Sales @relation(fields: [sales_id], references: [id], onDelete: Cascade)
+
+  sl_no       Int
+
+  description String
+
+  hsn_sac     String
+
+  quantity    Decimal @db.Decimal(10,2)
+
+  unit        String?
+
+  rate        Decimal @db.Decimal(10,2)
+
+  per         String?
+
+  amount      Decimal @db.Decimal(12,2)
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+
+model DebitNote {
+  id                 Int      @id @default(autoincrement())
+
+  company_id         String
+  user_id            Int
+
+  // Debit Note Details
+  debit_note_no      String   @unique
+  debit_note_date    DateTime
+
+  // Original Invoice Reference
+  original_invoice_no   String?
+  original_invoice_date DateTime?
+  other_references      String?
+
+  // Company references (master)
+  seller_company_id     Int?
+  consignee_company_id  Int?
+  buyer_company_id      Int?
+
+  // Seller (Company)
+  seller_name        String
+  seller_address     String
+  seller_gstin       String
+  seller_state       String
+  seller_state_code  String
+  seller_cin         String?
+  seller_email       String?
+  seller_pan         String?
+
+  // Consignee (Ship To)
+  consignee_name       String?
+  consignee_address    String?
+  consignee_gstin      String?
+  consignee_state      String?
+  consignee_state_code String?
+  consignee_email      String?
+
+  // Buyer (Bill To)
+  buyer_name         String
+  buyer_address      String
+  buyer_gstin        String
+  buyer_state        String
+  buyer_state_code   String
+  buyer_pan          String?
+  buyer_email        String?
+
+  // Totals
+  total_quantity      Decimal @db.Decimal(10,2)
+  taxable_value       Decimal @db.Decimal(12,2)
+
+  // Tax Details
+  igst_rate           Decimal @db.Decimal(5,2) @default(0)
+  igst_amount         Decimal @db.Decimal(12,2) @default(0)
+
+  cgst_rate           Decimal @db.Decimal(5,2) @default(0)
+  cgst_amount         Decimal @db.Decimal(12,2) @default(0)
+
+  sgst_rate           Decimal @db.Decimal(5,2) @default(0)
+  sgst_amount         Decimal @db.Decimal(12,2) @default(0)
+
+  total_tax_amount    Decimal @db.Decimal(12,2)
+  total_amount        Decimal @db.Decimal(12,2)
+
+  amount_in_words     String?
+
+  // Footer
+  eoe                 Boolean @default(true)
+  is_computer_generated Boolean @default(true)
+
+  // Signatory
+  authorised_signatory_name        String?
+  authorised_signatory_designation String?
+
+  // Approval
+  approval_status    ApprovalStatus @default(PENDING)
+  approval_date      DateTime?
+  approval_remarks   String?
+
+  // Tally
+  tally_push_status  TallyPushStatus @default(NOT_PUSHED)
+
+  items              DebitNoteItem[]
+
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  @@index([company_id])
+  @@index([debit_note_no])
+  @@index([approval_status])
+  @@index([tally_push_status])
+}
+
+model DebitNoteItem {
+  id             Int    @id @default(autoincrement())
+
+  debit_note_id  Int
+  debitNote      DebitNote @relation(fields: [debit_note_id], references: [id], onDelete: Cascade)
+
+  sl_no          Int
+
+  description    String
+
+  hsn_sac        String?
+
+  quantity       Decimal @db.Decimal(10,2)
+
+  unit           String?
+
+  rate           Decimal @db.Decimal(10,2)
+
+  per            String?
+
+  amount         Decimal @db.Decimal(12,2)
+
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
+
+model CreditNote {
+  id                 Int      @id @default(autoincrement())
+
+  company_id         String
+  user_id            Int
+
+  // e-Invoice Details
+  invoice_type       String?  @default("Credit Note")
+  irn                String?  @unique
+  ack_no             String?
+  ack_date           DateTime?
+
+  // Credit Note Details
+  credit_note_no     String   @unique
+  credit_note_date   DateTime
+  eway_bill_no       String?
+
+  // Original Invoice Reference
+  original_invoice_no   String?
+  original_invoice_date DateTime?
+  buyers_order_no       String?
+  other_references      String?
+  dispatch_doc_no       String?
+  dispatched_through    String?
+  destination           String?
+  terms_of_delivery     String?
+
+  // Company references (master)
+  seller_company_id     Int?
+  consignee_company_id  Int?
+  buyer_company_id      Int?
+
+  // Seller (Company)
+  seller_name        String
+  seller_address     String
+  seller_gstin       String
+  seller_state       String
+  seller_state_code  String
+  seller_cin         String?
+  seller_email       String?
+  seller_pan         String?
+
+  // Consignee (Ship To)
+  consignee_name       String?
+  consignee_address    String?
+  consignee_gstin      String?
+  consignee_state      String?
+  consignee_state_code String?
+  consignee_email      String?
+
+  // Buyer (Bill To)
+  buyer_name         String
+  buyer_address      String
+  buyer_gstin        String
+  buyer_state        String
+  buyer_state_code   String
+  buyer_pan          String?
+  buyer_email        String?
+
+  // Totals
+  total_quantity      Decimal @db.Decimal(10,2)
+  taxable_value       Decimal @db.Decimal(12,2)
+
+  // Tax Details
+  igst_rate           Decimal @db.Decimal(5,2) @default(0)
+  igst_amount         Decimal @db.Decimal(12,2) @default(0)
+
+  cgst_rate           Decimal @db.Decimal(5,2) @default(0)
+  cgst_amount         Decimal @db.Decimal(12,2) @default(0)
+
+  sgst_rate           Decimal @db.Decimal(5,2) @default(0)
+  sgst_amount         Decimal @db.Decimal(12,2) @default(0)
+
+  total_tax_amount    Decimal @db.Decimal(12,2)
+  total_amount        Decimal @db.Decimal(12,2)
+
+  amount_in_words     String?
+  tax_amount_in_words String?
+
+  // Footer
+  eoe                 Boolean @default(true)
+  is_computer_generated Boolean @default(true)
+
+  // Signatory
+  authorised_signatory_name        String?
+  authorised_signatory_designation String?
+
+  // Approval
+  approval_status    ApprovalStatus @default(PENDING)
+  approval_date      DateTime?
+  approval_remarks   String?
+
+  // Tally
+  tally_push_status  TallyPushStatus @default(NOT_PUSHED)
+
+  items              CreditNoteItem[]
+  tax_breakup        CreditNoteTaxBreakup[]
+
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  @@index([company_id])
+  @@index([credit_note_no])
+  @@index([approval_status])
+  @@index([tally_push_status])
+}
+
+model CreditNoteItem {
+  id              Int    @id @default(autoincrement())
+
+  credit_note_id  Int
+  creditNote      CreditNote @relation(fields: [credit_note_id], references: [id], onDelete: Cascade)
+
+  sl_no           Int
+
+  description     String
+
+  hsn_sac         String?
+
+  quantity        Decimal @db.Decimal(10,2)
+
+  unit            String?
+
+  rate            Decimal @db.Decimal(10,2)
+
+  per             String?
+
+  amount          Decimal @db.Decimal(12,2)
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+model CreditNoteTaxBreakup {
+  id              Int    @id @default(autoincrement())
+
+  credit_note_id  Int
+  creditNote      CreditNote @relation(fields: [credit_note_id], references: [id], onDelete: Cascade)
+
+  hsn_sac         String
+
+  taxable_value   Decimal @db.Decimal(12,2)
+
+  cgst_rate       Decimal @db.Decimal(5,2) @default(0)
+  cgst_amount     Decimal @db.Decimal(12,2) @default(0)
+
+  sgst_rate       Decimal @db.Decimal(5,2) @default(0)
+  sgst_amount     Decimal @db.Decimal(12,2) @default(0)
+
+  igst_rate       Decimal @db.Decimal(5,2) @default(0)
+  igst_amount     Decimal @db.Decimal(12,2) @default(0)
+
+  total_tax_amount Decimal @db.Decimal(12,2)
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+
+model DeliveryChallan {
+  id                 Int      @id @default(autoincrement())
+
+  company_id         String
+  user_id            Int
+
+  // Challan Details
+  challan_no         String   @unique
+  challan_date       DateTime
+
+  // Reference Details
+  reference_no       String?
+  reference_date     DateTime?
+  invoice_no         String?
+  invoice_date       DateTime?
+  buyers_order_no    String?
+  buyers_order_date  DateTime?
+  dispatch_doc_no    String?
+
+  // Transport Details
+  dispatched_through String?
+  destination        String?
+  motor_vehicle_no   String?
+  bill_of_lading_no  String?
+  terms_of_delivery  String?
+  policy_no          String?
+
+  // Place of Supply
+  place_of_supply    String?
+
+  // Company references (master)
+  seller_company_id     Int?
+  buyer_company_id      Int?
+
+  // Seller (Company)
+  seller_name        String
+  seller_address     String
+  seller_gstin       String
+  seller_state       String
+  seller_state_code  String
+  seller_cin         String?
+  seller_email       String?
+  seller_pan         String?
+
+  // Buyer (Bill To)
+  buyer_name         String
+  buyer_address      String
+  buyer_gstin        String
+  buyer_state        String?
+  buyer_state_code   String?
+  buyer_email        String?
+
+  // Totals
+  total_quantity      Decimal @db.Decimal(10,2)
+  taxable_value       Decimal @db.Decimal(12,2)
+
+  // Tax Details
+  igst_rate           Decimal @db.Decimal(5,2) @default(0)
+  igst_amount         Decimal @db.Decimal(12,2) @default(0)
+
+  cgst_rate           Decimal @db.Decimal(5,2) @default(0)
+  cgst_amount         Decimal @db.Decimal(12,2) @default(0)
+
+  sgst_rate           Decimal @db.Decimal(5,2) @default(0)
+  sgst_amount         Decimal @db.Decimal(12,2) @default(0)
+
+  total_tax_amount    Decimal @db.Decimal(12,2)
+  total_amount        Decimal @db.Decimal(12,2)
+
+  amount_in_words     String?
+
+  // Footer
+  eoe                 Boolean @default(true)
+  is_computer_generated Boolean @default(true)
+
+  // Signatory
+  authorised_signatory_name        String?
+  authorised_signatory_designation String?
+
+  // Approval
+  approval_status    ApprovalStatus @default(PENDING)
+  approval_date      DateTime?
+  approval_remarks   String?
+
+  // Tally
+  tally_push_status  TallyPushStatus @default(NOT_PUSHED)
+
+  items              DeliveryChallanItem[]
+
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  @@index([company_id])
+  @@index([challan_no])
+  @@index([approval_status])
+  @@index([tally_push_status])
+}
+
+model DeliveryChallanItem {
+  id                  Int    @id @default(autoincrement())
+
+  delivery_challan_id Int
+  deliveryChallan     DeliveryChallan @relation(fields: [delivery_challan_id], references: [id], onDelete: Cascade)
+
+  sl_no               Int
+
+  description         String
+
+  hsn_sac             String?
+
+  quantity            Decimal @db.Decimal(10,2)
+
+  unit                String?
+
+  rate                Decimal @db.Decimal(10,2)
+
+  per                 String?
+
+  amount              Decimal @db.Decimal(12,2)
+
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+}
+
+
+model JournalVoucher {
+  id                 Int      @id @default(autoincrement())
+
+  company_id         String
+  user_id            Int
+
+  // Voucher Details
+  voucher_no         String?   @unique
+  voucher_date       DateTime
+  voucher_type       String    @default("Journal Voucher")
+
+  // From Company (payer / booking entity)
+  from_company_id    Int?
+  company_name       String
+  company_address    String
+  company_state      String
+  company_state_code String
+  company_cin        String?
+  company_email      String?
+
+  // Pay To — company or employee
+  payee_type         String   @default("COMPANY")
+  payee_company_id   Int?
+  payee_employee_id  Int?
+  payee_name         String?
+  payee_address      String?
+  payee_state        String?
+  payee_state_code   String?
+  payee_gstin        String?
+  payee_email        String?
+  payee_designation  String?
+
+  // Voucher Info
+  narration          String?
+  on_account_of      String?
+
+  // Totals
+  total_debit        Decimal   @db.Decimal(12,2)
+  total_credit       Decimal   @db.Decimal(12,2)
+
+  // Signatory
+  authorised_signatory_name        String?
+  authorised_signatory_designation String?
+
+  // Approval
+  approval_status    ApprovalStatus @default(PENDING)
+  approval_date      DateTime?
+  approval_remarks   String?
+
+  // Tally
+  tally_push_status  TallyPushStatus @default(NOT_PUSHED)
+
+  entries            JournalVoucherEntry[]
+  paymentVouchers    PaymentVoucher[]
+
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  @@index([company_id])
+  @@index([voucher_no])
+  @@index([approval_status])
+  @@index([tally_push_status])
+}
+
+model JournalVoucherEntry {
+  id                 Int      @id @default(autoincrement())
+
+  journal_voucher_id Int
+  journalVoucher     JournalVoucher @relation(fields: [journal_voucher_id], references: [id], onDelete: Cascade)
+
+  sl_no              Int
+
+  particulars        String
+
+  // Debit / Credit amounts
+  debit_amount       Decimal? @db.Decimal(12,2)
+  credit_amount      Decimal? @db.Decimal(12,2)
+
+  // Account Type (Dr / Cr)
+  entry_type         String   // "Dr" or "Cr"
+
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+}
+
+model PaymentVoucher {
+  id                   Int      @id @default(autoincrement())
+
+  company_id           String
+  user_id              Int
+
+  voucher_no           String   @unique
+  voucher_date         DateTime
+
+  payment_type         String   @default("GENERAL")
+  payment_mode         String   @default("BANK")
+
+  narration            String?
+  on_account_of        String?
+
+  from_company_id      Int?
+  from_company_name    String?
+  from_company_address String?
+  from_company_gstin   String?
+
+  payee_type           String   @default("COMPANY")
+  payee_employee_id    Int?
+
+  party_company_id     Int?
+  party_name           String?
+  party_gstin          String?
+  party_address        String?
+
+  journal_voucher_id   Int?
+  journalVoucher       JournalVoucher? @relation(fields: [journal_voucher_id], references: [id], onDelete: SetNull)
+
+  linked_document_type String?
+  linked_document_id   Int?
+  linked_document_no   String?
+  linked_document_amount Decimal? @db.Decimal(12, 2)
+
+  bank_account_id      Int?
+  bank_name            String?
+  bank_account_no      String?
+  bank_ifsc            String?
+  reference_no         String?
+  cheque_no            String?
+  cheque_date          DateTime?
+
+  total_debit          Decimal  @db.Decimal(12, 2)
+  total_credit         Decimal  @db.Decimal(12, 2)
+  total_amount         Decimal  @db.Decimal(12, 2)
+
+  authorised_signatory_name        String?
+  authorised_signatory_designation String?
+
+  approval_status      ApprovalStatus @default(PENDING)
+  approval_date        DateTime?
+  approval_remarks     String?
+
+  tally_push_status    TallyPushStatus @default(NOT_PUSHED)
+
+  entries              PaymentVoucherEntry[]
+  allocations          PaymentVoucherAllocation[]
+
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  @@index([company_id])
+  @@index([voucher_no])
+  @@index([payment_type])
+  @@index([journal_voucher_id])
+  @@index([approval_status])
+}
+
+model PaymentVoucherEntry {
+  id                 Int      @id @default(autoincrement())
+
+  payment_voucher_id Int
+  paymentVoucher     PaymentVoucher @relation(fields: [payment_voucher_id], references: [id], onDelete: Cascade)
+
+  sl_no              Int
+  particulars        String
+  debit_amount       Decimal? @db.Decimal(12, 2)
+  credit_amount      Decimal? @db.Decimal(12, 2)
+  entry_type         String
+
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+}
+
+model PaymentVoucherAllocation {
+  id                 Int      @id @default(autoincrement())
+
+  payment_voucher_id Int
+  paymentVoucher     PaymentVoucher @relation(fields: [payment_voucher_id], references: [id], onDelete: Cascade)
+
+  document_type      String
+  document_id        Int
+  document_no        String?
+  document_amount    Decimal  @db.Decimal(12, 2)
+  paid_amount        Decimal  @db.Decimal(12, 2)
+  allocation_type    String   @default("PARTIAL")
+  remarks            String?
+
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  @@index([document_type, document_id])
+}
+
+model DocumentAttachment {
+  id            Int      @id @default(autoincrement())
+  company_id    String
+  user_id       Int
+  document_type String
+  document_id   Int
+  file_name     String
+  original_name String
+  mime_type     String?
+  file_size     Int?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([company_id])
+  @@index([document_type, document_id])
+}
+
+>>>>>>> origin/main

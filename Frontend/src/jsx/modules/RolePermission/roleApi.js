@@ -70,14 +70,10 @@ export const deleteRole = async (id) => {
 
 /* ================= ASSIGN PERMISSIONS ================= */
 export const assignPermissions = async (data) => {
-  try {
-    const res = await axios.post(`${API}role/assign-permissions`, data, {
-      headers: authHeaders(),
-    });
-    return res.data;
-  } catch (error) {
-    return error.response?.data || { message: "Assign failed" };
-  }
+  const res = await axios.post(`${API}role/assign-permissions`, data, {
+    headers: authHeaders(),
+  });
+  return res.data;
 };
 
 

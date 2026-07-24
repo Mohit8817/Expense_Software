@@ -32,6 +32,11 @@ export const createPermission = async (req, res) => {
 
   } catch (error) {
     console.error(error);
+    if (error.code === "P2002") {
+      return res.status(409).json({
+        message: "This permission key already exists for your company",
+      });
+    }
     return res.status(500).json({ message: error.message });
   }
 };

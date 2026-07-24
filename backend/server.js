@@ -16,6 +16,18 @@ import roleRoutes from "./src/routes/role.routes.js"
 import permissionRoutes from "./src/routes/permission.routes.js"
 import reportRoutes from "./src/routes/report.routes.js"
 import paymentRoutes from "./src/routes/payment.routes.js"
+import purchaseRoutes from "./src/accounts/routes/purchase.routes.js";
+import salesRoutes from "./src/accounts/routes/sales.routes.js";
+import productDetailRoutes from "./src/accounts/routes/productdetail.routes.js";
+import companyDetailRoutes from "./src/accounts/routes/companydetail.routes.js";
+import debitNoteRoutes from "./src/accounts/routes/debitnote.routes.js";
+import creditNoteRoutes from "./src/accounts/routes/creditnote.routes.js";
+import deliveryChallanRoutes from "./src/accounts/routes/deliverychallan.routes.js";
+import journalVoucherRoutes from "./src/accounts/routes/journalvoucher.routes.js";
+import accountRoutes from "./src/accounts/routes/account.routes.js";
+import paymentVoucherRoutes from "./src/accounts/routes/paymentvoucher.routes.js";
+import attachmentRoutes from "./src/accounts/routes/attachment.routes.js";
+import tallyRoutes from "./src/accounts/routes/tally.routes.js";
 
 
 
@@ -63,10 +75,15 @@ if (!fs.existsSync(uploadDir)) {
 
 app.use("/api/login", loginRoutes);
 
+// Tally integration — public GET APIs (no login / no company_id filter)
+app.use("/api/tally", tallyRoutes);
+
 import {auth} from "./src/middlewares/auth.js"
 import { report } from "process";
 
 app.use(auth)
+
+
 // routes
 app.use("/api/users", userRoutes);
 app.use("/api/projects", projectRoutes);
@@ -77,6 +94,17 @@ app.use("/api/role", roleRoutes);
 app.use("/api/permission", permissionRoutes);
 app.use("/api/reports", reportRoutes);
 app.use("/api/payment", paymentRoutes);
+app.use("/api/purchase", purchaseRoutes);
+app.use("/api/sales", salesRoutes);
+app.use("/api/productdetail", productDetailRoutes);
+app.use("/api/companydetail", companyDetailRoutes);
+app.use("/api/debitnote", debitNoteRoutes);
+app.use("/api/creditnote", creditNoteRoutes);
+app.use("/api/deliverychallan", deliveryChallanRoutes);
+app.use("/api/journalvoucher", journalVoucherRoutes);
+app.use("/api/account", accountRoutes);
+app.use("/api/paymentvoucher", paymentVoucherRoutes);
+app.use("/api/attachments", attachmentRoutes);
 
 
 app.get("/", (req, res) => {

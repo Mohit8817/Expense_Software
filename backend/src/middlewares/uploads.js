@@ -23,6 +23,10 @@ const fileFilter = (req, file, cb) => {
     "application/pdf",
     "application/msword",
     "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    "application/vnd.ms-excel",
+    "text/csv",
+    "text/plain",
   ];
 
   const isAllowed = allowedTypes.some(type =>

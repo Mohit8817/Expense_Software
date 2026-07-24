@@ -1,10 +1,10 @@
-import { useReducer, useContext, useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { useReducer, useContext, useState, useEffect, useCallback } from "react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { MenuList } from "./Menu";
 import { Collapse } from "react-bootstrap";
 import { ThemeContext } from "../../../context/ThemeContext";
 import { getMyPermissions } from "../../modules/RolePermission/roleApi";
-
+import { pathsMatch, NAV_RESET_STATE_KEY } from "../../../utils/navUtils";
 
 const reducer = (state, newState) => ({ ...state, ...newState });
 
@@ -15,59 +15,68 @@ const initialState = {
 
 function SideBar() {
   const { iconHover } = useContext(ThemeContext);
+  const location = useLocation();
+  const navigate = useNavigate();
 
   const [state, setState] = useReducer(reducer, initialState);
   const [menuData, setMenuData] = useState(MenuList);
 
-  //   FETCH PERMISSIONS
-  useEffect(() => {
-    fetchPermissions();
-  }, []);
+  const fetchPermissions = useCallback(async () => {
+    try {
+      const res = await getMyPermissions();
+      const perms = res?.data?.data || [];
+      const permKeys = perms.map((p) => p.key);
 
- const fetchPermissions = async () => {
-  try {
-    const res = await getMyPermissions();
-
-    const perms = res?.data?.data || [];
-    const permKeys = perms.map((p) => p.key);
-
-    console.log("User Permissions:", permKeys); // 🔍 debug
-
-    const filteredMenu = MenuList
-      //   FIRST: filter parent menus (IMPORTANT for dashboards)
-      .filter((menu) => {
-        // allow if no permission required
+      const filteredMenu = MenuList.filter((menu) => {
+        if (menu.type === "section") return true;
         if (!menu.permission) return true;
-
         return permKeys.includes(menu.permission);
       })
-      //   SECOND: filter submenus
-      .map((menu) => {
-        if (!menu.content) return menu;
+        .map((menu) => {
+          if (!menu.content) return menu;
 
-        const filteredSub = menu.content.filter((sub) => {
-          if (!sub.permission) return true;
+          const filteredSub = menu.content.filter((sub) => {
+            if (!sub.permission) return true;
+            return permKeys.includes(sub.permission);
+          });
 
-          return permKeys.includes(sub.permission);
+          return { ...menu, content: filteredSub };
+        })
+        .filter((menu) => {
+          if (menu.type === "section") return true;
+          return !menu.content || menu.content.length > 0;
+        })
+        .filter((menu, index, arr) => {
+          if (menu.type !== "section") return true;
+          const nextItem = arr[index + 1];
+          return nextItem && nextItem.type !== "section";
         });
 
-        return { ...menu, content: filteredSub };
-      })
-      //   THIRD: remove empty menus
-      .filter((menu) => !menu.content || menu.content.length > 0);
+      setMenuData(filteredMenu);
+    } catch (error) {
+      console.error("Sidebar permission error:", error);
+      setMenuData([]);
+    }
+  }, []);
 
-    //   FINAL: no unsafe fallback
-    setMenuData(filteredMenu);
+  useEffect(() => {
+    fetchPermissions();
+  }, [fetchPermissions]);
 
-  } catch (error) {
-    console.error("Sidebar permission error:", error);
+  useEffect(() => {
+    let activeMenu = "";
 
-    // ❗ safer fallback → show NOTHING instead of full access
-    setMenuData([]);
-  }
-};
+    menuData.forEach((menu) => {
+      if (!menu.content) return;
+      const hasActiveChild = menu.content.some((sub) =>
+        pathsMatch(location.pathname, sub.to)
+      );
+      if (hasActiveChild) activeMenu = menu.title;
+    });
 
-  // ACTIVE MENU
+    setState({ active: activeMenu, activeSubmenu: "" });
+  }, [location.pathname, menuData]);
+
   const handleMenuActive = (status) => {
     setState({ active: state.active === status ? "" : status });
   };
@@ -78,35 +87,47 @@ function SideBar() {
     });
   };
 
-  let path = window.location.pathname.split("/").pop();
+  const handleSidebarNav = (to, e) => {
+    if (!to || to === "#") return;
+    if (pathsMatch(location.pathname, to)) {
+      e.preventDefault();
+      navigate(to, { replace: true, state: { [NAV_RESET_STATE_KEY]: Date.now() } });
+    }
+  };
+
+  const isSection = (item) => item.type === "section" || item.classsChange === "menu-title";
 
   return (
-    <div className={`ic-sidenav ${iconHover}`}>
+    <div className={`ic-sidenav app-sidebar ${iconHover}`}>
       <div className="ic-sidenav-scroll">
         <ul className="metismenu" id="menu">
-
           {menuData.map((data, index) => {
-
-            if (data.classsChange === "menu-title") {
+            if (isSection(data)) {
               return (
-                <li className="menu-title" key={index}>
-                  {data.title}
+                <li className="menu-title app-menu-section" key={`section-${data.title}-${index}`}>
+                  <span>{data.title}</span>
                 </li>
               );
             }
 
+            const isGroupActive =
+              state.active === data.title ||
+              data.content?.some((sub) => pathsMatch(location.pathname, sub.to));
+
             return (
               <li
-                key={index}
-                className={state.active === data.title ? "mm-active" : ""}
+                key={`${data.title}-${index}`}
+                className={isGroupActive ? "mm-active" : ""}
               >
                 {data.content ? (
                   <>
-                    {/* MAIN MENU */}
                     <Link
                       to="#"
-                      className="has-arrow"
-                      onClick={() => handleMenuActive(data.title)}
+                      className={`has-arrow ${isGroupActive ? "mm-active" : ""}`}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        handleMenuActive(data.title);
+                      }}
                     >
                       {data.iconStyle}
                       <span className="nav-text">{data.title}</span>
@@ -114,24 +135,32 @@ function SideBar() {
 
                     <Collapse in={state.active === data.title}>
                       <ul className="mm-show">
-
-                        {data.content.map((sub, i) => (
-                          <li key={i}>
-                            <Link
-                              to={sub.to}
-                              className={path === sub.to ? "mm-active" : ""}
-                              onClick={() => handleSubmenuActive(sub.title)}
-                            >
-                              {sub.title}
-                            </Link>
-                          </li>
-                        ))}
-
+                        {data.content.map((sub, i) => {
+                          const subActive = pathsMatch(location.pathname, sub.to);
+                          return (
+                            <li key={`${sub.title}-${i}`} className={subActive ? "mm-active" : ""}>
+                              <Link
+                                to={sub.to}
+                                className={subActive ? "mm-active" : ""}
+                                onClick={(e) => {
+                                  handleSidebarNav(sub.to, e);
+                                  handleSubmenuActive(sub.title);
+                                }}
+                              >
+                                {sub.title}
+                              </Link>
+                            </li>
+                          );
+                        })}
                       </ul>
                     </Collapse>
                   </>
                 ) : (
-                  <Link to={data.to}>
+                  <Link
+                    to={data.to}
+                    className={pathsMatch(location.pathname, data.to) ? "mm-active" : ""}
+                    onClick={(e) => handleSidebarNav(data.to, e)}
+                  >
                     {data.iconStyle}
                     <span className="nav-text">{data.title}</span>
                   </Link>
@@ -139,7 +168,6 @@ function SideBar() {
               </li>
             );
           })}
-
         </ul>
       </div>
     </div>

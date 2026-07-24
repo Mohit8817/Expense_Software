@@ -53,7 +53,7 @@ const UserExpenseReports = () => {
     indexOfFirst,
   } = useSearchFilter(rows, {
     keys: ["Name", "user_email", "user_phone", "approvedAmount", "totalPaid"],
-    itemsPerPage: 100,
+    itemsPerPage: 1000,
   });
 
   useEffect(() => {

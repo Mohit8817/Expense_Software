@@ -126,9 +126,9 @@ export const assignPermissionsToRole = async (req, res) => {
 
     const company_id = req.user?.company_id;
 
-    if (!role_id || !permission_ids?.length) {
+    if (!role_id || !Array.isArray(permission_ids)) {
       return res.status(400).json({
-        message: "Role ID and permissions required",
+        message: "Role ID and permission_ids array required",
       });
     }
 
@@ -146,21 +146,39 @@ export const assignPermissionsToRole = async (req, res) => {
       });
     }
 
+    const normalizedIds = [...new Set(permission_ids.map((pid) => Number(pid)).filter(Boolean))];
+
+    const validPermissions = normalizedIds.length
+      ? await prisma.permission.findMany({
+          where: {
+            company_id,
+            id: { in: normalizedIds },
+          },
+          select: { id: true },
+        })
+      : [];
+
+    if (validPermissions.length !== normalizedIds.length) {
+      return res.status(400).json({
+        message: "One or more permissions do not belong to your company",
+      });
+    }
+
     // 🧹 Remove old permissions
     await prisma.rolePermission.deleteMany({
       where: { role_id: Number(role_id) },
     });
 
-    //   Add new permissions
-    const data = permission_ids.map((pid) => ({
-      role_id: Number(role_id),
-      permission_id: Number(pid),
-    }));
-
-    await prisma.rolePermission.createMany({
-      data,
-      skipDuplicates: true,
-    });
+    // ✅ Add new permissions
+    if (validPermissions.length) {
+      await prisma.rolePermission.createMany({
+        data: validPermissions.map(({ id }) => ({
+          role_id: Number(role_id),
+          permission_id: id,
+        })),
+        skipDuplicates: true,
+      });
+    }
 
     return res.json({
       message: "Permissions assigned successfully",

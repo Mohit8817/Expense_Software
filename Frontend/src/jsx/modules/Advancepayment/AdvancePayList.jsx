@@ -177,7 +177,7 @@ const AdvancesModal = ({ user, onClose }) => {
               ₹{user.advances
                 .reduce((sum, a) => sum + Number(a.amount || 0), 0)
                 .toLocaleString("en-IN")}
-            </div>    
+            </div>
           </div>
         </div>
 

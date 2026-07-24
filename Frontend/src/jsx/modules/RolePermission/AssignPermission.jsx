@@ -58,14 +58,14 @@ const AssignPermission = () => {
   const handleSubmit = async () => {
     try {
       await assignPermissions({
-        role_id: id,
-        permission_ids: selected,
+        role_id: Number(id),
+        permission_ids: selected.map((pid) => Number(pid)),
       });
 
       alert("Permissions updated  ");
     } catch (error) {
       console.error(error);
-      alert("Error updating permissions");
+      alert(error.response?.data?.message || "Error updating permissions");
     }
   };
 
@@ -85,27 +85,36 @@ const AssignPermission = () => {
 
         <div className="card-body">
 
-          {/* PERMISSIONS LIST */}
-          <div className="row">
-            {permissions.map((perm) => (
-              <div className="col-md-4 mb-2" key={perm.id}>
-                <div className="form-check">
-
-                  <input
-                    type="checkbox"
-                    className="form-check-input"
-                    checked={selected.includes(perm.id)}   //   FIXED
-                    onChange={() => handleCheck(perm.id)}
-                  />
-
-                  <label className="form-check-label">
-                    {perm.label} ({perm.module})
-                  </label>
-
-                </div>
+          {Object.entries(
+            permissions.reduce((groups, perm) => {
+              const moduleName = perm.module || "Other";
+              if (!groups[moduleName]) groups[moduleName] = [];
+              groups[moduleName].push(perm);
+              return groups;
+            }, {})
+          ).map(([moduleName, modulePerms]) => (
+            <div key={moduleName} className="mb-4">
+              <h5 className="border-bottom pb-2 mb-3">{moduleName}</h5>
+              <div className="row">
+                {modulePerms.map((perm) => (
+                  <div className="col-md-4 mb-2" key={perm.id}>
+                    <div className="form-check">
+                      <input
+                        type="checkbox"
+                        className="form-check-input"
+                        checked={selected.includes(perm.id)}
+                        onChange={() => handleCheck(perm.id)}
+                      />
+                      <label className="form-check-label">
+                        {perm.label}
+                        <span className="text-muted small ms-1">({perm.name})</span>
+                      </label>
+                    </div>
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
+            </div>
+          ))}
 
           <button
             className="btn btn-success mt-3"

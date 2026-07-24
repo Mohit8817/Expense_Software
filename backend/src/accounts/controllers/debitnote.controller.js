@@ -1,0 +1,68 @@
+import { createVoucherHandlers } from "../utils/voucherBase.js";
+
+const include = { items: true };
+
+const buildDebitNoteData = (body) => ({
+  debit_note_no: body.debit_note_no,
+  debit_note_date: body.debit_note_date,
+  original_invoice_no: body.original_invoice_no || null,
+  original_invoice_date: body.original_invoice_date || null,
+  other_references: body.other_references || null,
+  seller_company_id: body.seller_company_id ? Number(body.seller_company_id) : null,
+  consignee_company_id: body.consignee_company_id ? Number(body.consignee_company_id) : null,
+  buyer_company_id: body.buyer_company_id ? Number(body.buyer_company_id) : null,
+  seller_name: body.seller_name,
+  seller_address: body.seller_address,
+  seller_gstin: body.seller_gstin,
+  seller_state: body.seller_state,
+  seller_state_code: body.seller_state_code,
+  seller_cin: body.seller_cin || null,
+  seller_email: body.seller_email || null,
+  seller_pan: body.seller_pan || null,
+  consignee_name: body.consignee_name || null,
+  consignee_address: body.consignee_address || null,
+  consignee_gstin: body.consignee_gstin || null,
+  consignee_state: body.consignee_state || null,
+  consignee_state_code: body.consignee_state_code || null,
+  consignee_email: body.consignee_email || null,
+  buyer_name: body.buyer_name,
+  buyer_address: body.buyer_address,
+  buyer_gstin: body.buyer_gstin,
+  buyer_state: body.buyer_state,
+  buyer_state_code: body.buyer_state_code,
+  buyer_pan: body.buyer_pan || null,
+  buyer_email: body.buyer_email || null,
+  total_quantity: body.total_quantity,
+  taxable_value: body.taxable_value,
+  igst_rate: body.igst_rate ?? 0,
+  igst_amount: body.igst_amount ?? 0,
+  cgst_rate: body.cgst_rate ?? 0,
+  cgst_amount: body.cgst_amount ?? 0,
+  sgst_rate: body.sgst_rate ?? 0,
+  sgst_amount: body.sgst_amount ?? 0,
+  total_tax_amount: body.total_tax_amount,
+  total_amount: body.total_amount,
+  amount_in_words: body.amount_in_words || null,
+  authorised_signatory_name: body.authorised_signatory_name || null,
+  authorised_signatory_designation: body.authorised_signatory_designation || null,
+});
+
+const handlers = createVoucherHandlers({
+  modelName: "debitNote",
+  docNoField: "debit_note_no",
+  docLabel: "Debit note",
+  include,
+  buildData: buildDebitNoteData,
+});
+
+export const {
+  create: createDebitNote,
+  getAll: getAllDebitNotes,
+  getById: getDebitNoteById,
+  update: updateDebitNote,
+  remove: deleteDebitNote,
+  approve: approveDebitNote,
+  reject: rejectDebitNote,
+  pushToTally: pushDebitNoteToTally,
+  retryTallyPush: retryDebitNoteTallyPush,
+} = handlers;
