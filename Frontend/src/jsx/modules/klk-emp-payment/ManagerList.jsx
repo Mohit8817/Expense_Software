@@ -34,7 +34,6 @@ const ManagerExpenseTable = ({ status, pageTitle, cardTitle }) => {
   useEffect(() => {
     fetchExpenses();
     fetchReviewers();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [status]);
 
   const fetchExpenses = async () => {
@@ -228,7 +227,7 @@ const ManagerExpenseTable = ({ status, pageTitle, cardTitle }) => {
       alert("Manager decision saved");
       setShowModal(false);
       fetchExpenses();
-    } catch (error) { 
+    } catch (error) {
       console.error(error);
     }
   };

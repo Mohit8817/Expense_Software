@@ -5,7 +5,7 @@ import TableExportActions from "../../components/Common/TableExportActions";
 import Pagination from "../../components/Common/Pagination";
 import { useLocation, useNavigate } from "react-router-dom";
 import { getAllProjects, deleteProject, getManagers } from "./projectApi";
-import { useSearchFilter, SearchInput } from "../../components/Common/useSearchFilter"; //   Added
+import { useSearchFilter, SearchInput } from "../../components/Common/useSearchFilter"; // ✅ Added
 
 const ProjectMasterList = () => {
   const navigate = useNavigate();
@@ -59,7 +59,7 @@ const ProjectMasterList = () => {
   const fetchProjects = async () => {
     try {
       const data = await getAllProjects();
-      
+
       if (!data || !data.data) {
         console.error(data?.message || "Failed to fetch projects");
         return;

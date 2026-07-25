@@ -62,7 +62,7 @@ const AssignPermission = () => {
         permission_ids: selected.map((pid) => Number(pid)),
       });
 
-      alert("Permissions updated  ");
+      alert("Permissions updated ✅");
     } catch (error) {
       console.error(error);
       alert(error.response?.data?.message || "Error updating permissions");
