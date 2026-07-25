@@ -43,6 +43,7 @@ const VoucherDocumentPage = ({
   searchKeys,
   exportColumns,
   tableConfig = {},
+  // eslint-disable-next-line no-unused-vars
   FormComponent,
   PreviewComponent,
   previewDataMapper,

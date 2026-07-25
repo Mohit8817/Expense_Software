@@ -48,30 +48,29 @@ import RoleEdit from "../modules/RolePermission/RoleEdit"
 import PermissionList from "../modules/RolePermission/PermissionList";
 import PermissionForm from "../modules/RolePermission/PermissionForm"
 import AssignPermission from "../modules/RolePermission/AssignPermission"
-import InterventionReports from "../modules/Report/InterventionReports";
-import PaidExpense from "../modules/Report/PaidExpense";
 import ManagerPendingPayments from "../modules/klk-emp-payment/ManagerPendingPayments";
 import ManagerApprovedPayments from "../modules/klk-emp-payment/ManagerApprovedPayments";
 import AccountPaidPayments from "../modules/klk-emp-payment/Accountpaidpayments";
 import AccountPendingPayments from "../modules/klk-emp-payment/AccountPendingPayments";
-import UserExpenseReports from "../modules/Report/UserExpenseReports";
+import InterventionReports from "../modules/Report/InterventionReports";
+import PaidExpense from "../modules/Report/PaidExpense";
+
 import AdvancePayList from "../modules/Advancepayment/AdvancePayList";
 import AdvancePayForm from "../modules/Advancepayment/AdvancePayForm";
 import AdvancePaymentDashboard from "../modules/Advancepayment/AdvancePaymentDashboard";
 import UserDetailReport from "../modules/Report/UserDetailReport";
+import UserExpenseReports from "../modules/Report/UserExpenseReports";
 
-
-import CreditNote from "../modules/Tally/CreditNote/CreditNote";
-import DebitNote from "../modules/Tally/DebitNote/DebitNote";
-import DeliveryChallan from "../modules/Tally/DeliveryChallan/DeliveryChallan";
-import Expense from "../modules/Tally/Expense/Expense";
-import MaterialTransfer from "../modules/Tally/MaterialTransfer/MaterialTransfer";
-import Payment from "../modules/Tally/Payment/Payment";
-import PurchaseInvoice from "../modules/Tally/PurchaseInvoice/PurchaseInvoice";
-import SalesInvoice from "../modules/Tally/SalesInvoice/SalesInvoice";
-import CompanyDetail from "../modules/Tally/DetailModule/CompanyDetail/CompanyDetail";
-
+import CreditNote from "../modules/Account/CreditNote/CreditNote";
+import DebitNote from "../modules/Account/DebitNote/DebitNote";
+import DeliveryChallan from "../modules/Account/DeliveryChallan/DeliveryChallan";
+import Expense from "../modules/Account/Expense/Expense";
+import MaterialTransfer from "../modules/Account/MaterialTransfer/MaterialTransfer";
+import Payment from "../modules/Account/Payment/Payment";
+import PurchaseInvoice from "../modules/Account/PurchaseInvoice/PurchaseInvoice";
+import SalesInvoice from "../modules/Account/SalesInvoice/SalesInvoice";
 import ProductDetail from "../modules/Account/ProductDetail/ProductDetail";
+import CompanyDetail from "../modules/Account/CompanyDetail/CompanyDetail";
 import AccountDashboard from "../modules/Account/AccountDashboard";
 import AccountReports from "../modules/Account/AccountReports";
 
@@ -85,14 +84,14 @@ const ProtectedRoute = ({ children }) => {
     const token = localStorage.getItem("token");
     const user = localStorage.getItem("user");
 
-    if (!token || !user) {
-        return <Navigate to="/login" replace />;
-    }
-
-    if (isTokenExpired(token)) {
-        localStorage.clear();
-        return <Navigate to="/login" replace />;
-    }
+        if (!token || !user) {
+            return <Navigate to="/login" replace />;
+        }
+        
+        if (isTokenExpired(token)) {
+            localStorage.clear();
+            return <Navigate to="/login" replace />;
+        }
 
     return children;
 };
@@ -134,30 +133,8 @@ const Markup = () => {
         { path: '/payment-list', element: <PaymentList /> },
         { path: '/Reviewer-List', element: <ReviewerList /> },
         { path: '/Manager-List', element: <ManagerList /> },
-
-        { path: '/manager/pending-payments', element: <ManagerPendingPayments /> },
-        { path: '/manager/approved-payments', element: <ManagerApprovedPayments /> },
-        { path: '/account/paid-payments', element: <AccountPaidPayments /> },
-        { path: '/account/pending-payments', element: <AccountPendingPayments /> },
-
-
-        { path: '/Intervention-Reports', element: <InterventionReports /> },
-        { path: '/Paid-Expense', element: <PaidExpense /> },
-        { path: '/User-Expense-Reports', element: <UserExpenseReports /> },
-        { path: '/User-Detail-Reports', element: <UserDetailReport /> },
-
-
-
-
-        // { path: '/AdvancePayDashboard', element: <AdvancePayDashboard /> },
-        { path: '/AdvancePaymentDashboard', element: <AdvancePaymentDashboard /> },
-        { path: '/AdvancePayList', element: <AdvancePayList /> },
-        { path: '/AdvancePayForm', element: <AdvancePayForm /> },
-
-
-
-
         { path: '/Account-List', element: <AccountsList /> },
+
         { path: 'form-element', element: <Element /> },
         { path: 'form-wizard', element: <Wizard /> },
         { path: 'form-ckeditor', element: <CkEditor /> },
@@ -173,12 +150,10 @@ const Markup = () => {
         { path: '/permission/add-permission', element: <PermissionForm /> },
         { path: '/role/assign/:id', element: <AssignPermission /> },
 
-
         { path: '/manager/pending-payments', element: <ManagerPendingPayments /> },
         { path: '/manager/approved-payments', element: <ManagerApprovedPayments /> },
         { path: '/account/paid-payments', element: <AccountPaidPayments /> },
         { path: '/account/pending-payments', element: <AccountPendingPayments /> },
-        
 
         { path: '/Intervention-Reports', element: <InterventionReports /> },
 
@@ -205,19 +180,7 @@ const Markup = () => {
         { path: '/account/dashboard', element: <AccountDashboard /> },
         { path: '/account/reports', element: <AccountReports /> },
 
-        { path: '/tally/credit-note', element: <CreditNote /> },
-        { path: '/tally/debit-note', element: <DebitNote /> },
-        { path: '/tally/Delivery-Challan', element: <DeliveryChallan /> },
-        { path: '/tally/Expense', element: <Expense /> },
-        { path: '/tally/Material-Transfer', element: <MaterialTransfer /> },
-        { path: '/tally/Payment', element: <Payment /> },
-        { path: '/tally/Purchase-Invoice', element: <PurchaseInvoice /> },
-        { path: '/tally/Sales-Invoice', element: <SalesInvoice /> },
-      
-      
-        { path: '/tally/Company-Details', element: <CompanyDetail /> },
-
-    ];
+     ];
 
     return (
         <>
@@ -272,19 +235,19 @@ function MainLayout() {
     const { menuToggle, sidebariconHover } = useContext(ThemeContext);
     const location = useLocation();
 
-    //   ADD THIS BLOCK
-    useEffect(() => {
-        const timeout = setTimeout(() => {
-            const token = localStorage.getItem("token");
+    // ✅ ADD THIS BLOCK
+        useEffect(() => {
+            const timeout = setTimeout(() => {
+                const token = localStorage.getItem("token");
 
-            if (token && isTokenExpired(token)) {
-                localStorage.clear();
-                window.location.replace("/login");
-            }
-        }, 2000);
+                if (token && isTokenExpired(token)) {
+                    localStorage.clear();
+                    window.location.replace("/login");
+                }
+            }, 2000);
 
-        return () => clearTimeout(timeout);
-    }, []);
+            return () => clearTimeout(timeout);
+        }, []);
 
     return (
         <div
