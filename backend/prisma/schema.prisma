@@ -34,11 +34,31 @@ model User {
   user_img       String?
   pfesi          Boolean  @default(false)
   status         Boolean  @default(true)
+  is_tenant_admin Boolean @default(false)
+  is_developer   Boolean  @default(false)
+  tenant_admin_of Tenant?  @relation("TenantAdmin")
   created_by     String
   created_at     DateTime @default(now())
   updated_at     DateTime @updatedAt
 
   @@map("User")
+}
+
+model Tenant {
+  id                 Int             @id @default(autoincrement())
+  unique_id          String          @unique
+  name               String
+  tenant_showing_name String?
+  tenant_logo        String?
+  email              String
+  phone              String?
+  address            String?
+  status             Boolean         @default(true)
+  admin_user_id      Int?            @unique
+  admin_user         User?           @relation("TenantAdmin", fields: [admin_user_id], references: [id], onDelete: SetNull)
+  created_by         String?
+  created_at         DateTime        @default(now())
+  updated_at         DateTime        @updatedAt
 }
 
 
@@ -150,28 +170,24 @@ model ExpensePaymentTransaction {
 
 model Role {
   id          Int       @id @default(autoincrement())
-  company_id               String
   name        String    @unique
   description String?
 
   users       User[]
   permissions RolePermission[]
-  created_by               String?
+  created_by  String?
   created_at  DateTime  @default(now())
 }
 
 model Permission {
   id          Int       @id @default(autoincrement())
-  company_id               String
-  name        String              // e.g. "create_expense"
+  name        String    @unique   // e.g. "create_expense"
   label       String              // UI label
   module      String              // e.g. "Expense", "Accounts"
 
   roles       RolePermission[]
-  created_by               String?
+  created_by  String?
   created_at  DateTime  @default(now())
-
-  @@unique([company_id, name])
 }
 
 model RolePermission {
@@ -230,26 +246,42 @@ model WalletHistory {
 
 
 model CompanyDetail {
-  id           Int      @id @default(autoincrement())
-  company_id   String
-  user_id      Int
-  name         String
-  short_name   String
-  gst          String?
-  pan          String?
-  tan          String?
-  cin          String?
-  email        String?
-  state_code   String?
-  address      String
-  city         String
-  state        String
-  zipcode      Int
-  status       Int  @default(0)
-  code         String
-  bank_accounts CompanyBankAccount[]
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt 
+  id              Int      @id @default(autoincrement())
+  company_id      String
+  user_id         Int
+  name            String   // Tally: CompanyName
+  ledger_name     String?  // Tally: LedgerName
+  short_name      String
+  gst             String?  // Tally: GSTNumber
+  pan             String?  // Tally: PanNumber
+  tan             String?
+  cin             String?
+  email           String?  // Tally: EmailID
+  state_code      String?
+  address         String
+  add_line1       String?  // Tally: AddLine1
+  add_line2       String?  // Tally: AddLine2
+  add_line3       String?  // Tally: AddLine3
+  city            String
+  state           String   // Tally: LedState
+  country         String?  @default("India") // Tally: LedCountry
+  zipcode         Int      // Tally: LedgerPIN
+  contact_person  String?  // Tally: ContactPerson
+  contact_number  String?  // Tally: ContactNumber
+  ledger_group    String?  // Tally: LedgerGroup
+  approval_status ApprovalStatus @default(PENDING)
+  approval_date   DateTime?
+  approval_remarks String?
+  tally_push_status TallyPushStatus @default(NOT_PUSHED)
+  status          Int      @default(0)
+  data_status     Int      @default(1) // 1 = app, 2 = Tally API
+  code            String   // Tally: LedgerCode
+  bank_accounts   CompanyBankAccount[]
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([approval_status])
+  @@index([tally_push_status])
 }
 
 model CompanyBankAccount {
@@ -278,6 +310,7 @@ model ProductDetail {
   hsn_sac      String?
   units      String?
   status      Int  @default(0)
+  data_status Int  @default(1) // 1 = app, 2 = Tally API
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt 
 }
@@ -375,6 +408,7 @@ model Purchase {
   approval_date     DateTime?
   approval_remarks  String?
   tally_push_status TallyPushStatus @default(NOT_PUSHED)
+  data_status       Int             @default(1) // 1 = app, 2 = Tally API
 
   items             PurchaseItem[]
   gst_details       PurchaseGstDetail[]
@@ -533,6 +567,7 @@ model Sales {
 
   // Tally
   tally_push_status  TallyPushStatus @default(NOT_PUSHED)
+  data_status        Int             @default(1) // 1 = app, 2 = Tally API
 
   items              SalesItem[]
 
@@ -653,6 +688,7 @@ model DebitNote {
 
   // Tally
   tally_push_status  TallyPushStatus @default(NOT_PUSHED)
+  data_status        Int             @default(1) // 1 = app, 2 = Tally API
 
   items              DebitNoteItem[]
 
@@ -786,6 +822,7 @@ model CreditNote {
 
   // Tally
   tally_push_status  TallyPushStatus @default(NOT_PUSHED)
+  data_status        Int             @default(1) // 1 = app, 2 = Tally API
 
   items              CreditNoteItem[]
   tax_breakup        CreditNoteTaxBreakup[]
@@ -937,6 +974,7 @@ model DeliveryChallan {
 
   // Tally
   tally_push_status  TallyPushStatus @default(NOT_PUSHED)
+  data_status        Int             @default(1) // 1 = app, 2 = Tally API
 
   items              DeliveryChallanItem[]
 
@@ -1027,6 +1065,7 @@ model JournalVoucher {
 
   // Tally
   tally_push_status  TallyPushStatus @default(NOT_PUSHED)
+  data_status        Int             @default(1) // 1 = app, 2 = Tally API
 
   entries            JournalVoucherEntry[]
   paymentVouchers    PaymentVoucher[]
@@ -1117,6 +1156,7 @@ model PaymentVoucher {
   approval_remarks     String?
 
   tally_push_status    TallyPushStatus @default(NOT_PUSHED)
+  data_status          Int             @default(1) // 1 = app, 2 = Tally API
 
   entries              PaymentVoucherEntry[]
   allocations          PaymentVoucherAllocation[]

@@ -14,6 +14,8 @@ import expenseRoutes from "./src/routes/expense.routes.js"
 import dashboardRoutes from "./src/routes/dashboard.routes.js";
 import roleRoutes from "./src/routes/role.routes.js"
 import permissionRoutes from "./src/routes/permission.routes.js"
+import tenantRoutes from "./src/routes/tenant.routes.js"
+import developerRoutes from "./src/routes/developer.routes.js"
 import reportRoutes from "./src/routes/report.routes.js"
 import paymentRoutes from "./src/routes/payment.routes.js"
 import purchaseRoutes from "./src/accounts/routes/purchase.routes.js";
@@ -75,12 +77,14 @@ if (!fs.existsSync(uploadDir)) {
 
 app.use("/api/login", loginRoutes);
 
-// Tally integration — public GET APIs (no login / no company_id filter)
+// Tally integration — public APIs (GET export + CRUD with company_id, no JWT)
 app.use("/api/tally", tallyRoutes);
 
 import {auth} from "./src/middlewares/auth.js"
+import { developerRouteGuard } from "./src/middlewares/developerAccess.js"
 
 app.use(auth)
+app.use(developerRouteGuard)
 
 
 // routes
@@ -91,6 +95,8 @@ app.use("/api/expense", expenseRoutes);
 app.use("/api/dashboard", dashboardRoutes);
 app.use("/api/role", roleRoutes);
 app.use("/api/permission", permissionRoutes);
+app.use("/api/tenant", tenantRoutes);
+app.use("/api/developer", developerRoutes);
 app.use("/api/reports", reportRoutes);
 app.use("/api/payment", paymentRoutes);
 app.use("/api/purchase", purchaseRoutes);

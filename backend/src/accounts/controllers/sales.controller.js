@@ -1,4 +1,5 @@
 import { PrismaClient } from "@prisma/client";
+import { resolveDataStatus } from "../constants/dataStatus.js";
 
 const prisma = new PrismaClient();
 
@@ -142,6 +143,7 @@ export const createSales = async (req, res) => {
         ...buildSalesData(rest),
         company_id,
         user_id,
+        data_status: resolveDataStatus(req),
         items: { create: items.map(mapItem) },
       },
       include: salesInclude,

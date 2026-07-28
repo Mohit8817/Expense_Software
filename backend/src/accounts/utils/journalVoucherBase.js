@@ -1,4 +1,5 @@
 import { PrismaClient } from "@prisma/client";
+import { resolveDataStatus } from "../constants/dataStatus.js";
 import {
   ATTACHMENT_DOCUMENT_TYPES,
   deleteAttachmentsForDocument,
@@ -82,6 +83,7 @@ export function createJournalVoucherHandlers({ buildData }) {
           ...buildData(rest),
           company_id,
           user_id,
+          data_status: resolveDataStatus(req),
           entries: { create: entries.map(mapEntry) },
         },
         include,

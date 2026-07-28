@@ -23,6 +23,19 @@ const formatDate = (value) => {
 
 export const formatCompanyAddress = (company) => {
   if (!company) return "";
+  const lines = [company.add_line1, company.add_line2, company.add_line3].filter(Boolean);
+  const location = [
+    company.city,
+    [company.state, company.country].filter(Boolean).join(", "),
+    company.zipcode != null && company.zipcode !== "" ? `- ${company.zipcode}` : "",
+  ]
+    .filter(Boolean)
+    .join(", ");
+
+  if (lines.length) {
+    return [...lines, location].filter(Boolean).join(", ");
+  }
+
   return [company.address, company.city, `${company.state} - ${company.zipcode}`]
     .filter(Boolean)
     .join(", ");

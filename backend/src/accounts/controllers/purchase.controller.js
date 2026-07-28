@@ -1,4 +1,5 @@
 import { PrismaClient } from "@prisma/client";
+import { resolveDataStatus } from "../constants/dataStatus.js";
 
 const prisma = new PrismaClient();
 
@@ -89,6 +90,7 @@ export const createPurchase = async (req, res) => {
         ...buildPurchaseData(rest),
         company_id,
         user_id,
+        data_status: resolveDataStatus(req),
         items: { create: items.map(mapItem) },
         ...(Array.isArray(gst_details) && gst_details.length > 0 && {
           gst_details: { create: gst_details.map(mapGstDetail) },

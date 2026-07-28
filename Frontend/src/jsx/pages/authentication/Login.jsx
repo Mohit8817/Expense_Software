@@ -5,8 +5,10 @@ import axios from "axios";
 import { toast } from "react-toastify";
 
 import {
-  loadingToggleAction,
-} from "../../../store/actions/AuthActions";
+  getDeveloperHomeRoute,
+  isDeveloperUser,
+} from "../../../utils/developer";
+import { loadingToggleAction } from "../../../store/actions/AuthActions";
 
 import logo from "../../../assets/images/logo.webp";
 import logo2 from "../../../assets/images/logo-full.png";
@@ -61,7 +63,9 @@ function Login() {
         localStorage.setItem("token", data.token);
         localStorage.setItem("user", JSON.stringify(data.user));
 
-        navigate("/user-dashboard");
+        navigate(
+          isDeveloperUser(data.user) ? getDeveloperHomeRoute() : "/user-dashboard"
+        );
         toast.success("Login successful! Welcome back", {
           position: "top-right",
           autoClose: 3000,

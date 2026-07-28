@@ -2,13 +2,13 @@
  * Account module permissions — same pattern as Project / Expense:
  * view_*, create_*, edit_*, delete_*
  *
- * Run once per company:
- *   node scripts/seedAccountPermissions.js klk1234 1
- * (company_id and created_by user id)
+ * Permissions are system-wide (not per company). Run once:
+ *   node scripts/seedAccountPermissions.js [created_by_user_id]
  */
 export const ACCOUNT_PERMISSIONS = [
   { name: "view_account_dashboard", label: "View Account Dashboard", module: "Accounts" },
   { name: "view_account_reports", label: "View Account Reports", module: "Accounts" },
+  { name: "view_ai_report", label: "View AI Report", module: "Accounts" },
 
   { name: "view_sales_invoice", label: "View Sales Invoice", module: "Sales Invoice" },
   { name: "create_sales_invoice", label: "Create Sales Invoice", module: "Sales Invoice" },

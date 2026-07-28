@@ -42,7 +42,8 @@ export const loginUser = async (req, res) => {
         user_id: user.user_id,
         company_id: user.company_id,
         designation: user.designation,
-        role_id : user.role_id,
+        role_id: user.role_id,
+        is_developer: user.is_developer === true,
       },
       process.env.JWT_SECRET,
       { expiresIn: "3d" }
@@ -63,6 +64,7 @@ export const loginUser = async (req, res) => {
         status: user.status,
         user_img: user.user_img,
         role_id: user.role_id,
+        is_developer: user.is_developer === true,
       },
     });
 

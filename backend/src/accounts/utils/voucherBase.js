@@ -1,4 +1,5 @@
 import { PrismaClient } from "@prisma/client";
+import { resolveDataStatus } from "../constants/dataStatus.js";
 import {
   attachmentTypeForModel,
   deleteAttachmentsForDocument,
@@ -64,6 +65,7 @@ export function createVoucherHandlers({
           ...buildData(rest),
           company_id,
           user_id,
+          data_status: resolveDataStatus(req),
           items: { create: items.map(mapVoucherItem) },
           ...(Array.isArray(tax_breakup) &&
             tax_breakup.length > 0 &&

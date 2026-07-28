@@ -8,11 +8,32 @@ import { useSearchFilter, SearchInput } from "../../../components/Common/useSear
 import CompanyDetailForm from "./CompanyDetailForm";
 import DocumentAttachments from "../vouchers/shared/DocumentAttachments";
 import { ATTACHMENT_DOCUMENT_TYPES } from "../documentAttachmentApi";
-import { getAllCompanies, getCompanyById, deleteCompany } from "../companyApi";
+import {
+  getAllCompanies,
+  getCompanyById,
+  deleteCompany,
+  approveCompany,
+  pushCompanyToTally,
+  retryCompanyTallyPush,
+} from "../companyApi";
+
+const statusVariant = {
+  Posted: "success",
+  Draft: "warning",
+  Cancelled: "danger",
+};
+
+const tallyVariant = {
+  PUSHED: "success",
+  FAILED: "danger",
+  NOT_PUSHED: "secondary",
+};
 
 const CompanyDetail = () => {
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [actionId, setActionId] = useState(null);
+  const [statusFilter, setStatusFilter] = useState("");
   const [view, setView] = useState("list");
   const [editId, setEditId] = useState(null);
   const [formData, setFormData] = useState(null);
@@ -43,12 +64,18 @@ const CompanyDetail = () => {
     paginatedData,
     indexOfFirst,
   } = useSearchFilter(data, {
-    keys: ["name", "short_name", "gst", "city", "state", "code"],
+    keys: ["name", "ledger_name", "short_name", "gst", "city", "state", "code", "ledger_group", "contact_person", "status", "tallyLabel", "sourceLabel"],
     itemsPerPage: 100,
   });
 
-  const activeCount = data.filter((c) => c.status === 1).length;
-  const inactiveCount = data.length - activeCount;
+  const filteredRows = paginatedData.filter((row) =>
+    statusFilter ? row.status === statusFilter : true
+  );
+
+  const totalCount = data.length;
+  const draftCount = data.filter((r) => r.status === "Draft").length;
+  const postedCount = data.filter((r) => r.status === "Posted").length;
+  const cancelledCount = data.filter((r) => r.status === "Cancelled").length;
 
   const handleDelete = async (id) => {
     if (!window.confirm("Are you sure you want to delete this company?")) return;
@@ -58,6 +85,39 @@ const CompanyDetail = () => {
       fetchCompanies();
     } catch (error) {
       toast.error(error.message || "Delete failed");
+    }
+  };
+
+  const handleApprove = async (id) => {
+    if (!window.confirm("Approve this company master record?")) return;
+    try {
+      setActionId(id);
+      await approveCompany(id);
+      toast.success("Company approved successfully");
+      fetchCompanies();
+    } catch (error) {
+      toast.error(error.message || "Approve failed");
+    } finally {
+      setActionId(null);
+    }
+  };
+
+  const handleTallyPush = async (id, isRetry = false) => {
+    const msg = isRetry
+      ? "Retry pushing this company to Tally?"
+      : "Push this approved company to Tally?";
+    if (!window.confirm(msg)) return;
+    try {
+      setActionId(id);
+      if (isRetry) await retryCompanyTallyPush(id);
+      else await pushCompanyToTally(id);
+      toast.success(isRetry ? "Tally push retry successful" : "Pushed to Tally successfully");
+      fetchCompanies();
+    } catch (error) {
+      toast.error(error.message || "Tally push failed");
+      fetchCompanies();
+    } finally {
+      setActionId(null);
     }
   };
 
@@ -71,9 +131,14 @@ const CompanyDetail = () => {
     try {
       setLoading(true);
       const company = await getCompanyById(id);
+      if (company.approval_status !== "PENDING") {
+        toast.info("Only draft companies can be edited.");
+        return;
+      }
       setEditId(id);
       setFormData({
         name: company.name,
+        ledger_name: company.ledger_name || "",
         short_name: company.short_name,
         gst: company.gst || "",
         pan: company.pan || "",
@@ -81,10 +146,17 @@ const CompanyDetail = () => {
         cin: company.cin || "",
         email: company.email || "",
         state_code: company.state_code || "",
+        add_line1: company.add_line1 || company.address || "",
+        add_line2: company.add_line2 || "",
+        add_line3: company.add_line3 || "",
         address: company.address,
         city: company.city,
         state: company.state,
+        country: company.country || "India",
         zipcode: company.zipcode,
+        contact_person: company.contact_person || "",
+        contact_number: company.contact_number || "",
+        ledger_group: company.ledger_group || "",
         code: company.code,
         bank_accounts: company.bank_accounts || [],
         status: String(company.status ?? 1),
@@ -124,36 +196,47 @@ const CompanyDetail = () => {
       {view === "list" && (
         <>
           <Row>
-            <Col xl={4} lg={6} md={6} sm={6}>
+            <Col xl={3} lg={6} md={6} sm={6}>
               <Card>
                 <Card.Header className="border-0 pb-0">
-                  <h6 className="mb-0">Total Companies</h6>
+                  <h6 className="mb-0">Total</h6>
                 </Card.Header>
                 <Card.Body className="pt-2">
-                  <h2 className="card-title mb-0">{data.length}</h2>
+                  <h2 className="card-title mb-0">{totalCount}</h2>
                   <span><small className="text-muted">All Companies</small></span>
                 </Card.Body>
               </Card>
             </Col>
-            <Col xl={4} lg={6} md={6} sm={6}>
+            <Col xl={3} lg={6} md={6} sm={6}>
               <Card>
                 <Card.Header className="border-0 pb-0">
-                  <h6 className="mb-0">Active</h6>
+                  <h6 className="mb-0">Draft</h6>
                 </Card.Header>
                 <Card.Body className="pt-2">
-                  <h2 className="card-title mb-0 text-success">{activeCount}</h2>
-                  <span><small className="text-muted">Active companies</small></span>
+                  <h2 className="card-title mb-0 text-warning">{draftCount}</h2>
+                  <span><small className="text-muted">Pending approval</small></span>
                 </Card.Body>
               </Card>
             </Col>
-            <Col xl={4} lg={6} md={6} sm={6}>
+            <Col xl={3} lg={6} md={6} sm={6}>
               <Card>
                 <Card.Header className="border-0 pb-0">
-                  <h6 className="mb-0">Inactive</h6>
+                  <h6 className="mb-0">Posted</h6>
                 </Card.Header>
                 <Card.Body className="pt-2">
-                  <h2 className="card-title mb-0 text-secondary">{inactiveCount}</h2>
-                  <span><small className="text-muted">Inactive companies</small></span>
+                  <h2 className="card-title mb-0 text-success">{postedCount}</h2>
+                  <span><small className="text-muted">Approved</small></span>
+                </Card.Body>
+              </Card>
+            </Col>
+            <Col xl={3} lg={6} md={6} sm={6}>
+              <Card>
+                <Card.Header className="border-0 pb-0">
+                  <h6 className="mb-0">Cancelled</h6>
+                </Card.Header>
+                <Card.Body className="pt-2">
+                  <h2 className="card-title mb-0 text-danger">{cancelledCount}</h2>
+                  <span><small className="text-muted">Rejected</small></span>
                 </Card.Body>
               </Card>
             </Col>
@@ -167,6 +250,18 @@ const CompanyDetail = () => {
                     <Card.Title className="mb-0 flex-shrink-0 fw-bold">Company List</Card.Title>
 
                     <div className="d-flex align-items-center gap-2 flex-wrap flex-lg-nowrap ms-auto">
+                      <select
+                        className="form-control form-control-sm"
+                        style={{ minWidth: 130 }}
+                        value={statusFilter}
+                        onChange={(e) => setStatusFilter(e.target.value)}
+                      >
+                        <option value="">All Status</option>
+                        <option value="Draft">Draft</option>
+                        <option value="Posted">Posted</option>
+                        <option value="Cancelled">Cancelled</option>
+                      </select>
+
                       <div style={{ minWidth: 150 }}>
                         <SearchInput
                           value={search}
@@ -178,12 +273,16 @@ const CompanyDetail = () => {
                       <TableExportActions
                         data={data}
                         columns={[
-                          { label: "Name", key: "name" },
-                          { label: "Short Name", key: "short_name" },
-                          { label: "Code", key: "code" },
-                          { label: "GST", key: "gst" },
+                          { label: "Company Name", key: "name" },
+                          { label: "Ledger Name", key: "ledger_name" },
+                          { label: "Ledger Code", key: "code" },
+                          { label: "Ledger Group", key: "ledger_group" },
+                          { label: "GST Number", key: "gst" },
                           { label: "City", key: "city" },
                           { label: "State", key: "state" },
+                          { label: "Status", key: "status" },
+                          { label: "Tally", key: "tallyLabel" },
+                          { label: "Source", key: "sourceLabel" },
                         ]}
                         fileName="Company_List"
                       />
@@ -213,52 +312,105 @@ const CompanyDetail = () => {
                         <tr>
                           <th>Sno</th>
                           <th>Company Name</th>
-                          <th>Short Name</th>
-                          <th>Code</th>
+                          <th>Ledger Code</th>
+                          <th>Ledger Group</th>
                           <th>GST</th>
                           <th>City</th>
-                          <th>State</th>
+                          <th>Source</th>
                           <th>Status</th>
+                          <th>Tally</th>
                           <th className="text-end">Action</th>
                         </tr>
                       </thead>
                       <tbody>
-                        {paginatedData.length > 0 ? (
-                          paginatedData.map((item, index) => (
-                            <tr key={item.id}>
-                              <td className="text-muted">{indexOfFirst + index + 1}</td>
-                              <td className="fw-semibold">{item.name}</td>
-                              <td>{item.short_name}</td>
-                              <td>{item.code}</td>
-                              <td>{item.gst || "—"}</td>
-                              <td>{item.city}</td>
-                              <td>{item.state}</td>
-                              <td>
-                                <Badge bg={item.status === 1 ? "success" : "secondary"} className="rounded-pill">
-                                  {item.status === 1 ? "Active" : "Inactive"}
-                                </Badge>
-                              </td>
-                              <td className="text-end">
-                                <button
-                                  className="btn btn-primary shadow btn-xs sharp me-1"
-                                  onClick={() => openEditForm(item.id)}
-                                  title="Edit"
-                                >
-                                  <i className="fas fa-pencil-alt"></i>
-                                </button>
-                                <button
-                                  className="btn btn-danger shadow btn-xs sharp"
-                                  onClick={() => handleDelete(item.id)}
-                                  title="Delete"
-                                >
-                                  <i className="fa fa-trash"></i>
-                                </button>
-                              </td>
-                            </tr>
-                          ))
+                        {filteredRows.length > 0 ? (
+                          filteredRows.map((item, index) => {
+                            const isDraft = item.status === "Draft";
+                            const isPosted = item.status === "Posted";
+                            const busy = actionId === item.id;
+
+                            return (
+                              <tr key={item.id}>
+                                <td className="text-muted">{indexOfFirst + index + 1}</td>
+                                <td>
+                                  <div className="fw-semibold">{item.name}</div>
+                                  {item.ledger_name && item.ledger_name !== item.name && (
+                                    <small className="text-muted">{item.ledger_name}</small>
+                                  )}
+                                </td>
+                                <td>{item.code}</td>
+                                <td>{item.ledger_group || "—"}</td>
+                                <td>{item.gst || "—"}</td>
+                                <td>{item.city || "—"}</td>
+                                <td>
+                                  <Badge bg={item.sourceLabel === "Tally" ? "info" : "light"} className="text-dark border">
+                                    {item.sourceLabel}
+                                  </Badge>
+                                </td>
+                                <td>
+                                  <Badge bg={statusVariant[item.status] || "secondary"} className="rounded-pill">
+                                    {item.status}
+                                  </Badge>
+                                </td>
+                                <td>
+                                  <Badge bg={tallyVariant[item.tally_push_status] || "secondary"} className="rounded-pill">
+                                    {item.tallyLabel}
+                                  </Badge>
+                                </td>
+                                <td className="text-end">
+                                  {isDraft && (
+                                    <button
+                                      className="btn btn-success shadow btn-xs sharp me-1"
+                                      onClick={() => handleApprove(item.id)}
+                                      disabled={busy}
+                                      title="Approve"
+                                    >
+                                      <i className="fa fa-check"></i>
+                                    </button>
+                                  )}
+                                  {isPosted && item.tally_push_status === "NOT_PUSHED" && (
+                                    <button
+                                      className="btn btn-info shadow btn-xs sharp me-1"
+                                      onClick={() => handleTallyPush(item.id)}
+                                      disabled={busy}
+                                      title="Push to Tally"
+                                    >
+                                      <i className="fa fa-upload"></i>
+                                    </button>
+                                  )}
+                                  {isPosted && item.tally_push_status === "FAILED" && (
+                                    <button
+                                      className="btn btn-warning shadow btn-xs sharp me-1"
+                                      onClick={() => handleTallyPush(item.id, true)}
+                                      disabled={busy}
+                                      title="Retry Tally Push"
+                                    >
+                                      <i className="fa fa-rotate-right"></i>
+                                    </button>
+                                  )}
+                                  <button
+                                    className="btn btn-primary shadow btn-xs sharp me-1"
+                                    onClick={() => openEditForm(item.id)}
+                                    disabled={!isDraft}
+                                    title={isDraft ? "Edit" : "Only draft records can be edited"}
+                                  >
+                                    <i className="fas fa-pencil-alt"></i>
+                                  </button>
+                                  <button
+                                    className="btn btn-danger shadow btn-xs sharp"
+                                    onClick={() => handleDelete(item.id)}
+                                    disabled={!isDraft}
+                                    title={isDraft ? "Delete" : "Only draft records can be deleted"}
+                                  >
+                                    <i className="fa fa-trash"></i>
+                                  </button>
+                                </td>
+                              </tr>
+                            );
+                          })
                         ) : (
                           <tr>
-                            <td colSpan="9" className="text-center text-muted py-5">
+                            <td colSpan="10" className="text-center text-muted py-5">
                               No companies found
                             </td>
                           </tr>

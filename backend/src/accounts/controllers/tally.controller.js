@@ -10,6 +10,10 @@ const TALLY_WHERE = {
   tally_push_status: "NOT_PUSHED", // records waiting for Tally to pull
 };
 
+function getTallyWhere(req) {
+  return { ...TALLY_WHERE, company_id: req.tally_company_id };
+}
+
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
 // ---------------------------------------------------------------------------
@@ -147,13 +151,36 @@ function mapSales(row) {
   };
 }
 
+function mapCompany(row) {
+  return {
+    id: row.id,
+    CompanyName: row.name || "",
+    LedgerName: row.ledger_name || row.name || "",
+    LedgerCode: row.code || "",
+    LedgerGroup: row.ledger_group || "",
+    AddLine1: row.add_line1 || row.address || "",
+    AddLine2: row.add_line2 || "",
+    AddLine3: row.add_line3 || "",
+    LedgerPIN: row.zipcode != null ? String(row.zipcode) : "",
+    LedState: row.state || "",
+    LedCountry: row.country || "India",
+    ContactPerson: row.contact_person || "",
+    ContactNumber: row.contact_number || "",
+    EmailID: row.email || "",
+    PanNumber: row.pan || "",
+    GSTNumber: row.gst || "",
+  };
+}
+
 // ---------------------------------------------------------------------------
 // Credit Note — GET /api/tally/credit-notes
 // ---------------------------------------------------------------------------
 export async function getCreditNotesForTally(req, res) {
   try {
+    const where = getTallyWhere(req);
+
     const rows = await prisma.creditNote.findMany({
-      where: TALLY_WHERE,
+      where,
       include: { items: true },
       orderBy: { createdAt: "desc" },
     });
@@ -166,8 +193,10 @@ export async function getCreditNotesForTally(req, res) {
 
 export async function getCreditNoteForTally(req, res) {
   try {
+    const where = getTallyWhere(req);
+
     const row = await prisma.creditNote.findFirst({
-      where: { id: Number(req.params.id), ...TALLY_WHERE },
+      where: { id: Number(req.params.id), ...where },
       include: { items: true },
     });
     if (!row) return res.status(404).json({ message: "Credit note not found" });
@@ -183,8 +212,10 @@ export async function getCreditNoteForTally(req, res) {
 // ---------------------------------------------------------------------------
 export async function getDebitNotesForTally(req, res) {
   try {
+    const where = getTallyWhere(req);
+
     const rows = await prisma.debitNote.findMany({
-      where: TALLY_WHERE,
+      where,
       include: { items: true },
       orderBy: { createdAt: "desc" },
     });
@@ -197,8 +228,10 @@ export async function getDebitNotesForTally(req, res) {
 
 export async function getDebitNoteForTally(req, res) {
   try {
+    const where = getTallyWhere(req);
+
     const row = await prisma.debitNote.findFirst({
-      where: { id: Number(req.params.id), ...TALLY_WHERE },
+      where: { id: Number(req.params.id), ...where },
       include: { items: true },
     });
     if (!row) return res.status(404).json({ message: "Debit note not found" });
@@ -214,8 +247,10 @@ export async function getDebitNoteForTally(req, res) {
 // ---------------------------------------------------------------------------
 export async function getDeliveryChallansForTally(req, res) {
   try {
+    const where = getTallyWhere(req);
+
     const rows = await prisma.deliveryChallan.findMany({
-      where: TALLY_WHERE,
+      where,
       include: { items: true },
       orderBy: { createdAt: "desc" },
     });
@@ -228,8 +263,10 @@ export async function getDeliveryChallansForTally(req, res) {
 
 export async function getDeliveryChallanForTally(req, res) {
   try {
+    const where = getTallyWhere(req);
+
     const row = await prisma.deliveryChallan.findFirst({
-      where: { id: Number(req.params.id), ...TALLY_WHERE },
+      where: { id: Number(req.params.id), ...where },
       include: { items: true },
     });
     if (!row) return res.status(404).json({ message: "Delivery challan not found" });
@@ -245,8 +282,10 @@ export async function getDeliveryChallanForTally(req, res) {
 // ---------------------------------------------------------------------------
 export async function getExpensesForTally(req, res) {
   try {
+    const where = getTallyWhere(req);
+
     const rows = await prisma.journalVoucher.findMany({
-      where: TALLY_WHERE,
+      where,
       include: { entries: { orderBy: { sl_no: "asc" } } },
       orderBy: { createdAt: "desc" },
     });
@@ -259,8 +298,10 @@ export async function getExpensesForTally(req, res) {
 
 export async function getExpenseForTally(req, res) {
   try {
+    const where = getTallyWhere(req);
+
     const row = await prisma.journalVoucher.findFirst({
-      where: { id: Number(req.params.id), ...TALLY_WHERE },
+      where: { id: Number(req.params.id), ...where },
       include: { entries: { orderBy: { sl_no: "asc" } } },
     });
     if (!row) return res.status(404).json({ message: "Expense voucher not found" });
@@ -276,8 +317,10 @@ export async function getExpenseForTally(req, res) {
 // ---------------------------------------------------------------------------
 export async function getPaymentsForTally(req, res) {
   try {
+    const where = getTallyWhere(req);
+
     const rows = await prisma.paymentVoucher.findMany({
-      where: TALLY_WHERE,
+      where,
       include: { entries: { orderBy: { sl_no: "asc" } } },
       orderBy: { createdAt: "desc" },
     });
@@ -290,8 +333,10 @@ export async function getPaymentsForTally(req, res) {
 
 export async function getPaymentForTally(req, res) {
   try {
+    const where = getTallyWhere(req);
+
     const row = await prisma.paymentVoucher.findFirst({
-      where: { id: Number(req.params.id), ...TALLY_WHERE },
+      where: { id: Number(req.params.id), ...where },
       include: { entries: { orderBy: { sl_no: "asc" } } },
     });
     if (!row) return res.status(404).json({ message: "Payment voucher not found" });
@@ -307,8 +352,10 @@ export async function getPaymentForTally(req, res) {
 // ---------------------------------------------------------------------------
 export async function getPurchasesForTally(req, res) {
   try {
+    const where = getTallyWhere(req);
+
     const rows = await prisma.purchase.findMany({
-      where: TALLY_WHERE,
+      where,
       include: { items: true, gst_details: true },
       orderBy: { createdAt: "desc" },
     });
@@ -321,8 +368,10 @@ export async function getPurchasesForTally(req, res) {
 
 export async function getPurchaseForTally(req, res) {
   try {
+    const where = getTallyWhere(req);
+
     const row = await prisma.purchase.findFirst({
-      where: { id: Number(req.params.id), ...TALLY_WHERE },
+      where: { id: Number(req.params.id), ...where },
       include: { items: true, gst_details: true },
     });
     if (!row) return res.status(404).json({ message: "Purchase invoice not found" });
@@ -338,8 +387,10 @@ export async function getPurchaseForTally(req, res) {
 // ---------------------------------------------------------------------------
 export async function getSalesForTally(req, res) {
   try {
+    const where = getTallyWhere(req);
+
     const rows = await prisma.sales.findMany({
-      where: TALLY_WHERE,
+      where,
       include: { items: true },
       orderBy: { createdAt: "desc" },
     });
@@ -352,8 +403,10 @@ export async function getSalesForTally(req, res) {
 
 export async function getSalesForTallyById(req, res) {
   try {
+    const where = getTallyWhere(req);
+
     const row = await prisma.sales.findFirst({
-      where: { id: Number(req.params.id), ...TALLY_WHERE },
+      where: { id: Number(req.params.id), ...where },
       include: { items: true },
     });
     if (!row) return res.status(404).json({ message: "Sales invoice not found" });
@@ -363,3 +416,83 @@ export async function getSalesForTallyById(req, res) {
     return res.status(500).json({ message: "Failed to fetch sales invoice" });
   }
 }
+
+// ---------------------------------------------------------------------------
+// Company Master — GET /api/tally/companies
+// ---------------------------------------------------------------------------
+export async function getCompaniesForTally(req, res) {
+  try {
+    const where = getTallyWhere(req);
+
+    const rows = await prisma.companyDetail.findMany({
+      where,
+      include: { bank_accounts: true },
+      orderBy: { createdAt: "desc" },
+    });
+    return res.json({ data: rows.map(mapCompany) });
+  } catch (error) {
+    console.error("Tally companies:", error);
+    return res.status(500).json({ message: "Failed to fetch companies" });
+  }
+}
+
+export async function getCompanyForTally(req, res) {
+  try {
+    const where = getTallyWhere(req);
+
+    const row = await prisma.companyDetail.findFirst({
+      where: { id: Number(req.params.id), ...where },
+      include: { bank_accounts: true },
+    });
+    if (!row) return res.status(404).json({ message: "Company not found" });
+    return res.json({ data: [mapCompany(row)] });
+  } catch (error) {
+    console.error("Tally company:", error);
+    return res.status(500).json({ message: "Failed to fetch company" });
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Mark as pushed — PATCH after Tally successfully imports a record
+// ---------------------------------------------------------------------------
+function createMarkPushedHandler(modelName, docLabel) {
+  return async (req, res) => {
+    try {
+      const company_id = req.tally_company_id;
+
+      const row = await prisma[modelName].findFirst({
+        where: {
+          id: Number(req.params.id),
+          company_id,
+          approval_status: "APPROVED",
+        },
+      });
+
+      if (!row) {
+        return res.status(404).json({ message: `${docLabel} not found or not approved` });
+      }
+
+      const updated = await prisma[modelName].update({
+        where: { id: Number(req.params.id) },
+        data: { tally_push_status: "PUSHED" },
+      });
+
+      return res.json({
+        message: `${docLabel} marked as pushed to Tally`,
+        data: { id: updated.id, tally_push_status: updated.tally_push_status },
+      });
+    } catch (error) {
+      console.error(`Tally mark pushed (${docLabel}):`, error);
+      return res.status(500).json({ message: `Failed to mark ${docLabel} as pushed` });
+    }
+  };
+}
+
+export const markCreditNotePushed = createMarkPushedHandler("creditNote", "Credit note");
+export const markDebitNotePushed = createMarkPushedHandler("debitNote", "Debit note");
+export const markDeliveryChallanPushed = createMarkPushedHandler("deliveryChallan", "Delivery challan");
+export const markExpensePushed = createMarkPushedHandler("journalVoucher", "Expense voucher");
+export const markPaymentPushed = createMarkPushedHandler("paymentVoucher", "Payment voucher");
+export const markPurchasePushed = createMarkPushedHandler("purchase", "Purchase invoice");
+export const markSalesPushed = createMarkPushedHandler("sales", "Sales invoice");
+export const markCompanyPushed = createMarkPushedHandler("companyDetail", "Company");

@@ -1,15 +1,14 @@
 import { PrismaClient } from "@prisma/client";
+
 const prisma = new PrismaClient();
 
-// ✅ CREATE ROLE
+// ✅ CREATE ROLE (system-wide — shared by all companies)
 export const createRole = async (req, res) => {
   try {
     const { name, description } = req.body;
-
-    const company_id = req.user?.company_id;
     const created_by = req.user?.id;
 
-    if (!company_id || !created_by) {
+    if (!created_by) {
       return res.status(401).json({ message: "Unauthorized" });
     }
 
@@ -17,7 +16,6 @@ export const createRole = async (req, res) => {
       data: {
         name,
         description,
-        company_id,
         created_by: String(created_by),
       },
     });
@@ -26,20 +24,18 @@ export const createRole = async (req, res) => {
       message: "Role created successfully",
       data: role,
     });
-
   } catch (error) {
     console.error(error);
+    if (error.code === "P2002") {
+      return res.status(409).json({ message: "A role with this name already exists" });
+    }
     return res.status(500).json({ message: error.message });
   }
 };
 
-// ✅ GET ROLES WITH PERMISSIONS
 export const getRoles = async (req, res) => {
   try {
-    const company_id = req.user?.company_id;
-
     const roles = await prisma.role.findMany({
-      where: { company_id },
       orderBy: { created_at: "desc" },
     });
 
@@ -54,17 +50,12 @@ export const getRoles = async (req, res) => {
   }
 };
 
-
 export const getRoleById = async (req, res) => {
   try {
     const { id } = req.params;
-    const company_id = req.user?.company_id;
 
     const role = await prisma.role.findFirst({
-      where: {
-        id: Number(id),
-        company_id,
-      },
+      where: { id: Number(id) },
       include: {
         permissions: {
           select: {
@@ -80,19 +71,22 @@ export const getRoleById = async (req, res) => {
 
     return res.json({
       success: true,
-      data: role, // ✅ FIXED
+      data: role,
     });
-
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 };
 
-
 export const updateRole = async (req, res) => {
   try {
     const { id } = req.params;
     const { name, description } = req.body;
+
+    const existing = await prisma.role.findUnique({ where: { id: Number(id) } });
+    if (!existing) {
+      return res.status(404).json({ message: "Role not found" });
+    }
 
     const role = await prisma.role.update({
       where: { id: Number(id) },
@@ -101,14 +95,21 @@ export const updateRole = async (req, res) => {
 
     res.json(role);
   } catch (error) {
+    if (error.code === "P2002") {
+      return res.status(409).json({ message: "A role with this name already exists" });
+    }
     res.status(500).json({ message: error.message });
   }
 };
 
-
 export const deleteRole = async (req, res) => {
   try {
     const { id } = req.params;
+
+    const existing = await prisma.role.findUnique({ where: { id: Number(id) } });
+    if (!existing) {
+      return res.status(404).json({ message: "Role not found" });
+    }
 
     await prisma.role.delete({
       where: { id: Number(id) },
@@ -124,20 +125,14 @@ export const assignPermissionsToRole = async (req, res) => {
   try {
     const { role_id, permission_ids } = req.body;
 
-    const company_id = req.user?.company_id;
-
     if (!role_id || !Array.isArray(permission_ids)) {
       return res.status(400).json({
         message: "Role ID and permission_ids array required",
       });
     }
 
-    // 🔍 Check role belongs to same company
-    const role = await prisma.role.findFirst({
-      where: {
-        id: Number(role_id),
-        company_id,
-      },
+    const role = await prisma.role.findUnique({
+      where: { id: Number(role_id) },
     });
 
     if (!role) {
@@ -150,26 +145,21 @@ export const assignPermissionsToRole = async (req, res) => {
 
     const validPermissions = normalizedIds.length
       ? await prisma.permission.findMany({
-          where: {
-            company_id,
-            id: { in: normalizedIds },
-          },
+          where: { id: { in: normalizedIds } },
           select: { id: true },
         })
       : [];
 
     if (validPermissions.length !== normalizedIds.length) {
       return res.status(400).json({
-        message: "One or more permissions do not belong to your company",
+        message: "One or more permission IDs are invalid",
       });
     }
 
-    // 🧹 Remove old permissions
     await prisma.rolePermission.deleteMany({
       where: { role_id: Number(role_id) },
     });
 
-    // ✅ Add new permissions
     if (validPermissions.length) {
       await prisma.rolePermission.createMany({
         data: validPermissions.map(({ id }) => ({
@@ -183,12 +173,10 @@ export const assignPermissionsToRole = async (req, res) => {
     return res.json({
       message: "Permissions assigned successfully",
     });
-
   } catch (error) {
     return res.status(500).json({ message: error.message });
   }
 };
-
 
 export const getMyPermissions = async (req, res) => {
   try {
@@ -211,7 +199,7 @@ export const getMyPermissions = async (req, res) => {
 
     const result = permissions.map((p) => ({
       id: p.permission.id,
-      key : p.permission.name,
+      key: p.permission.name,
       label: p.permission.label,
       module: p.permission.module,
     }));
@@ -220,7 +208,6 @@ export const getMyPermissions = async (req, res) => {
       success: true,
       data: result,
     });
-
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: error.message });
