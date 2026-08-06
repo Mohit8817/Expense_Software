@@ -103,7 +103,7 @@ export async function buildAiReportContext(company_id, { from, to } = {}) {
     ...data.deliveryChallans,
     ...data.journalVouchers,
     ...data.paymentVouchers,
-  ].filter((r) => r.approval_status === "APPROVED" && r.tally_push_status === "NOT_PUSHED");
+  ].filter((r) => r.approval_status === "APPROVED" && r.tally_push_status === "PUSHED" && r.data_status === 1);
 
   return {
     company_id,

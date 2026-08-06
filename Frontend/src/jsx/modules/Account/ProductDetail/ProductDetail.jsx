@@ -8,6 +8,7 @@ import { useSearchFilter, SearchInput } from "../../../components/Common/useSear
 import ProductDetailForm from "./ProductDetailForm";
 import ProductExcelImport from "./ProductExcelImport";
 import DocumentAttachments from "../vouchers/shared/DocumentAttachments";
+import SourceBadge from "../SourceBadge";
 import { ATTACHMENT_DOCUMENT_TYPES } from "../documentAttachmentApi";
 import { getAllProducts, getProductById, deleteProduct } from "../productApi";
 
@@ -18,6 +19,7 @@ const ProductDetail = () => {
   const [editId, setEditId] = useState(null);
   const [formData, setFormData] = useState(null);
   const [showImport, setShowImport] = useState(false);
+  const [sourceFilter, setSourceFilter] = useState("");
   const attachmentRef = useRef(null);
 
   const fetchProducts = useCallback(async () => {
@@ -45,9 +47,13 @@ const ProductDetail = () => {
     paginatedData,
     indexOfFirst,
   } = useSearchFilter(data, {
-    keys: ["name", "desc", "hsn_sac", "units"],
+    keys: ["name", "desc", "hsn_sac", "units", "sourceLabel"],
     itemsPerPage: 100,
   });
+
+  const filteredProducts = paginatedData.filter((item) =>
+    sourceFilter ? item.sourceLabel === sourceFilter : true
+  );
 
   const activeCount = data.filter((p) => p.status === 1).length;
   const inactiveCount = data.length - activeCount;
@@ -166,6 +172,16 @@ const ProductDetail = () => {
                           placeholder="Search products..."
                         />
                       </div>
+                      <select
+                        className="form-control"
+                        style={{ minWidth: 140, maxWidth: 140 }}
+                        value={sourceFilter}
+                        onChange={(e) => setSourceFilter(e.target.value)}
+                      >
+                        <option value="">All Source</option>
+                        <option value="Software">Software</option>
+                        <option value="Tally">Tally</option>
+                      </select>
 
                       <TableExportActions
                         data={data}
@@ -174,6 +190,7 @@ const ProductDetail = () => {
                           { label: "Description", key: "desc" },
                           { label: "HSN/SAC", key: "hsn_sac" },
                           { label: "Units", key: "units" },
+                          { label: "Source", key: "sourceLabel" },
                           { label: "Status", key: "status" },
                         ]}
                         fileName="Product_List"
@@ -215,19 +232,27 @@ const ProductDetail = () => {
                           <th>Description</th>
                           <th>HSN/SAC</th>
                           <th>Units</th>
+                          <th>Source</th>
                           <th>Status</th>
                           <th className="text-end">Action</th>
                         </tr>
                       </thead>
                       <tbody>
-                        {paginatedData.length > 0 ? (
-                          paginatedData.map((item, index) => (
+                        {filteredProducts.length > 0 ? (
+                          filteredProducts.map((item, index) => (
                             <tr key={item.id}>
                               <td className="text-muted">{indexOfFirst + index + 1}</td>
                               <td className="fw-semibold">{item.name}</td>
                               <td>{item.desc}</td>
                               <td>{item.hsn_sac || "—"}</td>
                               <td>{item.units || "—"}</td>
+                              <td>
+                                <SourceBadge
+                                  dataStatus={item.data_status}
+                                  label={item.sourceLabel}
+                                  variant={item.sourceVariant}
+                                />
+                              </td>
                               <td>
                                 <Badge bg={item.status === 1 ? "success" : "secondary"} className="rounded-pill">
                                   {item.status === 1 ? "Active" : "Inactive"}
@@ -253,7 +278,7 @@ const ProductDetail = () => {
                           ))
                         ) : (
                           <tr>
-                            <td colSpan="7" className="text-center text-muted py-5">
+                            <td colSpan="8" className="text-center text-muted py-5">
                               No products found
                             </td>
                           </tr>

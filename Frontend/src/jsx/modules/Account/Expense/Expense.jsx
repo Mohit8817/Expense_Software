@@ -33,7 +33,7 @@ const Expense = () => (
     newButtonLabel="New Journal Voucher"
     exportFileName="Journal_Voucher_List"
     searchPlaceholder="Search journal vouchers..."
-    searchKeys={["voucher_no", "company_name", "payee_name", "party_flow", "narration", "on_account_of", "status", "tallyLabel"]}
+    searchKeys={["voucher_no", "company_name", "payee_name", "party_flow", "narration", "on_account_of", "status", "sourceLabel", "tallyLabel"]}
     exportColumns={[
       { label: "Voucher No", key: "voucher_no" },
       { label: "Date", key: "voucher_date" },
@@ -43,6 +43,7 @@ const Expense = () => (
       { label: "Narration", key: "narration" },
       { label: "Entries", key: "ItemCount" },
       { label: "Amount", key: "amount" },
+      { label: "Source", key: "sourceLabel" },
       { label: "Status", key: "status" },
       { label: "Tally", key: "tallyLabel" },
     ]}

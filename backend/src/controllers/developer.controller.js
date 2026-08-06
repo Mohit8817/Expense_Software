@@ -7,8 +7,8 @@ import { generateTallyManualPdf } from "../utils/tallyManualPdf.js";
 
 const MANUAL_META = {
   title: "KLK Expense — Tally Integration API Manual",
-  version: "1.0",
-  updated_at: "2026-07-28",
+  version: "1.1",
+  updated_at: "2026-08-06",
 };
 
 export const getTallyManual = async (req, res) => {

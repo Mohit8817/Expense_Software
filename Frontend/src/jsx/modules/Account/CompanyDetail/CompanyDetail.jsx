@@ -7,6 +7,7 @@ import Pagination from "../../../components/Common/Pagination";
 import { useSearchFilter, SearchInput } from "../../../components/Common/useSearchFilter";
 import CompanyDetailForm from "./CompanyDetailForm";
 import DocumentAttachments from "../vouchers/shared/DocumentAttachments";
+import SourceBadge from "../SourceBadge";
 import { ATTACHMENT_DOCUMENT_TYPES } from "../documentAttachmentApi";
 import {
   getAllCompanies,
@@ -34,6 +35,7 @@ const CompanyDetail = () => {
   const [loading, setLoading] = useState(false);
   const [actionId, setActionId] = useState(null);
   const [statusFilter, setStatusFilter] = useState("");
+  const [sourceFilter, setSourceFilter] = useState("");
   const [view, setView] = useState("list");
   const [editId, setEditId] = useState(null);
   const [formData, setFormData] = useState(null);
@@ -68,9 +70,11 @@ const CompanyDetail = () => {
     itemsPerPage: 100,
   });
 
-  const filteredRows = paginatedData.filter((row) =>
-    statusFilter ? row.status === statusFilter : true
-  );
+  const filteredRows = paginatedData.filter((row) => {
+    const matchesStatus = statusFilter ? row.status === statusFilter : true;
+    const matchesSource = sourceFilter ? row.sourceLabel === sourceFilter : true;
+    return matchesStatus && matchesSource;
+  });
 
   const totalCount = data.length;
   const draftCount = data.filter((r) => r.status === "Draft").length;
@@ -253,6 +257,16 @@ const CompanyDetail = () => {
                       <select
                         className="form-control form-control-sm"
                         style={{ minWidth: 130 }}
+                        value={sourceFilter}
+                        onChange={(e) => setSourceFilter(e.target.value)}
+                      >
+                        <option value="">All Source</option>
+                        <option value="Software">Software</option>
+                        <option value="Tally">Tally</option>
+                      </select>
+                      <select
+                        className="form-control form-control-sm"
+                        style={{ minWidth: 130 }}
                         value={statusFilter}
                         onChange={(e) => setStatusFilter(e.target.value)}
                       >
@@ -343,9 +357,11 @@ const CompanyDetail = () => {
                                 <td>{item.gst || "—"}</td>
                                 <td>{item.city || "—"}</td>
                                 <td>
-                                  <Badge bg={item.sourceLabel === "Tally" ? "info" : "light"} className="text-dark border">
-                                    {item.sourceLabel}
-                                  </Badge>
+                                  <SourceBadge
+                                    dataStatus={item.data_status}
+                                    label={item.sourceLabel}
+                                    variant={item.sourceVariant}
+                                  />
                                 </td>
                                 <td>
                                   <Badge bg={statusVariant[item.status] || "secondary"} className="rounded-pill">

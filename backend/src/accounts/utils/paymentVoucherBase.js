@@ -365,4 +365,6 @@ export function createPaymentVoucherHandlers({ buildData }) {
   return { create, getAll, getById, update, remove, approve, reject, pushToTally, retryTallyPush };
 }
 
+export { validateEntries, mapEntry };
+
 export { getDocumentNo, getDocumentAmount };

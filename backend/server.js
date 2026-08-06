@@ -30,19 +30,44 @@ import accountRoutes from "./src/accounts/routes/account.routes.js";
 import paymentVoucherRoutes from "./src/accounts/routes/paymentvoucher.routes.js";
 import attachmentRoutes from "./src/accounts/routes/attachment.routes.js";
 import tallyRoutes from "./src/accounts/routes/tally.routes.js";
+import { tallyJsonParseErrorResponse } from "./src/accounts/middlewares/tallyBodyParser.js";
 
 
 
 const app = express();
 
-// middleware
-app.use(express.json());
+const isProduction = process.env.NODE_ENV === "production";
 
-console.log("ENV JWT_SECRET:", process.env.JWT_SECRET);
+const DEFAULT_CORS_ORIGINS = [
+  "http://localhost:5173",
+  "http://klk.co.in",
+  "https://klk.co.in",
+  "http://www.klk.co.in",
+  "https://www.klk.co.in",
+];
+
+const corsOrigins = process.env.CORS_ORIGINS
+  ? process.env.CORS_ORIGINS.split(",").map((origin) => origin.trim()).filter(Boolean)
+  : DEFAULT_CORS_ORIGINS;
+
+const sessionSecret = process.env.SESSION_SECRET;
+if (!sessionSecret && isProduction) {
+  console.error("SESSION_SECRET is required when NODE_ENV=production");
+  process.exit(1);
+}
+
+// middleware
+app.use(
+  express.json({
+    verify: (req, _res, buf) => {
+      req.rawBody = buf?.length ? buf.toString("utf8") : "";
+    },
+  })
+);
 
 app.use(
   cors({
-    origin: ["http://localhost:5173", "http://klk.co.in"],
+    origin: corsOrigins,
     credentials: true,
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
     allowedHeaders: ["Content-Type", "Authorization"],
@@ -52,10 +77,10 @@ app.use(
 
 // Configure session
 app.use(session({
-  secret: "your_secret_key",
+  secret: sessionSecret || "dev-only-session-secret",
   resave: false,
   saveUninitialized: false,
-  cookie: { secure: false, httpOnly: true } 
+  cookie: { secure: isProduction, httpOnly: true },
 }));
 
 
@@ -119,6 +144,19 @@ app.get("/", (req, res) => {
 // error handler
 app.use((err, req, res, next) => {
   console.error(err);
+
+  if (err instanceof SyntaxError && err.status === 400 && "body" in err) {
+    if (req.path?.startsWith("/api/tally")) {
+      return res.status(400).json(tallyJsonParseErrorResponse(req, err, req.rawBody || ""));
+    }
+
+    return res.status(400).json({
+      message: "Invalid JSON body",
+      error: err.message,
+      hint: "Check that all strings are quoted and commas/brackets are balanced.",
+    });
+  }
+
   res.status(err.status || 500).json({
     message: err.message || "Internal Server Error",
   });

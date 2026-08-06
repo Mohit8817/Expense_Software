@@ -50,8 +50,6 @@ function Login() {
       setLoading(true);
       dispatch(loadingToggleAction(true));
 
-      console.log(import.meta.env.VITE_BACKEND_API_URL);
-
       const response = await axios.post(
         `${import.meta.env.VITE_BACKEND_API_URL}login/loginuser`,
         { email, password }

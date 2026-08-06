@@ -1,3 +1,5 @@
+import { mapDataSourceFields } from "./dataSourceUtils";
+
 const BASE_URL = import.meta.env.VITE_BACKEND_API_URL;
 const getToken = () => localStorage.getItem("token");
 
@@ -6,13 +8,18 @@ const authHeaders = (json = true) => ({
   ...(json ? { "Content-Type": "application/json" } : {}),
 });
 
+export const mapProductToList = (product) => ({
+  ...product,
+  ...mapDataSourceFields(product),
+});
+
 export const getAllProducts = async () => {
   const res = await fetch(`${BASE_URL}productdetail/all`, {
     headers: authHeaders(false),
   });
   const data = await res.json();
   if (!res.ok) throw new Error(data.message || "Failed to fetch products");
-  return data.data || [];
+  return (data.data || []).map(mapProductToList);
 };
 
 export const getProductById = async (id) => {

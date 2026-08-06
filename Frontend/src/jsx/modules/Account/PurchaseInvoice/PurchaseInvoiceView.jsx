@@ -2,6 +2,7 @@ import React from "react";
 import { Card, Badge, Row, Col } from "react-bootstrap";
 import PurchaseInvoicePreview from "./PurchaseInvoicePreview";
 import DocumentAttachments from "../vouchers/shared/DocumentAttachments";
+import SourceBadge from "../SourceBadge";
 import { ATTACHMENT_DOCUMENT_TYPES } from "../documentAttachmentApi";
 
 const statusVariant = {
@@ -62,6 +63,11 @@ const PurchaseInvoiceView = ({
                 <Badge bg={tallyVariant[data?.tally_push_status] || "secondary"} className="rounded-pill">
                   Tally: {data?.tallyLabel || "Not Pushed"}
                 </Badge>
+                <SourceBadge
+                  dataStatus={data?.data_status}
+                  label={data?.sourceLabel}
+                  variant={data?.sourceVariant}
+                />
               </div>
               <small className="text-muted">
                 {data?.InvoiceType || "Tax Invoice"} · {data?.PurchaseDate || "—"}

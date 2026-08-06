@@ -5,7 +5,8 @@ import {
   approvalToStatus,
   tallyToLabel,
 } from "./voucherDocumentApi";
-import { formatCompanyAddress, getCompanyStateCode } from "./purchaseApi";
+import { mapDataSourceFields } from "./dataSourceUtils";
+import { formatCompanyAddress } from "./purchaseApi";
 import { parseNonNegative } from "./vouchers/shared/numberInputUtils";
 import {
   uploadDocumentForScan,
@@ -161,6 +162,7 @@ export const mapPaymentVoucherToList = (pv) => ({
   approval_status: pv.approval_status,
   tally_push_status: pv.tally_push_status,
   tallyLabel: tallyToLabel(pv.tally_push_status),
+  ...mapDataSourceFields(pv),
   raw: pv,
 });
 
@@ -211,6 +213,7 @@ export const mapPaymentVoucherToForm = (pv) => ({
   approval_status: pv.approval_status,
   tally_push_status: pv.tally_push_status,
   tallyLabel: tallyToLabel(pv.tally_push_status),
+  ...mapDataSourceFields(pv),
 });
 
 const mapLedgersToEntries = (debitLedgers = [], creditLedgers = []) => {

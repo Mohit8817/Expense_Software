@@ -2,7 +2,18 @@
  * Resolve company_id from query or body (never optional for Tally APIs).
  */
 export function resolveTallyCompanyId(req) {
-  const raw = req.query?.company_id ?? req.body?.company_id;
+  const body = req.body;
+  let dataCompanyId = null;
+
+  if (body && typeof body === "object") {
+    if (Array.isArray(body.data) && body.data[0]?.company_id) {
+      dataCompanyId = body.data[0].company_id;
+    } else if (body.data?.company_id) {
+      dataCompanyId = body.data.company_id;
+    }
+  }
+
+  const raw = req.query?.company_id ?? body?.company_id ?? dataCompanyId;
   if (raw === undefined || raw === null) return null;
   const company_id = String(raw).trim();
   return company_id || null;

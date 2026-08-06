@@ -44,7 +44,7 @@ const validateEntries = (entries) => {
     return { status: 400, message: "Debit and credit totals must be equal" };
   }
 
-  return null;
+  return { totalDebit, totalCredit };
 };
 
 async function sendToTally() {
@@ -68,8 +68,8 @@ export function createJournalVoucherHandlers({ buildData }) {
         return res.status(400).json({ message: "Voucher number is required" });
       }
 
-      const entryError = validateEntries(entries);
-      if (entryError) return res.status(entryError.status).json({ message: entryError.message });
+      const entryResult = validateEntries(entries);
+      if (entryResult?.status) return res.status(entryResult.status).json({ message: entryResult.message });
 
       const existing = await prisma.journalVoucher.findUnique({
         where: { voucher_no: rest.voucher_no },
@@ -80,7 +80,11 @@ export function createJournalVoucherHandlers({ buildData }) {
 
       const record = await prisma.journalVoucher.create({
         data: {
-          ...buildData(rest),
+          ...buildData({
+            ...rest,
+            total_debit: rest.total_debit ?? entryResult.totalDebit,
+            total_credit: rest.total_credit ?? entryResult.totalCredit,
+          }),
           company_id,
           user_id,
           data_status: resolveDataStatus(req),
@@ -380,3 +384,5 @@ export function createJournalVoucherHandlers({ buildData }) {
     retryTallyPush,
   };
 }
+
+export { validateEntries, mapEntry };

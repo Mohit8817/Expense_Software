@@ -1,4 +1,5 @@
 import { parseBankAccountIdForApi } from "./companyBankUtils";
+import { mapDataSourceFields } from "./dataSourceUtils";
 
 const BASE_URL = import.meta.env.VITE_BACKEND_API_URL;
 const getToken = () => localStorage.getItem("token");
@@ -121,6 +122,7 @@ export const mapPurchaseToList = (p) => ({
   approval_status: p.approval_status,
   tally_push_status: p.tally_push_status,
   tallyLabel: tallyToLabel(p.tally_push_status),
+  ...mapDataSourceFields(p),
   raw: p,
 });
 
@@ -200,6 +202,7 @@ export const mapPurchaseToForm = (p) => ({
   approval_status: p.approval_status,
   tally_push_status: p.tally_push_status,
   tallyLabel: tallyToLabel(p.tally_push_status),
+  ...mapDataSourceFields(p),
 });
 
 export const mapFormToPayload = (formData, purchaseItems, gstDetails) => {

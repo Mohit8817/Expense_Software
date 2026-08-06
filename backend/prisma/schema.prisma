@@ -326,8 +326,8 @@ model Purchase {
   // e-Invoice details
   invoice_type      String?
   irn               String   @unique
-  ack_no            String
-  ack_date          DateTime
+  ack_no            String?
+  ack_date          DateTime?
 
   // Invoice details
   invoice_no        String

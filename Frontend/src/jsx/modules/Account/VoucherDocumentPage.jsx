@@ -7,6 +7,7 @@ import Pagination from "../../components/Common/Pagination";
 import { useSearchFilter, SearchInput } from "../../components/Common/useSearchFilter";
 import VoucherDocumentView from "./vouchers/shared/VoucherDocumentView";
 import DocumentAttachments from "./vouchers/shared/DocumentAttachments";
+import SourceBadge from "./SourceBadge";
 
 const statusVariant = {
   Posted: "success",
@@ -57,6 +58,7 @@ const VoucherDocumentPage = ({
   const [loading, setLoading] = useState(false);
   const [actionId, setActionId] = useState(null);
   const [statusFilter, setStatusFilter] = useState("");
+  const [sourceFilter, setSourceFilter] = useState("");
   const [dateFilter, setDateFilter] = useState("");
   const [pageMode, setPageMode] = useState("list");
   const [recordId, setRecordId] = useState(null);
@@ -231,8 +233,9 @@ const VoucherDocumentPage = ({
 
   const filteredData = paginatedData.filter((row) => {
     const matchesStatus = statusFilter ? row.status === statusFilter : true;
+    const matchesSource = sourceFilter ? row.sourceLabel === sourceFilter : true;
     const matchesDate = dateFilter ? row[dateKey] === dateFilter : true;
-    return matchesStatus && matchesDate;
+    return matchesStatus && matchesSource && matchesDate;
   });
 
   const pageTitle =
@@ -323,6 +326,16 @@ const VoucherDocumentPage = ({
                       <select
                         className="form-control"
                         style={{ minWidth: 140, maxWidth: 140 }}
+                        value={sourceFilter}
+                        onChange={(e) => setSourceFilter(e.target.value)}
+                      >
+                        <option value="">All Source</option>
+                        <option value="Software">Software</option>
+                        <option value="Tally">Tally</option>
+                      </select>
+                      <select
+                        className="form-control"
+                        style={{ minWidth: 140, maxWidth: 140 }}
                         value={statusFilter}
                         onChange={(e) => setStatusFilter(e.target.value)}
                       >
@@ -366,6 +379,7 @@ const VoucherDocumentPage = ({
                           {refKey && <th>{tableConfig.refLabel || "Reference"}</th>}
                           <th className="text-center">Items</th>
                           <th>Amount</th>
+                          <th>Source</th>
                           <th>Status</th>
                           <th>Tally</th>
                           <th className="text-end">Action</th>
@@ -407,6 +421,13 @@ const VoucherDocumentPage = ({
                                 {refKey && <td>{row[refKey] || "—"}</td>}
                                 <td className="text-center fw-semibold">{row.ItemCount ?? 0}</td>
                                 <td className="fw-bold">{formatMoney(row[amountKey])}</td>
+                                <td>
+                                  <SourceBadge
+                                    dataStatus={row.data_status}
+                                    label={row.sourceLabel}
+                                    variant={row.sourceVariant}
+                                  />
+                                </td>
                                 <td>
                                   <Badge bg={statusVariant[row.status] || "secondary"} className="rounded-pill">
                                     <i className={`fa-solid ${statusIcon[row.status] || "fa-circle"} me-1`}></i>

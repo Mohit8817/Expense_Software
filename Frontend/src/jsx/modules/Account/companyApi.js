@@ -1,5 +1,6 @@
 import { uploadDocumentForScan } from "./aiScanUtils";
 import { approvalToStatus, tallyToLabel } from "./purchaseApi";
+import { mapDataSourceFields } from "./dataSourceUtils";
 
 const BASE_URL = import.meta.env.VITE_BACKEND_API_URL;
 const getToken = () => localStorage.getItem("token");
@@ -15,7 +16,7 @@ export const mapCompanyToList = (company) => ({
   approval_status: company.approval_status,
   tally_push_status: company.tally_push_status,
   tallyLabel: tallyToLabel(company.tally_push_status),
-  sourceLabel: company.data_status === 2 ? "Tally" : "App",
+  ...mapDataSourceFields(company),
 });
 
 export const scanCompanyDocument = async (file) =>

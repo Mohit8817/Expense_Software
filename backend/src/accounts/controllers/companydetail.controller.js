@@ -8,6 +8,11 @@ import {
   mapCompanyDetailToTally,
   mapTallyToCompanyDetail,
 } from "../utils/companyTallyMapper.js";
+import {
+  extractTallyCompanyRecords,
+  isTallyCompanyBatchRequest,
+  describeTallyCompanyBodyIssue,
+} from "../utils/tallyPayloadUtils.js";
 
 const prisma = new PrismaClient();
 
@@ -100,61 +105,138 @@ async function sendToTally(record) {
 const canMutateRecord = (existing, req) =>
   existing.approval_status === "PENDING" || resolveDataStatus(req) === DATA_STATUS_TALLY;
 
+async function createCompanyRecord(req, rawBody) {
+  const company_id = req.user?.company_id;
+  const user_id = req.user?.id;
+  const fromTally = resolveDataStatus(req) === DATA_STATUS_TALLY;
+  const { bank_accounts, ...rest } = rawBody || {};
+  const preparedBody = prepareRequestBody(rest);
+  const input = normalizeCompanyInput(preparedBody);
+
+  if (
+    !input.name ||
+    !input.short_name ||
+    !input.address ||
+    !input.state ||
+    input.zipcode == null ||
+    !input.code
+  ) {
+    const err = new Error("Required fields are missing.");
+    err.status = 400;
+    throw err;
+  }
+
+  const company = await prisma.companyDetail.create({
+    data: {
+      company_id,
+      user_id,
+      ...input,
+      data_status: resolveDataStatus(req),
+      approval_status: fromTally ? "APPROVED" : "PENDING",
+      approval_date: fromTally ? new Date() : null,
+      tally_push_status: fromTally ? "PUSHED" : "NOT_PUSHED",
+    },
+  });
+
+  await syncBankAccounts(company.id, bank_accounts);
+
+  const withBanks = await prisma.companyDetail.findUnique({
+    where: { id: company.id },
+    include: companyInclude,
+  });
+
+  return {
+    ...withBanks,
+    tally: mapCompanyDetailToTally(withBanks),
+  };
+}
+
 export const createCompany = async (req, res) => {
   try {
     const company_id = req.user?.company_id;
     const user_id = req.user?.id;
-    const { bank_accounts, ...rawBody } = req.body;
-    const preparedBody = prepareRequestBody(rawBody);
-    const input = normalizeCompanyInput(preparedBody);
-    const fromTally = resolveDataStatus(req) === DATA_STATUS_TALLY;
 
     if (!company_id || !user_id) {
       return res.status(401).json({ success: false, message: "Unauthorized" });
     }
 
-    if (
-      !input.name ||
-      !input.short_name ||
-      !input.address ||
-      !input.state ||
-      input.zipcode == null ||
-      !input.code
-    ) {
+    const records = extractTallyCompanyRecords(req.body);
+    const isBatch = isTallyCompanyBatchRequest(req.body);
+
+    if (!records.length) {
       return res.status(400).json({
         success: false,
-        message: "Required fields are missing.",
+        message: "No company records found in request body",
+        hint: describeTallyCompanyBodyIssue(req.body),
+        example: {
+          data: [
+            {
+              company_id: "KLKURJA",
+              CompanyName: "ABC Company",
+              LedgerName: "Customer 1",
+              LedgerCode: "Cust 001",
+              LedgerGroup: "Sundry Debtors",
+              AddLine1: "wfdwqwd",
+              AddLine2: "dgwfwqfd",
+              LedgerPIN: "110001",
+              LedState: "Delhi",
+              LedCountry: "India",
+              ContactPerson: "ABC",
+              ContactNumber: "9999999999",
+              EmailID: "abc@gmail.com",
+              PanNumber: "AAAAA1111A",
+              GSTNumber: "07AAAAA1111A1Z1",
+            },
+          ],
+        },
       });
     }
 
-    const company = await prisma.companyDetail.create({
-      data: {
-        company_id,
-        user_id,
-        ...input,
-        data_status: resolveDataStatus(req),
-        approval_status: fromTally ? "APPROVED" : "PENDING",
-        approval_date: fromTally ? new Date() : null,
-        tally_push_status: fromTally ? "PUSHED" : "NOT_PUSHED",
-      },
-    });
+    if (isBatch || records.length > 1) {
+      const created = [];
+      const errors = [];
 
-    await syncBankAccounts(company.id, bank_accounts);
+      for (const record of records) {
+        const companyRef = record.CompanyName || record.name || record.LedgerCode || record.code || "unknown";
+        try {
+          const company = await createCompanyRecord(req, record);
+          created.push(company);
+        } catch (error) {
+          errors.push({
+            CompanyName: companyRef,
+            message: error.message,
+          });
+        }
+      }
 
-    const withBanks = await prisma.companyDetail.findUnique({
-      where: { id: company.id },
-      include: companyInclude,
-    });
+      if (!created.length) {
+        return res.status(400).json({
+          success: false,
+          message: "No companies were created",
+          data: [],
+          errors,
+        });
+      }
+
+      return res.status(201).json({
+        success: true,
+        message: `${created.length} company(s) created successfully.`,
+        data: created,
+        ...(errors.length > 0 && { errors }),
+      });
+    }
+
+    const company = await createCompanyRecord(req, records[0]);
 
     return res.status(201).json({
       success: true,
       message: "Company created successfully.",
-      data: withBanks,
-      tally: mapCompanyDetailToTally(withBanks),
+      data: company,
+      tally: company.tally,
     });
   } catch (error) {
     console.error(error);
-    return res.status(500).json({ success: false, message: error.message });
+    return res.status(error.status || 500).json({ success: false, message: error.message });
   }
 };
 

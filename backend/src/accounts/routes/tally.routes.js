@@ -1,5 +1,6 @@
 import express from "express";
 import { requireTallyCompanyId } from "../middlewares/tallyCompanyId.js";
+import { parseTallyJsonBody } from "../middlewares/tallyBodyParser.js";
 import { tallyContext } from "../middlewares/tallyContext.js";
 import {
   getCreditNotesForTally,
@@ -70,6 +71,7 @@ import {
 
 const router = express.Router();
 
+router.use(parseTallyJsonBody);
 router.use(requireTallyCompanyId);
 
 // Credit Note — GET (Tally export) + CRUD

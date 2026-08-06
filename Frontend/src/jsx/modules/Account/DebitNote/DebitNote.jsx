@@ -40,6 +40,7 @@ const DebitNote = () => (
       "PurchaseNo",
       "Vendorgstin",
       "status",
+      "sourceLabel",
       "tallyLabel",
     ]}
     exportColumns={[
@@ -50,6 +51,7 @@ const DebitNote = () => (
       { label: "Purchase No", key: "PurchaseNo" },
       { label: "Items", key: "ItemCount" },
       { label: "Amount", key: "DebitNoteAmount" },
+      { label: "Source", key: "sourceLabel" },
       { label: "Status", key: "status" },
       { label: "Tally", key: "tallyLabel" },
     ]}
