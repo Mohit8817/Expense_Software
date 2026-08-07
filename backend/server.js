@@ -14,6 +14,8 @@ import expenseRoutes from "./src/routes/expense.routes.js"
 import dashboardRoutes from "./src/routes/dashboard.routes.js";
 import roleRoutes from "./src/routes/role.routes.js"
 import permissionRoutes from "./src/routes/permission.routes.js"
+import tenantRoutes from "./src/routes/tenant.routes.js"
+import developerRoutes from "./src/routes/developer.routes.js"
 import reportRoutes from "./src/routes/report.routes.js"
 import paymentRoutes from "./src/routes/payment.routes.js"
 import purchaseRoutes from "./src/accounts/routes/purchase.routes.js";
@@ -28,19 +30,44 @@ import accountRoutes from "./src/accounts/routes/account.routes.js";
 import paymentVoucherRoutes from "./src/accounts/routes/paymentvoucher.routes.js";
 import attachmentRoutes from "./src/accounts/routes/attachment.routes.js";
 import tallyRoutes from "./src/accounts/routes/tally.routes.js";
+import { tallyJsonParseErrorResponse } from "./src/accounts/middlewares/tallyBodyParser.js";
 
 
 
 const app = express();
 
-// middleware
-app.use(express.json());
+const isProduction = process.env.NODE_ENV === "production";
 
-console.log("ENV JWT_SECRET:", process.env.JWT_SECRET);
+const DEFAULT_CORS_ORIGINS = [
+  "http://localhost:5174",
+  "http://klk.co.in",
+  "https://klk.co.in",
+  "http://www.klk.co.in",
+  "https://www.klk.co.in",
+];
+
+const corsOrigins = process.env.CORS_ORIGINS
+  ? process.env.CORS_ORIGINS.split(",").map((origin) => origin.trim()).filter(Boolean)
+  : DEFAULT_CORS_ORIGINS;
+
+const sessionSecret = process.env.SESSION_SECRET;
+if (!sessionSecret && isProduction) {
+  console.error("SESSION_SECRET is required when NODE_ENV=production");
+  process.exit(1);
+}
+
+// middleware
+app.use(
+  express.json({
+    verify: (req, _res, buf) => {
+      req.rawBody = buf?.length ? buf.toString("utf8") : "";
+    },
+  })
+);
 
 app.use(
   cors({
-    origin: ["http://localhost:5173", "http://klk.co.in"],
+    origin: corsOrigins,
     credentials: true,
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
     allowedHeaders: ["Content-Type", "Authorization"],
@@ -50,10 +77,10 @@ app.use(
 
 // Configure session
 app.use(session({
-  secret: "your_secret_key",
+  secret: sessionSecret || "dev-only-session-secret",
   resave: false,
   saveUninitialized: false,
-  cookie: { secure: false, httpOnly: true } 
+  cookie: { secure: isProduction, httpOnly: true },
 }));
 
 
@@ -75,13 +102,14 @@ if (!fs.existsSync(uploadDir)) {
 
 app.use("/api/login", loginRoutes);
 
-// Tally integration — public GET APIs (no login / no company_id filter)
+// Tally integration — public APIs (GET export + CRUD with company_id, no JWT)
 app.use("/api/tally", tallyRoutes);
 
 import {auth} from "./src/middlewares/auth.js"
-import { report } from "process";
+import { developerRouteGuard } from "./src/middlewares/developerAccess.js"
 
 app.use(auth)
+app.use(developerRouteGuard)
 
 
 // routes
@@ -92,6 +120,8 @@ app.use("/api/expense", expenseRoutes);
 app.use("/api/dashboard", dashboardRoutes);
 app.use("/api/role", roleRoutes);
 app.use("/api/permission", permissionRoutes);
+app.use("/api/tenant", tenantRoutes);
+app.use("/api/developer", developerRoutes);
 app.use("/api/reports", reportRoutes);
 app.use("/api/payment", paymentRoutes);
 app.use("/api/purchase", purchaseRoutes);
@@ -114,6 +144,19 @@ app.get("/", (req, res) => {
 // error handler
 app.use((err, req, res, next) => {
   console.error(err);
+
+  if (err instanceof SyntaxError && err.status === 400 && "body" in err) {
+    if (req.path?.startsWith("/api/tally")) {
+      return res.status(400).json(tallyJsonParseErrorResponse(req, err, req.rawBody || ""));
+    }
+
+    return res.status(400).json({
+      message: "Invalid JSON body",
+      error: err.message,
+      hint: "Check that all strings are quoted and commas/brackets are balanced.",
+    });
+  }
+
   res.status(err.status || 500).json({
     message: err.message || "Internal Server Error",
   });

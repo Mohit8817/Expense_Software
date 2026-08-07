@@ -1,4 +1,5 @@
 import { PrismaClient } from "@prisma/client";
+import { resolveDataStatus } from "../constants/dataStatus.js";
 import { getDocumentAmount, getDocumentNo } from "./paymentLinkUtils.js";
 import {
   ATTACHMENT_DOCUMENT_TYPES,
@@ -111,6 +112,7 @@ export function createPaymentVoucherHandlers({ buildData }) {
           ...buildData(rest, entryResult.totalDebit, entryResult.totalCredit),
           company_id,
           user_id,
+          data_status: resolveDataStatus(req),
           entries: { create: entries.map(mapEntry) },
           ...(Array.isArray(allocations) &&
             allocations.length > 0 && {
@@ -362,5 +364,7 @@ export function createPaymentVoucherHandlers({ buildData }) {
 
   return { create, getAll, getById, update, remove, approve, reject, pushToTally, retryTallyPush };
 }
+
+export { validateEntries, mapEntry };
 
 export { getDocumentNo, getDocumentAmount };

@@ -3,6 +3,11 @@ import { ThemeContext } from "../../context/ThemeContext";
 import { Routes, Route, Outlet, Navigate, useLocation } from "react-router-dom";
 import { getOutletKey } from "../../utils/navUtils";
 import { isTokenExpired } from "../../utils/auth";
+import {
+  getDeveloperHomeRoute,
+  isDeveloperRoute,
+  isDeveloperUser,
+} from "../../utils/developer";
 import Nav from "../layouts/nav";
 import Footer from "../layouts/Footer";
 // dashboard 
@@ -73,11 +78,23 @@ import ProductDetail from "../modules/Account/ProductDetail/ProductDetail";
 import CompanyDetail from "../modules/Account/CompanyDetail/CompanyDetail";
 import AccountDashboard from "../modules/Account/AccountDashboard";
 import AccountReports from "../modules/Account/AccountReports";
+import AiReport from "../modules/Account/AiReport";
+import TenantList from "../modules/Tenant/TenantList";
+import TenantForm from "../modules/Tenant/TenantForm";
+import TallyManual from "../modules/TallyManual/TallyManual";
 
 
 
 
 
+
+
+const DeveloperOnlyRoute = ({ children }) => {
+    if (!isDeveloperUser()) {
+        return <Navigate to={getDeveloperHomeRoute()} replace />;
+    }
+    return children;
+};
 
 
 const ProtectedRoute = ({ children }) => {
@@ -102,6 +119,10 @@ const PublicRoute = ({ children }) => {
     const user = localStorage.getItem("user");
 
     if (token && user && !isTokenExpired(token)) {
+        const parsed = JSON.parse(user);
+        if (isDeveloperUser(parsed)) {
+            return <Navigate to={getDeveloperHomeRoute()} replace />;
+        }
         return <Navigate to="/dashboard" replace />;
     }
 
@@ -150,6 +171,12 @@ const Markup = () => {
         { path: '/permission/add-permission', element: <PermissionForm /> },
         { path: '/role/assign/:id', element: <AssignPermission /> },
 
+        { path: '/tenant/list', element: <TenantList /> },
+        { path: '/tenant/add', element: <TenantForm /> },
+        { path: '/tenant/edit/:id', element: <TenantForm /> },
+
+        { path: '/settings/tally-manual', element: <DeveloperOnlyRoute><TallyManual /></DeveloperOnlyRoute> },
+
         { path: '/manager/pending-payments', element: <ManagerPendingPayments /> },
         { path: '/manager/approved-payments', element: <ManagerApprovedPayments /> },
         { path: '/account/paid-payments', element: <AccountPaidPayments /> },
@@ -179,6 +206,7 @@ const Markup = () => {
         { path: '/account/Company-Detail', element: <CompanyDetail /> },
         { path: '/account/dashboard', element: <AccountDashboard /> },
         { path: '/account/reports', element: <AccountReports /> },
+        { path: '/account/ai-report', element: <AiReport /> },
 
      ];
 
@@ -234,6 +262,10 @@ const Markup = () => {
 function MainLayout() {
     const { menuToggle, sidebariconHover } = useContext(ThemeContext);
     const location = useLocation();
+
+    if (isDeveloperUser() && !isDeveloperRoute(location.pathname)) {
+        return <Navigate to={getDeveloperHomeRoute()} replace />;
+    }
 
     // ✅ ADD THIS BLOCK
         useEffect(() => {

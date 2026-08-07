@@ -1,4 +1,5 @@
 import { PrismaClient } from "@prisma/client";
+import { resolveDataStatus } from "../constants/dataStatus.js";
 import {
   ATTACHMENT_DOCUMENT_TYPES,
   deleteAttachmentsForDocument,
@@ -32,6 +33,7 @@ export const createProduct = async (req, res) => {
         hsn_sac: hsn_sac || null,
         units: units || null,
         status: status != null ? Number(status) : 0,
+        data_status: resolveDataStatus(req),
       },
     });
 

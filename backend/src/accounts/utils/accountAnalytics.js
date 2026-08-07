@@ -31,13 +31,13 @@ export async function getCompanyScopedRows(company_id) {
 
   const [purchases, sales, creditNotes, debitNotes, deliveryChallans, journalVouchers, paymentVouchers, companies, products] =
     await Promise.all([
-      prisma.purchase.findMany({ where, select: { id: true, invoice_no: true, invoice_date: true, approval_status: true, tally_push_status: true, total_amount: true, seller_name: true, buyer_name: true, createdAt: true } }),
-      prisma.sales.findMany({ where, select: { id: true, invoice_no: true, invoice_date: true, approval_status: true, tally_push_status: true, total_amount: true, seller_name: true, buyer_name: true, createdAt: true } }),
-      prisma.creditNote.findMany({ where, select: { id: true, credit_note_no: true, credit_note_date: true, approval_status: true, tally_push_status: true, total_amount: true, original_invoice_no: true, buyer_name: true, createdAt: true } }),
-      prisma.debitNote.findMany({ where, select: { id: true, debit_note_no: true, debit_note_date: true, approval_status: true, tally_push_status: true, total_amount: true, original_invoice_no: true, buyer_name: true, createdAt: true } }),
-      prisma.deliveryChallan.findMany({ where, select: { id: true, challan_no: true, challan_date: true, approval_status: true, tally_push_status: true, total_amount: true, invoice_no: true, buyer_name: true, createdAt: true } }),
-      prisma.journalVoucher.findMany({ where, select: { id: true, voucher_no: true, voucher_date: true, approval_status: true, tally_push_status: true, total_debit: true, company_name: true, payee_name: true, payee_type: true, narration: true, createdAt: true } }),
-      prisma.paymentVoucher.findMany({ where, select: { id: true, voucher_no: true, voucher_date: true, approval_status: true, tally_push_status: true, total_amount: true, from_company_name: true, party_name: true, payee_type: true, payment_type: true, linked_document_no: true, createdAt: true } }),
+      prisma.purchase.findMany({ where, select: { id: true, invoice_no: true, invoice_date: true, approval_status: true, tally_push_status: true, data_status: true, total_amount: true, seller_name: true, buyer_name: true, createdAt: true } }),
+      prisma.sales.findMany({ where, select: { id: true, invoice_no: true, invoice_date: true, approval_status: true, tally_push_status: true, data_status: true, total_amount: true, seller_name: true, buyer_name: true, createdAt: true } }),
+      prisma.creditNote.findMany({ where, select: { id: true, credit_note_no: true, credit_note_date: true, approval_status: true, tally_push_status: true, data_status: true, total_amount: true, original_invoice_no: true, buyer_name: true, createdAt: true } }),
+      prisma.debitNote.findMany({ where, select: { id: true, debit_note_no: true, debit_note_date: true, approval_status: true, tally_push_status: true, data_status: true, total_amount: true, original_invoice_no: true, buyer_name: true, createdAt: true } }),
+      prisma.deliveryChallan.findMany({ where, select: { id: true, challan_no: true, challan_date: true, approval_status: true, tally_push_status: true, data_status: true, total_amount: true, invoice_no: true, buyer_name: true, createdAt: true } }),
+      prisma.journalVoucher.findMany({ where, select: { id: true, voucher_no: true, voucher_date: true, approval_status: true, tally_push_status: true, data_status: true, total_debit: true, company_name: true, payee_name: true, payee_type: true, narration: true, createdAt: true } }),
+      prisma.paymentVoucher.findMany({ where, select: { id: true, voucher_no: true, voucher_date: true, approval_status: true, tally_push_status: true, data_status: true, total_amount: true, from_company_name: true, party_name: true, payee_type: true, payment_type: true, linked_document_no: true, createdAt: true } }),
       prisma.companyDetail.count({ where }),
       prisma.productDetail.count({ where }),
     ]);
@@ -48,14 +48,27 @@ export async function getCompanyScopedRows(company_id) {
 export function buildDashboardPayload(data) {
   const { purchases, sales, creditNotes, debitNotes, deliveryChallans, journalVouchers, paymentVouchers, companies, products } = data;
 
+  const mapRecent = (r, type, docNo, date, amount, party, route) => ({
+    type,
+    docNo,
+    date,
+    amount,
+    status: r.approval_status,
+    tally_push_status: r.tally_push_status,
+    data_status: r.data_status,
+    party,
+    id: r.id,
+    route,
+  });
+
   const recent = [
-    ...purchases.map((r) => ({ type: "Purchase", docNo: r.invoice_no, date: r.invoice_date, amount: Number(r.total_amount), status: r.approval_status, party: r.seller_name, id: r.id, route: "/account/Purchase-Invoice" })),
-    ...sales.map((r) => ({ type: "Sales", docNo: r.invoice_no, date: r.invoice_date, amount: Number(r.total_amount), status: r.approval_status, party: r.buyer_name, id: r.id, route: "/account/Sales-Invoice" })),
-    ...creditNotes.map((r) => ({ type: "Credit Note", docNo: r.credit_note_no, date: r.credit_note_date, amount: Number(r.total_amount), status: r.approval_status, party: r.buyer_name, id: r.id, route: "/account/credit-note" })),
-    ...debitNotes.map((r) => ({ type: "Debit Note", docNo: r.debit_note_no, date: r.debit_note_date, amount: Number(r.total_amount), status: r.approval_status, party: r.buyer_name, id: r.id, route: "/account/debit-note" })),
-    ...deliveryChallans.map((r) => ({ type: "Delivery Challan", docNo: r.challan_no, date: r.challan_date, amount: Number(r.total_amount), status: r.approval_status, party: r.buyer_name, id: r.id, route: "/account/Delivery-Challan" })),
-    ...journalVouchers.map((r) => ({ type: "Journal Voucher", docNo: r.voucher_no, date: r.voucher_date, amount: Number(r.total_debit), status: r.approval_status, party: r.payee_name ? `${r.company_name} → ${r.payee_name}` : r.company_name, id: r.id, route: "/account/Expense" })),
-    ...paymentVouchers.map((r) => ({ type: "Payment Voucher", docNo: r.voucher_no, date: r.voucher_date, amount: Number(r.total_amount), status: r.approval_status, party: r.from_company_name && r.party_name ? `${r.from_company_name} → ${r.party_name}` : r.party_name || r.from_company_name, id: r.id, route: "/account/Payment" })),
+    ...purchases.map((r) => mapRecent(r, "Purchase", r.invoice_no, r.invoice_date, Number(r.total_amount), r.seller_name, "/account/Purchase-Invoice")),
+    ...sales.map((r) => mapRecent(r, "Sales", r.invoice_no, r.invoice_date, Number(r.total_amount), r.buyer_name, "/account/Sales-Invoice")),
+    ...creditNotes.map((r) => mapRecent(r, "Credit Note", r.credit_note_no, r.credit_note_date, Number(r.total_amount), r.buyer_name, "/account/credit-note")),
+    ...debitNotes.map((r) => mapRecent(r, "Debit Note", r.debit_note_no, r.debit_note_date, Number(r.total_amount), r.buyer_name, "/account/debit-note")),
+    ...deliveryChallans.map((r) => mapRecent(r, "Delivery Challan", r.challan_no, r.challan_date, Number(r.total_amount), r.buyer_name, "/account/Delivery-Challan")),
+    ...journalVouchers.map((r) => mapRecent(r, "Journal Voucher", r.voucher_no, r.voucher_date, Number(r.total_debit), r.payee_name ? `${r.company_name} → ${r.payee_name}` : r.company_name, "/account/Expense")),
+    ...paymentVouchers.map((r) => mapRecent(r, "Payment Voucher", r.voucher_no, r.voucher_date, Number(r.total_amount), r.from_company_name && r.party_name ? `${r.from_company_name} → ${r.party_name}` : r.party_name || r.from_company_name, "/account/Payment")),
   ]
     .sort((a, b) => new Date(b.date || b.createdAt) - new Date(a.date || a.createdAt))
     .slice(0, 12);

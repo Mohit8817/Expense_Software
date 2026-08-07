@@ -136,6 +136,7 @@ export const MenuList = [
       { title: "Debit Note", to: "/account/debit-note", permission: "view_debit_note" },
       { title: "Delivery Challan", to: "/account/Delivery-Challan", permission: "view_delivery_challan" },
       { title: "Account Reports", to: "/account/reports", permission: "view_account_reports" },
+      { title: "AI Report", to: "/account/ai-report", permission: "view_ai_report" },
     ],
   },
 
@@ -165,6 +166,8 @@ export const MenuList = [
       { title: "Add Role", to: "/role/add-role", permission: "create_role" },
       { title: "Add Permission", to: "/permission/add-permission", permission: "create_permission" },
       { title: "Permission List", to: "/permission/list", permission: "view_permission" },
+      { title: "Company List", to: "/tenant/list", permission: "view_tenant" },
+      { title: "Add Company", to: "/tenant/add", permission: "create_tenant" },
     ],
   },
 ];

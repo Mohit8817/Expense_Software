@@ -40,6 +40,7 @@ const CreditNote = () => (
       "invoice_no",
       "InvoiceType",
       "status",
+      "sourceLabel",
       "tallyLabel",
     ]}
     exportColumns={[
@@ -51,6 +52,7 @@ const CreditNote = () => (
       { label: "Invoice No", key: "invoice_no" },
       { label: "Items", key: "ItemCount" },
       { label: "Amount", key: "amount" },
+      { label: "Source", key: "sourceLabel" },
       { label: "Status", key: "status" },
       { label: "Tally", key: "tallyLabel" },
     ]}

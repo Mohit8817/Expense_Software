@@ -1,4 +1,11 @@
 import { PrismaClient } from "@prisma/client";
+import { DATA_STATUS_TALLY, resolveDataStatus } from "../constants/dataStatus.js";
+import {
+  normalizeSalesPayload,
+  extractTallySalesRecords,
+  isTallySalesBatchRequest,
+  describeTallySalesBodyIssue,
+} from "../utils/tallyPayloadUtils.js";
 
 const prisma = new PrismaClient();
 
@@ -105,9 +112,66 @@ const buildSalesData = (body) => {
   };
 };
 
+async function createSalesRecord(req, rawRecord) {
+  const company_id = req.user?.company_id;
+  const user_id = req.user?.id;
+  const fromTally = resolveDataStatus(req) === DATA_STATUS_TALLY;
+
+  const { items, BillItems, GstDetails, gst_details, ...rest } = rawRecord || {};
+
+  const normalized = normalizeSalesPayload(
+    rest,
+    items ?? BillItems ?? [],
+    gst_details ?? GstDetails ?? [],
+    company_id
+  );
+  const payload = normalized.body;
+
+  if (!payload.invoice_no) {
+    throw new Error("invoice_no / InvoiceNo is required");
+  }
+
+  if (!normalized.items.length) {
+    throw new Error("At least one item is required in items / BillItems");
+  }
+
+  const existingInvoice = await prisma.sales.findFirst({
+    where: { invoice_no: payload.invoice_no, company_id },
+  });
+  if (existingInvoice) {
+    const err = new Error("A sales invoice with this number already exists");
+    err.status = 409;
+    throw err;
+  }
+
+  if (payload.irn) {
+    const existingIrn = await prisma.sales.findUnique({ where: { irn: payload.irn } });
+    if (existingIrn) {
+      const err = new Error("A sales invoice with this IRN already exists");
+      err.status = 409;
+      throw err;
+    }
+  }
+
+  return prisma.sales.create({
+    data: {
+      ...buildSalesData(payload),
+      company_id,
+      user_id,
+      data_status: resolveDataStatus(req),
+      ...(fromTally && {
+        approval_status: "APPROVED",
+        approval_date: new Date(),
+        tally_push_status: "PUSHED",
+      }),
+      items: { create: normalized.items.map(mapItem) },
+    },
+    include: salesInclude,
+  });
+}
+
 export const createSales = async (req, res) => {
   try {
-    const { items, ...rest } = req.body;
     const company_id = req.user?.company_id;
     const user_id = req.user?.id;
 
@@ -115,37 +179,60 @@ export const createSales = async (req, res) => {
       return res.status(401).json({ message: "Unauthorized" });
     }
 
-    if (!rest.invoice_no) {
-      return res.status(400).json({ message: "invoice_no is required" });
+    const records = extractTallySalesRecords(req.body);
+    const isBatch = isTallySalesBatchRequest(req.body);
+
+    if (!records.length) {
+      return res.status(400).json({
+        message: "No sales records found in request body",
+        hint: describeTallySalesBodyIssue(req.body),
+        example: {
+          data: [
+            {
+              InvoiceNo: "Inv0991",
+              InvoiceDate: "02/Jul/2026",
+              CustomerName: "ABC Pvt Ltd",
+              BillAmount: 120000,
+              BillItems: [{ itemname: "Item A", quantity: 1, rate: 100, amount: 100 }],
+            },
+          ],
+        },
+      });
     }
 
-    if (!Array.isArray(items) || items.length === 0) {
-      return res.status(400).json({ message: "At least one item is required" });
-    }
+    if (isBatch || records.length > 1) {
+      const created = [];
+      const errors = [];
 
-    const existingInvoice = await prisma.sales.findUnique({
-      where: { invoice_no: rest.invoice_no },
-    });
-    if (existingInvoice) {
-      return res.status(409).json({ message: "A sales invoice with this number already exists" });
-    }
-
-    if (rest.irn) {
-      const existingIrn = await prisma.sales.findUnique({ where: { irn: rest.irn } });
-      if (existingIrn) {
-        return res.status(409).json({ message: "A sales invoice with this IRN already exists" });
+      for (const record of records) {
+        const invoiceRef = record.InvoiceNo || record.invoice_no || "unknown";
+        try {
+          const sales = await createSalesRecord(req, record);
+          created.push(sales);
+        } catch (error) {
+          errors.push({
+            InvoiceNo: invoiceRef,
+            message: error.message,
+          });
+        }
       }
+
+      if (!created.length) {
+        return res.status(400).json({
+          message: "No sales invoices were created",
+          data: [],
+          errors,
+        });
+      }
+
+      return res.status(201).json({
+        message: `${created.length} sales invoice(s) created successfully`,
+        data: created,
+        ...(errors.length > 0 && { errors }),
+      });
     }
 
-    const sales = await prisma.sales.create({
-      data: {
-        ...buildSalesData(rest),
-        company_id,
-        user_id,
-        items: { create: items.map(mapItem) },
-      },
-      include: salesInclude,
-    });
+    const sales = await createSalesRecord(req, records[0]);
 
     return res.status(201).json({
       message: "Sales invoice created successfully",
@@ -153,7 +240,7 @@ export const createSales = async (req, res) => {
     });
   } catch (error) {
     console.error(error);
-    return res.status(500).json({ message: error.message });
+    return res.status(error.status || 500).json({ message: error.message });
   }
 };
 
@@ -209,7 +296,6 @@ export const updateSales = async (req, res) => {
   try {
     const { id } = req.params;
     const company_id = req.user?.company_id;
-    const { items, ...rest } = req.body;
 
     const existing = await prisma.sales.findFirst({
       where: { id: Number(id), company_id },
@@ -219,22 +305,34 @@ export const updateSales = async (req, res) => {
       return res.status(404).json({ message: "Sales invoice not found" });
     }
 
-    if (existing.approval_status !== "PENDING") {
+    if (existing.approval_status !== "PENDING" && resolveDataStatus(req) !== DATA_STATUS_TALLY) {
       return res.status(400).json({
         message: `Sales invoice cannot be updated once it is ${existing.approval_status}`,
       });
     }
 
-    if (Array.isArray(items)) {
+    const { items, BillItems, GstDetails, gst_details, ...rest } = req.body;
+    const normalized = normalizeSalesPayload(
+      rest,
+      items ?? BillItems ?? [],
+      gst_details ?? GstDetails ?? [],
+      company_id
+    );
+
+    if (
+      Array.isArray(items) ||
+      Array.isArray(rest.items) ||
+      Array.isArray(rest.BillItems)
+    ) {
       await prisma.salesItem.deleteMany({ where: { sales_id: Number(id) } });
     }
 
     const updated = await prisma.sales.update({
       where: { id: Number(id) },
       data: {
-        ...buildSalesData(rest),
-        ...(Array.isArray(items) && {
-          items: { create: items.map(mapItem) },
+        ...buildSalesData(normalized.body),
+        ...(normalized.items.length > 0 && {
+          items: { create: normalized.items.map(mapItem) },
         }),
       },
       include: salesInclude,
@@ -263,7 +361,7 @@ export const deleteSales = async (req, res) => {
       return res.status(404).json({ message: "Sales invoice not found" });
     }
 
-    if (existing.approval_status !== "PENDING") {
+    if (existing.approval_status !== "PENDING" && resolveDataStatus(req) !== DATA_STATUS_TALLY) {
       return res.status(400).json({
         message: `Cannot delete a sales invoice that has already been ${existing.approval_status}`,
       });

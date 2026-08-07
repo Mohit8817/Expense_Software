@@ -4,6 +4,7 @@ import {
   approvalToStatus,
   tallyToLabel,
 } from "./purchaseApi";
+import { mapDataSourceFields } from "./dataSourceUtils";
 import { parseBankAccountIdForApi } from "./companyBankUtils";
 import {
   uploadDocumentForScan,
@@ -96,6 +97,7 @@ export const mapSalesToList = (s) => ({
   approval_status: s.approval_status,
   tally_push_status: s.tally_push_status,
   tallyLabel: tallyToLabel(s.tally_push_status),
+  ...mapDataSourceFields(s),
   raw: s,
 });
 
@@ -186,6 +188,7 @@ export const mapSalesToForm = (s) => {
     approval_status: s.approval_status,
     tally_push_status: s.tally_push_status,
     tallyLabel: tallyToLabel(s.tally_push_status),
+    ...mapDataSourceFields(s),
   };
 };
 

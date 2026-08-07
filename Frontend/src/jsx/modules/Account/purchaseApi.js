@@ -1,4 +1,5 @@
 import { parseBankAccountIdForApi } from "./companyBankUtils";
+import { mapDataSourceFields } from "./dataSourceUtils";
 
 const BASE_URL = import.meta.env.VITE_BACKEND_API_URL;
 const getToken = () => localStorage.getItem("token");
@@ -23,6 +24,19 @@ const formatDate = (value) => {
 
 export const formatCompanyAddress = (company) => {
   if (!company) return "";
+  const lines = [company.add_line1, company.add_line2, company.add_line3].filter(Boolean);
+  const location = [
+    company.city,
+    [company.state, company.country].filter(Boolean).join(", "),
+    company.zipcode != null && company.zipcode !== "" ? `- ${company.zipcode}` : "",
+  ]
+    .filter(Boolean)
+    .join(", ");
+
+  if (lines.length) {
+    return [...lines, location].filter(Boolean).join(", ");
+  }
+
   return [company.address, company.city, `${company.state} - ${company.zipcode}`]
     .filter(Boolean)
     .join(", ");
@@ -108,6 +122,7 @@ export const mapPurchaseToList = (p) => ({
   approval_status: p.approval_status,
   tally_push_status: p.tally_push_status,
   tallyLabel: tallyToLabel(p.tally_push_status),
+  ...mapDataSourceFields(p),
   raw: p,
 });
 
@@ -187,6 +202,7 @@ export const mapPurchaseToForm = (p) => ({
   approval_status: p.approval_status,
   tally_push_status: p.tally_push_status,
   tallyLabel: tallyToLabel(p.tally_push_status),
+  ...mapDataSourceFields(p),
 });
 
 export const mapFormToPayload = (formData, purchaseItems, gstDetails) => {

@@ -5,6 +5,7 @@ import { Collapse } from "react-bootstrap";
 import { ThemeContext } from "../../../context/ThemeContext";
 import { getMyPermissions } from "../../modules/RolePermission/roleApi";
 import { pathsMatch, NAV_RESET_STATE_KEY } from "../../../utils/navUtils";
+import { isDeveloperUser } from "../../../utils/developer";
 
 const reducer = (state, newState) => ({ ...state, ...newState });
 
@@ -22,6 +23,22 @@ function SideBar() {
   const [menuData, setMenuData] = useState(MenuList);
 
   const fetchPermissions = useCallback(async () => {
+    if (isDeveloperUser()) {
+      const settingsOnly = MenuList.filter((menu) => menu.title === "Settings").map((menu) => ({
+        ...menu,
+        permission: undefined,
+        content: [
+          ...(menu.content?.map((sub) => ({ ...sub, permission: undefined })) || []),
+          { title: "Tally API Manual", to: "/settings/tally-manual" },
+        ],
+      }));
+      setMenuData([
+        { type: "section", title: "Administration", classsChange: "menu-title" },
+        ...settingsOnly,
+      ]);
+      return;
+    }
+
     try {
       const res = await getMyPermissions();
       const perms = res?.data?.data || [];
