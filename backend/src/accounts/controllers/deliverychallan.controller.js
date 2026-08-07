@@ -1,4 +1,14 @@
-import { createVoucherHandlers } from "../utils/voucherBase.js";
+import { PrismaClient } from "@prisma/client";
+import { createVoucherHandlers, mapVoucherItem } from "../utils/voucherBase.js";
+import { DATA_STATUS_TALLY, resolveDataStatus } from "../constants/dataStatus.js";
+import {
+  normalizeDeliveryChallanPayload,
+  extractTallyDeliveryChallanRecords,
+  isTallyDeliveryChallanBatchRequest,
+  describeTallyDeliveryChallanBodyIssue,
+} from "../utils/tallyPayloadUtils.js";
+
+const prisma = new PrismaClient();
 
 const include = { items: true };
 
@@ -50,6 +60,130 @@ const buildDeliveryChallanData = (body) => ({
   authorised_signatory_designation: body.authorised_signatory_designation || null,
 });
 
+async function createDeliveryChallanRecord(req, rawRecord) {
+  const company_id = req.user?.company_id;
+  const user_id = req.user?.id;
+  const fromTally = resolveDataStatus(req) === DATA_STATUS_TALLY;
+
+  const { items, challanitems, Challanitems, GstDetails, gst_details, ...rest } = rawRecord || {};
+
+  const normalized = normalizeDeliveryChallanPayload(
+    rest,
+    items ?? challanitems ?? Challanitems ?? [],
+    gst_details ?? GstDetails ?? [],
+    company_id
+  );
+  const payload = normalized.body;
+
+  if (!payload.challan_no) {
+    throw new Error("challan_no / Challanno is required");
+  }
+
+  if (!normalized.items.length) {
+    throw new Error("At least one item is required in items / challanitems");
+  }
+
+  const existing = await prisma.deliveryChallan.findUnique({
+    where: { challan_no: payload.challan_no },
+  });
+  if (existing) {
+    const err = new Error("A delivery challan with this number already exists");
+    err.status = 409;
+    throw err;
+  }
+
+  return prisma.deliveryChallan.create({
+    data: {
+      ...buildDeliveryChallanData(payload),
+      company_id,
+      user_id,
+      data_status: resolveDataStatus(req),
+      ...(fromTally && {
+        approval_status: "APPROVED",
+        approval_date: new Date(),
+        tally_push_status: "PUSHED",
+      }),
+      items: { create: normalized.items.map(mapVoucherItem) },
+    },
+    include,
+  });
+}
+
+export const createDeliveryChallan = async (req, res) => {
+  try {
+    const company_id = req.user?.company_id;
+    const user_id = req.user?.id;
+
+    if (!company_id || !user_id) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+
+    const records = extractTallyDeliveryChallanRecords(req.body);
+    const isBatch = isTallyDeliveryChallanBatchRequest(req.body);
+
+    if (!records.length) {
+      return res.status(400).json({
+        message: "No delivery challan records found in request body",
+        hint: describeTallyDeliveryChallanBodyIssue(req.body),
+        example: {
+          data: [
+            {
+              company_id: "KLKURJA",
+              Challanno: "DC0991",
+              Challandate: "02/Jul/2026",
+              CustomerName: "ABC Pvt Ltd",
+              Challanamount: 120000,
+              challanitems: [{ itemname: "Item A", quantity: 1, rate: 100, amount: 100 }],
+            },
+          ],
+        },
+      });
+    }
+
+    if (isBatch || records.length > 1) {
+      const created = [];
+      const errors = [];
+
+      for (const record of records) {
+        const challanRef = record.Challanno || record.challan_no || "unknown";
+        try {
+          const challan = await createDeliveryChallanRecord(req, record);
+          created.push(challan);
+        } catch (error) {
+          errors.push({
+            Challanno: challanRef,
+            message: error.message,
+          });
+        }
+      }
+
+      if (!created.length) {
+        return res.status(400).json({
+          message: "No delivery challans were created",
+          data: [],
+          errors,
+        });
+      }
+
+      return res.status(201).json({
+        message: `${created.length} delivery challan(s) created successfully`,
+        data: created,
+        ...(errors.length > 0 && { errors }),
+      });
+    }
+
+    const challan = await createDeliveryChallanRecord(req, records[0]);
+
+    return res.status(201).json({
+      message: "Delivery challan created successfully",
+      data: challan,
+    });
+  } catch (error) {
+    console.error(error);
+    return res.status(error.status || 500).json({ message: error.message });
+  }
+};
+
 const handlers = createVoucherHandlers({
   modelName: "deliveryChallan",
   docNoField: "challan_no",
@@ -59,7 +193,6 @@ const handlers = createVoucherHandlers({
 });
 
 export const {
-  create: createDeliveryChallan,
   getAll: getAllDeliveryChallans,
   getById: getDeliveryChallanById,
   update: updateDeliveryChallan,

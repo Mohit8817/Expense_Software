@@ -1,6 +1,7 @@
 import React from "react";
 import { Card, Badge, Row, Col } from "react-bootstrap";
 import DocumentAttachments from "./DocumentAttachments";
+import SourceBadge from "../../SourceBadge";
 
 const statusVariant = {
   Posted: "success",
@@ -70,6 +71,11 @@ const VoucherDocumentView = ({
                 <Badge bg={tallyVariant[data?.tally_push_status] || "secondary"} className="rounded-pill">
                   Tally: {data?.tallyLabel || "Not Pushed"}
                 </Badge>
+                <SourceBadge
+                  dataStatus={data?.data_status}
+                  label={data?.sourceLabel}
+                  variant={data?.sourceVariant}
+                />
               </div>
               <small className="text-muted">
                 {subTitleKey && data?.[subTitleKey] ? `${data[subTitleKey]} · ` : ""}

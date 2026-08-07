@@ -1,12 +1,73 @@
 import { PrismaClient } from "@prisma/client";
+import { DATA_STATUS_TALLY, resolveDataStatus } from "../constants/dataStatus.js";
 import {
   ATTACHMENT_DOCUMENT_TYPES,
   deleteAttachmentsForDocument,
 } from "../utils/attachmentUtils.js";
+import {
+  mapCompanyDetailToTally,
+  mapTallyToCompanyDetail,
+} from "../utils/companyTallyMapper.js";
+import {
+  extractTallyCompanyRecords,
+  isTallyCompanyBatchRequest,
+  describeTallyCompanyBodyIssue,
+} from "../utils/tallyPayloadUtils.js";
 
 const prisma = new PrismaClient();
 
 const companyInclude = { bank_accounts: { orderBy: [{ is_primary: "desc" }, { id: "asc" }] } };
+
+const isTallyPayload = (body = {}) =>
+  body.CompanyName != null ||
+  body.LedgerName != null ||
+  body.LedgerCode != null ||
+  body.AddLine1 != null;
+
+const prepareRequestBody = (rawBody) => {
+  if (!isTallyPayload(rawBody)) return rawBody;
+
+  const mapped = mapTallyToCompanyDetail(rawBody);
+  const merged = { ...mapped, ...rawBody };
+
+  if (!merged.short_name?.trim()) {
+    merged.short_name = merged.code?.trim() || merged.name?.trim()?.slice(0, 10) || "";
+  }
+  if (merged.city == null) merged.city = "";
+  if (merged.status == null) merged.status = 1;
+
+  return merged;
+};
+
+const normalizeCompanyInput = (body) => {
+  const addLine1 = body.add_line1?.trim() || body.address?.trim() || "";
+  const name = body.name?.trim() || "";
+
+  return {
+    name,
+    ledger_name: body.ledger_name?.trim() || name,
+    short_name: body.short_name?.trim() || "",
+    gst: body.gst?.trim() || null,
+    pan: body.pan?.trim() || null,
+    tan: body.tan?.trim() || null,
+    cin: body.cin?.trim() || null,
+    email: body.email?.trim() || null,
+    state_code: body.state_code?.trim() || null,
+    address: addLine1,
+    add_line1: addLine1 || null,
+    add_line2: body.add_line2?.trim() || null,
+    add_line3: body.add_line3?.trim() || null,
+    city: body.city?.trim() || "",
+    state: body.state?.trim() || "",
+    country: body.country?.trim() || "India",
+    zipcode: body.zipcode != null && body.zipcode !== "" ? Number(body.zipcode) : null,
+    contact_person: body.contact_person?.trim() || null,
+    contact_number: body.contact_number?.trim() || null,
+    ledger_group: body.ledger_group?.trim() || null,
+    code: body.code?.trim() || "",
+    status: body.status != null ? Number(body.status) : 1,
+  };
+};
 
 const mapBankAccountInput = (bank) => ({
   bank_name: bank.bank_name || "",
@@ -37,75 +98,145 @@ const syncBankAccounts = async (companyDetailId, bank_accounts) => {
   });
 };
 
+async function sendToTally(record) {
+  return mapCompanyDetailToTally(record);
+}
+
+const canMutateRecord = (existing, req) =>
+  existing.approval_status === "PENDING" || resolveDataStatus(req) === DATA_STATUS_TALLY;
+
+async function createCompanyRecord(req, rawBody) {
+  const company_id = req.user?.company_id;
+  const user_id = req.user?.id;
+  const fromTally = resolveDataStatus(req) === DATA_STATUS_TALLY;
+  const { bank_accounts, ...rest } = rawBody || {};
+  const preparedBody = prepareRequestBody(rest);
+  const input = normalizeCompanyInput(preparedBody);
+
+  if (
+    !input.name ||
+    !input.short_name ||
+    !input.address ||
+    !input.state ||
+    input.zipcode == null ||
+    !input.code
+  ) {
+    const err = new Error("Required fields are missing.");
+    err.status = 400;
+    throw err;
+  }
+
+  const company = await prisma.companyDetail.create({
+    data: {
+      company_id,
+      user_id,
+      ...input,
+      data_status: resolveDataStatus(req),
+      approval_status: fromTally ? "APPROVED" : "PENDING",
+      approval_date: fromTally ? new Date() : null,
+      tally_push_status: fromTally ? "PUSHED" : "NOT_PUSHED",
+    },
+  });
+
+  await syncBankAccounts(company.id, bank_accounts);
+
+  const withBanks = await prisma.companyDetail.findUnique({
+    where: { id: company.id },
+    include: companyInclude,
+  });
+
+  return {
+    ...withBanks,
+    tally: mapCompanyDetailToTally(withBanks),
+  };
+}
+
 export const createCompany = async (req, res) => {
   try {
     const company_id = req.user?.company_id;
     const user_id = req.user?.id;
-    const {
-      name,
-      short_name,
-      gst,
-      pan,
-      tan,
-      cin,
-      email,
-      state_code,
-      address,
-      city,
-      state,
-      zipcode,
-      code,
-      status,
-      bank_accounts,
-    } = req.body;
 
     if (!company_id || !user_id) {
       return res.status(401).json({ success: false, message: "Unauthorized" });
     }
 
-    if (!name || !short_name || !address || !city || !state || !zipcode || !code) {
+    const records = extractTallyCompanyRecords(req.body);
+    const isBatch = isTallyCompanyBatchRequest(req.body);
+
+    if (!records.length) {
       return res.status(400).json({
         success: false,
-        message: "Required fields are missing.",
+        message: "No company records found in request body",
+        hint: describeTallyCompanyBodyIssue(req.body),
+        example: {
+          data: [
+            {
+              company_id: "KLKURJA",
+              CompanyName: "ABC Company",
+              LedgerName: "Customer 1",
+              LedgerCode: "Cust 001",
+              LedgerGroup: "Sundry Debtors",
+              AddLine1: "wfdwqwd",
+              AddLine2: "dgwfwqfd",
+              LedgerPIN: "110001",
+              LedState: "Delhi",
+              LedCountry: "India",
+              ContactPerson: "ABC",
+              ContactNumber: "9999999999",
+              EmailID: "abc@gmail.com",
+              PanNumber: "AAAAA1111A",
+              GSTNumber: "07AAAAA1111A1Z1",
+            },
+          ],
+        },
       });
     }
 
-    const company = await prisma.companyDetail.create({
-      data: {
-        company_id,
-        user_id,
-        name,
-        short_name,
-        gst: gst || null,
-        pan: pan || null,
-        tan: tan || null,
-        cin: cin || null,
-        email: email || null,
-        state_code: state_code || null,
-        address,
-        city,
-        state,
-        zipcode: Number(zipcode),
-        code,
-        status: status != null ? Number(status) : 0,
-      },
-    });
+    if (isBatch || records.length > 1) {
+      const created = [];
+      const errors = [];
 
-    await syncBankAccounts(company.id, bank_accounts);
+      for (const record of records) {
+        const companyRef = record.CompanyName || record.name || record.LedgerCode || record.code || "unknown";
+        try {
+          const company = await createCompanyRecord(req, record);
+          created.push(company);
+        } catch (error) {
+          errors.push({
+            CompanyName: companyRef,
+            message: error.message,
+          });
+        }
+      }
 
-    const withBanks = await prisma.companyDetail.findUnique({
-      where: { id: company.id },
-      include: companyInclude,
-    });
+      if (!created.length) {
+        return res.status(400).json({
+          success: false,
+          message: "No companies were created",
+          data: [],
+          errors,
+        });
+      }
+
+      return res.status(201).json({
+        success: true,
+        message: `${created.length} company(s) created successfully.`,
+        data: created,
+        ...(errors.length > 0 && { errors }),
+      });
+    }
+
+    const company = await createCompanyRecord(req, records[0]);
 
     return res.status(201).json({
       success: true,
       message: "Company created successfully.",
-      data: withBanks,
+      data: company,
+      tally: company.tally,
     });
   } catch (error) {
     console.error(error);
-    return res.status(500).json({ success: false, message: error.message });
+    return res.status(error.status || 500).json({ success: false, message: error.message });
   }
 };
 
@@ -117,13 +248,42 @@ export const getCompanies = async (req, res) => {
       return res.status(401).json({ success: false, message: "Unauthorized" });
     }
 
+    const { approval_status, tally_push_status } = req.query;
+
     const companies = await prisma.companyDetail.findMany({
-      where: { company_id },
+      where: {
+        company_id,
+        ...(approval_status && { approval_status }),
+        ...(tally_push_status && { tally_push_status }),
+      },
       include: companyInclude,
       orderBy: { id: "desc" },
     });
 
     return res.status(200).json({ success: true, data: companies });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+export const getCompanyTallyFormat = async (req, res) => {
+  try {
+    const company_id = req.user?.company_id;
+    const { id } = req.params;
+
+    const company = await prisma.companyDetail.findFirst({
+      where: { id: Number(id), company_id },
+      include: companyInclude,
+    });
+
+    if (!company) {
+      return res.status(404).json({ success: false, message: "Company not found." });
+    }
+
+    return res.status(200).json({
+      success: true,
+      data: mapCompanyDetailToTally(company),
+    });
   } catch (error) {
     return res.status(500).json({ success: false, message: error.message });
   }
@@ -143,7 +303,11 @@ export const getCompanyById = async (req, res) => {
       return res.status(404).json({ success: false, message: "Company not found." });
     }
 
-    return res.status(200).json({ success: true, data: company });
+    return res.status(200).json({
+      success: true,
+      data: company,
+      tally: mapCompanyDetailToTally(company),
+    });
   } catch (error) {
     return res.status(500).json({ success: false, message: error.message });
   }
@@ -153,23 +317,8 @@ export const updateCompany = async (req, res) => {
   try {
     const company_id = req.user?.company_id;
     const { id } = req.params;
-    const {
-      name,
-      short_name,
-      gst,
-      pan,
-      tan,
-      cin,
-      email,
-      state_code,
-      address,
-      city,
-      state,
-      zipcode,
-      code,
-      status,
-      bank_accounts,
-    } = req.body;
+    const { bank_accounts, ...rawBody } = req.body;
+    const preparedBody = prepareRequestBody(rawBody);
 
     const company = await prisma.companyDetail.findFirst({
       where: { id: Number(id), company_id },
@@ -179,24 +328,46 @@ export const updateCompany = async (req, res) => {
       return res.status(404).json({ success: false, message: "Company not found." });
     }
 
+    if (!canMutateRecord(company, req)) {
+      return res.status(400).json({
+        success: false,
+        message: `Company cannot be updated once it is ${company.approval_status}`,
+      });
+    }
+
+    const input = normalizeCompanyInput({ ...company, ...preparedBody });
+    const updateData = {};
+
+    if (preparedBody.name != null) updateData.name = input.name;
+    if (preparedBody.ledger_name != null || preparedBody.name != null) {
+      updateData.ledger_name = input.ledger_name;
+    }
+    if (preparedBody.short_name != null) updateData.short_name = input.short_name;
+    if (preparedBody.gst !== undefined) updateData.gst = input.gst;
+    if (preparedBody.pan !== undefined) updateData.pan = input.pan;
+    if (preparedBody.tan !== undefined) updateData.tan = input.tan;
+    if (preparedBody.cin !== undefined) updateData.cin = input.cin;
+    if (preparedBody.email !== undefined) updateData.email = input.email;
+    if (preparedBody.state_code !== undefined) updateData.state_code = input.state_code;
+    if (preparedBody.add_line1 != null || preparedBody.address != null) {
+      updateData.address = input.address;
+      updateData.add_line1 = input.add_line1;
+    }
+    if (preparedBody.add_line2 !== undefined) updateData.add_line2 = input.add_line2;
+    if (preparedBody.add_line3 !== undefined) updateData.add_line3 = input.add_line3;
+    if (preparedBody.city != null) updateData.city = input.city;
+    if (preparedBody.state != null) updateData.state = input.state;
+    if (preparedBody.country !== undefined) updateData.country = input.country;
+    if (preparedBody.zipcode != null) updateData.zipcode = input.zipcode;
+    if (preparedBody.contact_person !== undefined) updateData.contact_person = input.contact_person;
+    if (preparedBody.contact_number !== undefined) updateData.contact_number = input.contact_number;
+    if (preparedBody.ledger_group !== undefined) updateData.ledger_group = input.ledger_group;
+    if (preparedBody.code != null) updateData.code = input.code;
+    if (preparedBody.status != null) updateData.status = input.status;
+
     await prisma.companyDetail.update({
       where: { id: Number(id) },
-      data: {
-        ...(name != null && { name }),
-        ...(short_name != null && { short_name }),
-        ...(gst !== undefined && { gst: gst || null }),
-        ...(pan !== undefined && { pan: pan || null }),
-        ...(tan !== undefined && { tan: tan || null }),
-        ...(cin !== undefined && { cin: cin || null }),
-        ...(email !== undefined && { email: email || null }),
-        ...(state_code !== undefined && { state_code: state_code || null }),
-        ...(address != null && { address }),
-        ...(city != null && { city }),
-        ...(state != null && { state }),
-        ...(zipcode != null && { zipcode: Number(zipcode) }),
-        ...(code != null && { code }),
-        ...(status != null && { status: Number(status) }),
-      },
+      data: updateData,
     });
 
     if (Array.isArray(bank_accounts)) {
@@ -212,6 +383,7 @@ export const updateCompany = async (req, res) => {
       success: true,
       message: "Company updated successfully.",
       data: updatedCompany,
+      tally: mapCompanyDetailToTally(updatedCompany),
     });
   } catch (error) {
     return res.status(500).json({ success: false, message: error.message });
@@ -231,6 +403,13 @@ export const deleteCompany = async (req, res) => {
       return res.status(404).json({ success: false, message: "Company not found." });
     }
 
+    if (!canMutateRecord(company, req)) {
+      return res.status(400).json({
+        success: false,
+        message: `Cannot delete a company that has already been ${company.approval_status}`,
+      });
+    }
+
     await deleteAttachmentsForDocument(company_id, ATTACHMENT_DOCUMENT_TYPES.COMPANY, id);
 
     await prisma.companyDetail.delete({ where: { id: Number(id) } });
@@ -239,6 +418,182 @@ export const deleteCompany = async (req, res) => {
       success: true,
       message: "Company deleted successfully.",
     });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+export const approveCompany = async (req, res) => {
+  try {
+    const company_id = req.user?.company_id;
+    const { id } = req.params;
+    const { remarks } = req.body;
+
+    const existing = await prisma.companyDetail.findFirst({
+      where: { id: Number(id), company_id },
+    });
+
+    if (!existing) {
+      return res.status(404).json({ success: false, message: "Company not found." });
+    }
+    if (existing.approval_status !== "PENDING") {
+      return res.status(400).json({
+        success: false,
+        message: `Company is already ${existing.approval_status}`,
+      });
+    }
+
+    const approved = await prisma.companyDetail.update({
+      where: { id: Number(id) },
+      data: {
+        approval_status: "APPROVED",
+        approval_date: new Date(),
+        approval_remarks: remarks || null,
+      },
+      include: companyInclude,
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: "Company approved successfully.",
+      data: approved,
+      tally: mapCompanyDetailToTally(approved),
+    });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+export const rejectCompany = async (req, res) => {
+  try {
+    const company_id = req.user?.company_id;
+    const { id } = req.params;
+    const { remarks } = req.body;
+
+    if (!remarks) {
+      return res.status(400).json({
+        success: false,
+        message: "remarks are required when rejecting a company",
+      });
+    }
+
+    const existing = await prisma.companyDetail.findFirst({
+      where: { id: Number(id), company_id },
+    });
+
+    if (!existing) {
+      return res.status(404).json({ success: false, message: "Company not found." });
+    }
+    if (existing.approval_status !== "PENDING") {
+      return res.status(400).json({
+        success: false,
+        message: `Company is already ${existing.approval_status}`,
+      });
+    }
+
+    const rejected = await prisma.companyDetail.update({
+      where: { id: Number(id) },
+      data: {
+        approval_status: "REJECTED",
+        approval_date: new Date(),
+        approval_remarks: remarks,
+      },
+      include: companyInclude,
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: "Company rejected successfully.",
+      data: rejected,
+    });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+export const pushCompanyToTally = async (req, res) => {
+  try {
+    const company_id = req.user?.company_id;
+    const { id } = req.params;
+
+    const record = await prisma.companyDetail.findFirst({
+      where: { id: Number(id), company_id },
+      include: companyInclude,
+    });
+
+    if (!record) {
+      return res.status(404).json({ success: false, message: "Company not found." });
+    }
+    if (record.approval_status !== "APPROVED") {
+      return res.status(400).json({ message: "Only approved companies can be pushed to Tally" });
+    }
+    if (record.tally_push_status === "PUSHED") {
+      return res.status(400).json({ message: "Company has already been pushed to Tally" });
+    }
+
+    try {
+      await sendToTally(record);
+      const updated = await prisma.companyDetail.update({
+        where: { id: Number(id) },
+        data: { tally_push_status: "PUSHED" },
+        include: companyInclude,
+      });
+      return res.status(200).json({
+        success: true,
+        message: "Company pushed to Tally successfully",
+        data: updated,
+        tally: mapCompanyDetailToTally(updated),
+      });
+    } catch (tallyError) {
+      await prisma.companyDetail.update({
+        where: { id: Number(id) },
+        data: { tally_push_status: "FAILED" },
+      });
+      return res.status(502).json({ message: "Tally push failed", error: tallyError.message });
+    }
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+export const retryCompanyTallyPush = async (req, res) => {
+  try {
+    const company_id = req.user?.company_id;
+    const { id } = req.params;
+
+    const record = await prisma.companyDetail.findFirst({
+      where: { id: Number(id), company_id },
+      include: companyInclude,
+    });
+
+    if (!record) {
+      return res.status(404).json({ success: false, message: "Company not found." });
+    }
+    if (record.approval_status !== "APPROVED") {
+      return res.status(400).json({ message: "Only approved companies can be pushed to Tally" });
+    }
+    if (record.tally_push_status !== "FAILED") {
+      return res.status(400).json({
+        message: `Retry is only allowed for FAILED pushes. Current status: ${record.tally_push_status}`,
+      });
+    }
+
+    try {
+      await sendToTally(record);
+      const updated = await prisma.companyDetail.update({
+        where: { id: Number(id) },
+        data: { tally_push_status: "PUSHED" },
+        include: companyInclude,
+      });
+      return res.status(200).json({
+        success: true,
+        message: "Company pushed to Tally successfully",
+        data: updated,
+        tally: mapCompanyDetailToTally(updated),
+      });
+    } catch (tallyError) {
+      return res.status(502).json({ message: "Tally retry push failed", error: tallyError.message });
+    }
   } catch (error) {
     return res.status(500).json({ success: false, message: error.message });
   }

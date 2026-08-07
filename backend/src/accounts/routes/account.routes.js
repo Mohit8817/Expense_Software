@@ -12,6 +12,7 @@ import {
   getSalesInvoiceForLink,
   getPurchaseInvoiceForLink,
 } from "../controllers/account.controller.js";
+import { askAiReport } from "../controllers/aiReport.controller.js";
 
 const router = express.Router();
 
@@ -22,6 +23,8 @@ router.get("/reports/purchase-register", checkPermission("view_account_reports")
 router.get("/reports/voucher-register", checkPermission("view_account_reports"), getVoucherRegister);
 router.get("/reports/gst-summary", checkPermission("view_account_reports"), getGstSummary);
 router.get("/reports/document-links", checkPermission("view_account_reports"), getDocumentLinksReport);
+
+router.post("/ai-report/query", checkPermission("view_ai_report"), askAiReport);
 
 router.get("/links/sales", checkPermission("view_sales_invoice"), getSalesInvoiceOptions);
 router.get("/links/purchases", checkPermission("view_purchase_invoice"), getPurchaseInvoiceOptions);

@@ -5,6 +5,7 @@ import {
   approvalToStatus,
   tallyToLabel,
 } from "./voucherDocumentApi";
+import { mapDataSourceFields } from "./dataSourceUtils";
 import { formatCompanyAddress, getCompanyStateCode } from "./purchaseApi";
 import { parseNonNegative } from "./vouchers/shared/numberInputUtils";
 import {
@@ -84,6 +85,7 @@ export const mapJournalVoucherToList = (jv) => ({
   approval_status: jv.approval_status,
   tally_push_status: jv.tally_push_status,
   tallyLabel: tallyToLabel(jv.tally_push_status),
+  ...mapDataSourceFields(jv),
   raw: jv,
 });
 
@@ -143,6 +145,7 @@ export const mapJournalVoucherToForm = (jv) => ({
   approval_status: jv.approval_status,
   tally_push_status: jv.tally_push_status,
   tallyLabel: tallyToLabel(jv.tally_push_status),
+  ...mapDataSourceFields(jv),
 });
 
 const mapLedgersToEntries = (debitLedgers = [], creditLedgers = []) => {

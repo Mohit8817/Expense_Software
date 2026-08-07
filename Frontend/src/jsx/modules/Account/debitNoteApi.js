@@ -7,6 +7,7 @@ import {
   approvalToStatus,
   tallyToLabel,
 } from "./voucherDocumentApi";
+import { mapDataSourceFields } from "./dataSourceUtils";
 import {
   mapSellerFromRecord,
   mapConsigneeFromRecord,
@@ -45,6 +46,7 @@ export const mapDebitNoteToList = (d) => ({
   approval_status: d.approval_status,
   tally_push_status: d.tally_push_status,
   tallyLabel: tallyToLabel(d.tally_push_status),
+  ...mapDataSourceFields(d),
   raw: d,
 });
 
@@ -67,6 +69,7 @@ export const mapDebitNoteToForm = (d) => ({
   approval_status: d.approval_status,
   tally_push_status: d.tally_push_status,
   tallyLabel: tallyToLabel(d.tally_push_status),
+  ...mapDataSourceFields(d),
 });
 
 export const mapFormToPayload = (formData, items, gstDetails) => {

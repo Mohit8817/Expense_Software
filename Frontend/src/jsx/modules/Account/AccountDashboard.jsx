@@ -4,6 +4,15 @@ import { Col, Row, Card, Table, Badge } from "react-bootstrap";
 import { toast } from "react-toastify";
 import PageTitle from "../../layouts/PageTitle";
 import { getAccountDashboard, formatMoney, approvalLabel } from "./accountDashboardApi";
+import SourceBadge from "./SourceBadge";
+import { dataSourceLabel, dataSourceVariant } from "./dataSourceUtils";
+import { tallyToLabel } from "./purchaseApi";
+
+const tallyVariant = {
+  PUSHED: "success",
+  FAILED: "danger",
+  NOT_PUSHED: "secondary",
+};
 
 const MODULE_LINKS = [
   { key: "sales", label: "Sales Invoice", route: "/account/Sales-Invoice", color: "primary" },
@@ -205,6 +214,8 @@ const AccountDashboard = () => {
                     <th>Doc No</th>
                     <th>Party</th>
                     <th>Amount</th>
+                    <th>Source</th>
+                    <th>Tally</th>
                     <th>Status</th>
                   </tr>
                 </thead>
@@ -218,12 +229,24 @@ const AccountDashboard = () => {
                         </td>
                         <td>{row.party || "—"}</td>
                         <td>{formatMoney(row.amount)}</td>
+                        <td>
+                          <SourceBadge
+                            dataStatus={row.data_status}
+                            label={dataSourceLabel(row.data_status)}
+                            variant={dataSourceVariant(row.data_status)}
+                          />
+                        </td>
+                        <td>
+                          <Badge bg={tallyVariant[row.tally_push_status] || "secondary"} className="rounded-pill">
+                            {tallyToLabel(row.tally_push_status)}
+                          </Badge>
+                        </td>
                         <td>{approvalLabel(row.status)}</td>
                       </tr>
                     ))
                   ) : (
                     <tr>
-                      <td colSpan="5" className="text-center text-muted py-4">No recent documents</td>
+                      <td colSpan="7" className="text-center text-muted py-4">No recent documents</td>
                     </tr>
                   )}
                 </tbody>

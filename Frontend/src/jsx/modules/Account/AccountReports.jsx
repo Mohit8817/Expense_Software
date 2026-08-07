@@ -3,6 +3,9 @@ import { Col, Row, Card, Table, Badge, Nav, Tab } from "react-bootstrap";
 import { toast } from "react-toastify";
 import PageTitle from "../../layouts/PageTitle";
 import TableExportActions from "../../components/Common/TableExportActions";
+import SourceBadge from "./SourceBadge";
+import { dataSourceLabel, dataSourceVariant } from "./dataSourceUtils";
+import { tallyToLabel } from "./purchaseApi";
 import {
   getSalesRegister,
   getPurchaseRegister,
@@ -13,6 +16,34 @@ import {
   formatMoney,
   approvalLabel,
 } from "./accountDashboardApi";
+
+const tallyVariant = {
+  PUSHED: "success",
+  FAILED: "danger",
+  NOT_PUSHED: "secondary",
+};
+
+const docMetaExport = (row) => ({
+  source: dataSourceLabel(row.data_status),
+  tally: tallyToLabel(row.tally_push_status),
+});
+
+const DocMetaCells = ({ row }) => (
+  <>
+    <td>
+      <SourceBadge
+        dataStatus={row.data_status}
+        label={dataSourceLabel(row.data_status)}
+        variant={dataSourceVariant(row.data_status)}
+      />
+    </td>
+    <td>
+      <Badge bg={tallyVariant[row.tally_push_status] || "secondary"} className="rounded-pill">
+        {tallyToLabel(row.tally_push_status)}
+      </Badge>
+    </td>
+  </>
+);
 
 const defaultRange = () => {
   const now = new Date();
@@ -67,6 +98,7 @@ const AccountReports = () => {
     taxable: Number(r.taxable_value),
     tax: Number(r.total_tax_amount),
     total: Number(r.total_amount),
+    ...docMetaExport(r),
     status: approvalLabel(r.approval_status),
   }));
 
@@ -77,6 +109,7 @@ const AccountReports = () => {
     taxable: Number(r.taxable_value),
     tax: Number(r.total_tax_amount),
     total: Number(r.total_amount),
+    ...docMetaExport(r),
     status: approvalLabel(r.approval_status),
   }));
 
@@ -89,6 +122,7 @@ const AccountReports = () => {
         narration: r.narration,
         debit: Number(r.total_debit),
         credit: Number(r.total_credit),
+        ...docMetaExport(r),
         status: approvalLabel(r.approval_status),
       };
     }
@@ -100,6 +134,7 @@ const AccountReports = () => {
         type: r.payment_type,
         ref: r.linked_document_no || "",
         total: Number(r.total_amount),
+        ...docMetaExport(r),
         status: approvalLabel(r.approval_status),
       };
     }
@@ -111,6 +146,7 @@ const AccountReports = () => {
       party: r.buyer_name,
       ref: r.original_invoice_no || r.invoice_no || "",
       total: Number(r.total_amount),
+      ...docMetaExport(r),
       status: approvalLabel(r.approval_status),
     };
   });
@@ -208,6 +244,8 @@ const AccountReports = () => {
                       { label: "Taxable", key: "taxable" },
                       { label: "Tax", key: "tax" },
                       { label: "Total", key: "total" },
+                      { label: "Source", key: "source" },
+                      { label: "Tally", key: "tally" },
                       { label: "Status", key: "status" },
                     ]}
                     fileName="Sales_Register"
@@ -222,6 +260,8 @@ const AccountReports = () => {
                       <th>Taxable</th>
                       <th>Tax</th>
                       <th>Total</th>
+                      <th>Source</th>
+                      <th>Tally</th>
                       <th>Status</th>
                     </tr>
                   </thead>
@@ -234,6 +274,7 @@ const AccountReports = () => {
                         <td>{formatMoney(r.taxable_value)}</td>
                         <td>{formatMoney(r.total_tax_amount)}</td>
                         <td>{formatMoney(r.total_amount)}</td>
+                        <DocMetaCells row={r} />
                         <td><Badge bg={r.approval_status === "APPROVED" ? "success" : "warning"}>{approvalLabel(r.approval_status)}</Badge></td>
                       </tr>
                     ))}
@@ -252,6 +293,8 @@ const AccountReports = () => {
                       { label: "Taxable", key: "taxable" },
                       { label: "Tax", key: "tax" },
                       { label: "Total", key: "total" },
+                      { label: "Source", key: "source" },
+                      { label: "Tally", key: "tally" },
                       { label: "Status", key: "status" },
                     ]}
                     fileName="Purchase_Register"
@@ -266,6 +309,8 @@ const AccountReports = () => {
                       <th>Taxable</th>
                       <th>Tax</th>
                       <th>Total</th>
+                      <th>Source</th>
+                      <th>Tally</th>
                       <th>Status</th>
                     </tr>
                   </thead>
@@ -278,6 +323,7 @@ const AccountReports = () => {
                         <td>{formatMoney(r.taxable_value)}</td>
                         <td>{formatMoney(r.total_tax_amount)}</td>
                         <td>{formatMoney(r.total_amount)}</td>
+                        <DocMetaCells row={r} />
                         <td><Badge bg={r.approval_status === "APPROVED" ? "success" : "warning"}>{approvalLabel(r.approval_status)}</Badge></td>
                       </tr>
                     ))}
@@ -305,6 +351,8 @@ const AccountReports = () => {
                             { label: "Narration", key: "narration" },
                             { label: "Debit", key: "debit" },
                             { label: "Credit", key: "credit" },
+                            { label: "Source", key: "source" },
+                            { label: "Tally", key: "tally" },
                             { label: "Status", key: "status" },
                           ]
                         : voucherType === "payment"
@@ -315,6 +363,8 @@ const AccountReports = () => {
                               { label: "Type", key: "type" },
                               { label: "Reference", key: "ref" },
                               { label: "Total", key: "total" },
+                              { label: "Source", key: "source" },
+                              { label: "Tally", key: "tally" },
                               { label: "Status", key: "status" },
                             ]
                           : [
@@ -323,6 +373,8 @@ const AccountReports = () => {
                               { label: "Party", key: "party" },
                               { label: "Reference", key: "ref" },
                               { label: "Total", key: "total" },
+                              { label: "Source", key: "source" },
+                              { label: "Tally", key: "tally" },
                               { label: "Status", key: "status" },
                             ]
                     }
@@ -339,6 +391,19 @@ const AccountReports = () => {
                         <th>Narration</th>
                         <th>Debit</th>
                         <th>Credit</th>
+                        <th>Source</th>
+                        <th>Tally</th>
+                        <th>Status</th>
+                      </tr>
+                    ) : voucherType === "payment" ? (
+                      <tr>
+                        <th>Doc No</th>
+                        <th>Date</th>
+                        <th>Party</th>
+                        <th>Reference Invoice</th>
+                        <th>Total</th>
+                        <th>Source</th>
+                        <th>Tally</th>
                         <th>Status</th>
                       </tr>
                     ) : (
@@ -348,6 +413,8 @@ const AccountReports = () => {
                         <th>Party</th>
                         <th>Reference Invoice</th>
                         <th>Total</th>
+                        <th>Source</th>
+                        <th>Tally</th>
                         <th>Status</th>
                       </tr>
                     )}
@@ -362,6 +429,7 @@ const AccountReports = () => {
                           <td>{r.narration || "—"}</td>
                           <td>{formatMoney(r.total_debit)}</td>
                           <td>{formatMoney(r.total_credit)}</td>
+                          <DocMetaCells row={r} />
                           <td>{approvalLabel(r.approval_status)}</td>
                         </tr>
                       ) : voucherType === "payment" ? (
@@ -371,6 +439,7 @@ const AccountReports = () => {
                           <td>{r.party_name}</td>
                           <td>{r.linked_document_no || "—"}</td>
                           <td>{formatMoney(r.total_amount)}</td>
+                          <DocMetaCells row={r} />
                           <td>{approvalLabel(r.approval_status)}</td>
                         </tr>
                       ) : (
@@ -380,6 +449,7 @@ const AccountReports = () => {
                           <td>{r.buyer_name}</td>
                           <td>{r.original_invoice_no || r.invoice_no || "—"}</td>
                           <td>{formatMoney(r.total_amount)}</td>
+                          <DocMetaCells row={r} />
                           <td>{approvalLabel(r.approval_status)}</td>
                         </tr>
                       )

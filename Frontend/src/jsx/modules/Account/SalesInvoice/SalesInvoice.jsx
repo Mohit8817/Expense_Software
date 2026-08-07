@@ -9,6 +9,7 @@ import SalesInvoiceForm from "./SalesInvoiceForm";
 import SalesInvoicePreview from "./Salesinvoicepreview";
 import SalesInvoiceView from "./SalesInvoiceView";
 import DocumentAttachments from "../vouchers/shared/DocumentAttachments";
+import SourceBadge from "../SourceBadge";
 import { ATTACHMENT_DOCUMENT_TYPES } from "../documentAttachmentApi";
 import {
   getAllSales,
@@ -50,6 +51,7 @@ const SalesInvoice = () => {
   const [loading, setLoading] = useState(false);
   const [actionId, setActionId] = useState(null);
   const [statusFilter, setStatusFilter] = useState("");
+  const [sourceFilter, setSourceFilter] = useState("");
   const [dateFilter, setDateFilter] = useState("");
   const [pageMode, setPageMode] = useState("list");
   const [recordId, setRecordId] = useState(null);
@@ -91,6 +93,7 @@ const SalesInvoice = () => {
       "BuyersOrderNo",
       "CustomerGstin",
       "status",
+      "sourceLabel",
       "tallyLabel",
     ],
     itemsPerPage: 100,
@@ -228,8 +231,9 @@ const SalesInvoice = () => {
 
   const filteredData = paginatedData.filter((p) => {
     const matchesStatus = statusFilter ? p.status === statusFilter : true;
+    const matchesSource = sourceFilter ? p.sourceLabel === sourceFilter : true;
     const matchesDate = dateFilter ? p.InvoiceDate === dateFilter : true;
-    return matchesStatus && matchesDate;
+    return matchesStatus && matchesSource && matchesDate;
   });
 
   const exportColumns = [
@@ -242,6 +246,7 @@ const SalesInvoice = () => {
     { label: "IRN", key: "IRN" },
     { label: "Items", key: "ItemCount" },
     { label: "Amount", key: "BillAmount" },
+    { label: "Source", key: "sourceLabel" },
     { label: "Status", key: "status" },
     { label: "Tally", key: "tallyLabel" },
   ];
@@ -333,6 +338,16 @@ const SalesInvoice = () => {
                       <select
                         className="form-control"
                         style={{ minWidth: 140, maxWidth: 140 }}
+                        value={sourceFilter}
+                        onChange={(e) => setSourceFilter(e.target.value)}
+                      >
+                        <option value="">All Source</option>
+                        <option value="Software">Software</option>
+                        <option value="Tally">Tally</option>
+                      </select>
+                      <select
+                        className="form-control"
+                        style={{ minWidth: 140, maxWidth: 140 }}
                         value={statusFilter}
                         onChange={(e) => setStatusFilter(e.target.value)}
                       >
@@ -376,6 +391,7 @@ const SalesInvoice = () => {
                           <th>Order No</th>
                           <th className="text-center">Items</th>
                           <th>Amount</th>
+                          <th>Source</th>
                           <th>Status</th>
                           <th>Tally</th>
                           <th className="text-end">Action</th>
@@ -413,6 +429,13 @@ const SalesInvoice = () => {
                                 <td>{note.BuyersOrderNo || "—"}</td>
                                 <td className="text-center fw-semibold">{note.ItemCount}</td>
                                 <td className="fw-bold">{formatMoney(note.BillAmount)}</td>
+                                <td>
+                                  <SourceBadge
+                                    dataStatus={note.data_status}
+                                    label={note.sourceLabel}
+                                    variant={note.sourceVariant}
+                                  />
+                                </td>
                                 <td>
                                   <Badge bg={statusVariant[note.status] || "secondary"} className="rounded-pill">
                                     <i className={`fa-solid ${statusIcon[note.status] || "fa-circle"} me-1`}></i>

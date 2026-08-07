@@ -143,20 +143,24 @@ const EmployeeList = () => {
                       </td>
 
                       <td>
-                        <div className="d-flex">
-                          <button
-                            className="btn btn-primary shadow btn-xs sharp me-1"
-                            onClick={() => navigate(`/update-employee/${emp.id}`)}
-                          >
-                            <i className="fas fa-pencil-alt"></i>
-                          </button>
-                          <button
-                            className="btn btn-danger shadow btn-xs sharp"
-                            onClick={() => handleDelete(emp.id)}
-                          >
-                            <i className="fa fa-trash"></i>
-                          </button>
-                        </div>
+                        {emp.is_tenant_admin ? (
+                          <span className="badge bg-info">Tenant Admin</span>
+                        ) : (
+                          <div className="d-flex">
+                            <button
+                              className="btn btn-primary shadow btn-xs sharp me-1"
+                              onClick={() => navigate(`/update-employee/${emp.id}`)}
+                            >
+                              <i className="fas fa-pencil-alt"></i>
+                            </button>
+                            <button
+                              className="btn btn-danger shadow btn-xs sharp"
+                              onClick={() => handleDelete(emp.id)}
+                            >
+                              <i className="fa fa-trash"></i>
+                            </button>
+                          </div>
+                        )}
                       </td>
                     </tr>
                   ))

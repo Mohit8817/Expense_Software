@@ -35,7 +35,7 @@ const Payment = () => (
     newButtonLabel="New Payment"
     exportFileName="Payment_Voucher_List"
     searchPlaceholder="Search payment vouchers..."
-    searchKeys={["voucher_no", "from_company_name", "party_name", "party_flow", "narration", "linked_document_no", "payment_type", "status", "tallyLabel"]}
+    searchKeys={["voucher_no", "from_company_name", "party_name", "party_flow", "narration", "linked_document_no", "payment_type", "status", "sourceLabel", "tallyLabel"]}
     exportColumns={[
       { label: "Voucher No", key: "voucher_no" },
       { label: "Date", key: "voucher_date" },
@@ -45,6 +45,7 @@ const Payment = () => (
       { label: "Pay To", key: "party_name" },
       { label: "Reference Doc", key: "linked_document_no" },
       { label: "Amount", key: "amount" },
+      { label: "Source", key: "sourceLabel" },
       { label: "Status", key: "status" },
       { label: "Tally", key: "tallyLabel" },
     ]}

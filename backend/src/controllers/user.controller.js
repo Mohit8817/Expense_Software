@@ -4,6 +4,25 @@ import path from "path";
 
 const prisma = new PrismaClient();
 
+const TENANT_ADMIN_MSG = "Tenant admin users can only be edited from Settings → Tenant";
+const DEVELOPER_MSG = "Developer users can only be managed from the database seed";
+
+async function assertNotTenantAdmin(userId, res) {
+  const user = await prisma.User.findUnique({
+    where: { id: Number(userId) },
+    select: { is_tenant_admin: true, is_developer: true },
+  });
+  if (user?.is_developer) {
+    res.status(403).json({ message: DEVELOPER_MSG });
+    return true;
+  }
+  if (user?.is_tenant_admin) {
+    res.status(403).json({ message: TENANT_ADMIN_MSG });
+    return true;
+  }
+  return false;
+}
+
 //  CREATE EMPLOYEE
 export const createUser = async (req, res) => {
   try {
@@ -83,6 +102,8 @@ export const getAllUsers = async (req, res) => {
     const users = await prisma.User.findMany({
       where: {
         company_id: req.user.company_id,
+        is_tenant_admin: false,
+        is_developer: false,
       },
       orderBy: { created_at: "desc" },
     });
@@ -101,6 +122,8 @@ export const getReportingHeads = async (req, res) => {
     const users = await prisma.User.findMany({
       where: {
         company_id: req.user.company_id,
+        is_tenant_admin: false,
+        is_developer: false,
       },
       orderBy: { username: "asc" },
       select: {
@@ -123,10 +146,27 @@ export const getReportingHeads = async (req, res) => {
 export const getUserById = async (req, res) => {
   try {
     const { id } = req.params;
+
+    const user = await prisma.User.findUnique({
+      where: { id: Number(id) },
+    });
+
+    if (!user)
+      return res.status(404).json({ message: "User not found" });
+
+    if (user.is_tenant_admin) {
+      return res.status(403).json({ message: TENANT_ADMIN_MSG });
+    }
+
+    if (user.is_developer) {
+      return res.status(403).json({ message: DEVELOPER_MSG });
+    }
+
       // Reporting heads
     const reportingHeads = await prisma.User.findMany({
       where: {
         company_id: req.user.company_id,
+        is_tenant_admin: false,
       },
       orderBy: { username: "asc" },
       select: {
@@ -135,13 +175,6 @@ export const getUserById = async (req, res) => {
         email: true,
       },
     });
-
-    const user = await prisma.User.findUnique({
-      where: { id: Number(id) },
-    });
-
-    if (!user)
-      return res.status(404).json({ message: "User not found" });
 
     res.json({ user, reportingHeads });
 
@@ -155,6 +188,8 @@ export const updateUser = async (req, res) => {
   const { id } = req.params;
 
   try {
+    if (await assertNotTenantAdmin(id, res)) return;
+
     const {
       empName,
       empEmail,
@@ -252,6 +287,8 @@ export const deleteUser = async (req, res) => {
   try {
     const { id } = req.params;
 
+    if (await assertNotTenantAdmin(id, res)) return;
+
     // 🔍 Find user first
     const existingUser = await prisma.User.findUnique({
       where: { id: Number(id) },
@@ -292,6 +329,9 @@ export const deleteUser = async (req, res) => {
 export const changeUserStatus = async (req, res) => {
   try {
     const { id } = req.params;
+
+    if (await assertNotTenantAdmin(id, res)) return;
+
     let { status } = req.body;
 
     //  Convert string to boolean if coming from frontend
